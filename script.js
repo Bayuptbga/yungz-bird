@@ -199,104 +199,89 @@
   let isHost = false;
   let syncTimer = 0;
   
-  // Custom Pseudo-Random Generator based on seed (biar pipa player 1 dan 2 sama persis)
+  // ID UNIK PER BROWSER: Mencegah bug tab sendiri menerima pesan matinya sendiri
+  const myPlayerId = Math.random().toString(36).substring(2, 10);
+  
   let currentSeed = 1;
   function prng() {
-      if(!isVSMode) return Math.random(); // Kalau solo, pakai random normal
+      if(!isVSMode) return Math.random(); 
       let t = currentSeed += 0x6D2B79F5;
       t = Math.imul(t ^ t >>> 15, t | 1);
       t ^= t + Math.imul(t ^ t >>> 7, t | 61);
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
   }
 
-  // Objek burung lawan
-  let ghostBird = { active: false, x: 0, y: 0, rot: 0 };
+  // Gunakan yRatio untuk memastikan akurasi sinkronisasi ukuran layar beda (HP vs PC)
+  let ghostBird = { active: false, x: 0, yRatio: 0, rot: 0 };
 
   async function startVSMatchmaking() {
       if (!currentUser) {
           alert("Silakan Login terlebih dahulu untuk bermain VS Mode!");
           return;
       }
-      
       isVSMode = true;
       startScreen.classList.add('hidden');
       vsWaitingScreen.classList.remove('hidden');
       vsStatusText.textContent = "Mencari ruangan kosong...";
 
       try {
-          // 1. Cari room yang 'waiting'
           const { data, error } = await supabase.from('rooms').select('*').eq('status', 'waiting').limit(1);
-          
           if (data && data.length > 0) {
-              // Kita join sebagai Player 2
               vsRoomId = data[0].id;
               isHost = false;
-              currentSeed = data[0].pipe_seed; // Ambil kunci pipa dari room
+              currentSeed = data[0].pipe_seed; 
               vsStatusText.textContent = `Room ketemu! Menghubungkan ke ${data[0].player1_username}...`;
-              
               await supabase.from('rooms').update({ player2_username: currentUser, status: 'playing' }).eq('id', vsRoomId);
               setupRealtime();
           } else {
-              // 2. Buat room baru sebagai Player 1 (Host)
               isHost = true;
               currentSeed = Math.floor(Math.random() * 999999);
-              
               const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{
-                  player1_username: currentUser,
-                  pipe_seed: currentSeed
+                  player1_username: currentUser, pipe_seed: currentSeed
               }]).select();
               
               if(newRoom && newRoom.length > 0) {
                   vsRoomId = newRoom[0].id;
                   vsStatusText.textContent = "Room dibuat! Menunggu lawan masuk...";
                   setupRealtime();
-              } else {
-                  throw new Error("Gagal membuat room");
-              }
+              } else { throw new Error("Gagal membuat room"); }
           }
       } catch (err) {
-          console.error(err);
           vsStatusText.textContent = "Terjadi kesalahan koneksi.";
           setTimeout(() => { goHome(); }, 2000);
       }
   }
 
   function setupRealtime() {
-      // Connect ke channel ruangan
       vsChannel = supabase.channel('room_' + vsRoomId, {
           config: { broadcast: { self: false } }
       });
 
-      // Menerima update posisi (Y & Rotasi) burung lawan
       vsChannel.on('broadcast', { event: 'sync' }, (payload) => {
+          if(payload.payload.id === myPlayerId) return; // ABAIKAN JIKA PESAN DARI DIRI SENDIRI
           ghostBird.active = true;
-          ghostBird.y = payload.payload.y;
+          ghostBird.yRatio = payload.payload.yRatio;
           ghostBird.rot = payload.payload.rot;
       });
 
-      // Menerima info bahwa lawan mati
       vsChannel.on('broadcast', { event: 'dead' }, (payload) => {
+          if(payload.payload.id === myPlayerId) return; // ABAIKAN JIKA PESAN DARI DIRI SENDIRI
           if (state === 'playing') {
-              winVS(); // Kalau lawan mati duluan dan kita masih main, kita menang!
+              winVS(); 
           }
       });
 
-      // [Player 2] Menerima sinyal start dari Host
       vsChannel.on('broadcast', { event: 'start' }, (payload) => {
           if(!isHost) startGameVS();
       });
 
       vsChannel.subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-              if (!isHost) {
-                  // Jika kita Player 2, kasih tau Host kita udah standby
-                  vsChannel.send({ type: 'broadcast', event: 'ready', payload: {} });
-              }
+              if (!isHost) { vsChannel.send({ type: 'broadcast', event: 'ready', payload: {} }); }
           }
       });
 
       if (isHost) {
-          // [Player 1] Dengar sinyal ready dari Player 2
           vsChannel.on('broadcast', { event: 'ready' }, () => {
               vsStatusText.textContent = "Lawan masuk! Mulai dalam 3 detik...";
               vsChannel.send({ type: 'broadcast', event: 'start', payload: {} });
@@ -306,54 +291,41 @@
   }
 
   function startGameVS() {
-      // Reset ulang seed agar generate pipa dari awal sama
       currentSeed = isHost ? currentSeed : currentSeed; 
-      
-      resize(); 
-      reset(); 
-      state = 'playing';
-      ghostBird = { active: false, x: W*0.32, y: H*0.42, rot: 0 };
-      
+      resize(); reset(); state = 'playing';
+      ghostBird = { active: false, x: W*0.32, yRatio: 0.42, rot: 0 };
       vsWaitingScreen.classList.add('hidden');
-      hud.classList.remove('hidden'); 
-      authBar.classList.add('hidden');
+      hud.classList.remove('hidden'); authBar.classList.add('hidden');
   }
 
   function winVS() {
       state = 'over'; playSound('score');
-      overTitle.textContent = "MENANG!";
-      overTitle.style.color = "#5fc084"; // Hijau kalau menang
+      overTitle.innerHTML = "LAWAN MATI!<br>KAMU MENANG!";
+      overTitle.style.color = "#5fc084"; // Hijau
       
-      let reward = 100; // Hadiah menang VS 100 koin
+      let reward = 100; 
       flappyCoins += reward;
       updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
       
       coinsGainedEl.textContent = `+${reward} Koin Hadiah VS!`;
       coinsGainedEl.classList.remove('hidden');
-      scoreLine.textContent = 'Skor VS: ' + score;
+      scoreLine.textContent = 'Skor Akhir VS: ' + score;
       
       overScreen.classList.remove('hidden'); hud.classList.add('hidden'); authBar.classList.remove('hidden');
-      
       if(currentUser) saveScoreAndCoinsToServer(currentUser, score, reward);
-      cleanUpVS();
+      setTimeout(() => cleanUpVS(), 1000);
   }
 
   function cleanUpVS() {
-      if (vsChannel) {
-          vsChannel.unsubscribe();
-          vsChannel = null;
-      }
-      isVSMode = false;
-      ghostBird.active = false;
+      if (vsChannel) { vsChannel.unsubscribe(); vsChannel = null; }
+      isVSMode = false; ghostBird.active = false;
   }
 
   cancelVsBtn.addEventListener('click', () => {
       cleanUpVS();
-      // Hapus room kalau kita Host dan batal (optional)
       if(isHost && vsRoomId) { supabase.from('rooms').delete().eq('id', vsRoomId).then(); }
       goHome();
   });
-
   vsMenuBtn.addEventListener('click', startVSMatchmaking);
 
   // --- RENDERING & FISIKA ---
@@ -387,7 +359,7 @@
   const BIRD_R = 15;
 
   let state = 'start'; 
-  let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize, lastGapY;
+  let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize, lastGapRatio;
 
   best = Number(localStorage.getItem('flappy_best') || 0);
   bestLine.textContent = 'Terbaik: ' + best;
@@ -398,24 +370,23 @@
     bird = { x: W*0.32, y: H*0.42, vy: 0, rot: 0 };
     pipes = []; particles = [];
     score = 0; elapsed = 0; pipeTimer = 0; groundOffset = 0; bgOffset = 0;
-    pipeSpeed = 165; gapSize = dynamicGap; lastGapY = null;
+    pipeSpeed = 165; gapSize = dynamicGap; lastGapRatio = null;
     hud.textContent = '0';
   }
   reset();
 
   function spawnPipe(){
-    const margin = 70; const minY = margin; const maxY = H - dynamicGroundH - margin;
-    const maxDelta = Math.max(gapSize * 0.9, 90);
-    let centerY;
-    
-    // GANTI Math.random() dengan prng() agar seed tersinkronisasi di VS Mode
-    if(lastGapY === null){ centerY = minY + prng() * (maxY - minY); }
-    else {
-      const lo = Math.max(minY, lastGapY - maxDelta);
-      const hi = Math.min(maxY, lastGapY + maxDelta);
-      centerY = lo + prng() * (hi - lo);
+    let centerRatio;
+    if(lastGapRatio === null){ 
+        centerRatio = 0.2 + prng() * 0.5; // 20% hingga 70% dari tinggi layar
+    } else {
+        const maxDeltaRatio = 0.25;
+        const lo = Math.max(0.15, lastGapRatio - maxDeltaRatio);
+        const hi = Math.min(0.75, lastGapRatio + maxDeltaRatio);
+        centerRatio = lo + prng() * (hi - lo);
     }
-    lastGapY = centerY;
+    lastGapRatio = centerRatio;
+    let centerY = centerRatio * H; // Convert rasio ke Piksel agar 100% konsisten walau beda HP
 
     const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55);
     const moving = score >= 150 && prng() < moveChance;
@@ -426,7 +397,7 @@
       x: W + PIPE_W, gapY: centerY, baseGapY: centerY, passed: false,
       moving, moveAmp: moving ? 30 + prng() * 40 : 0, moveSpeed: moving ? 1.2 + prng() * 1.3 : 0, moveAge: prng() * Math.PI * 2,
       hMoving, hAmp: hMoving ? 18 + prng() * 22 : 0, hSpeed: hMoving ? 1.0 + prng() * 1.2 : 0, hAge: prng() * Math.PI * 2,
-      xOffset: 0, minY, maxY
+      xOffset: 0, minY: 70, maxY: H - dynamicGroundH - 70
     });
   }
 
@@ -445,7 +416,7 @@
 
   function startGameSolo(){
     isVSMode = false;
-    currentSeed = Math.random() * 999999; // Acak seed untuk solo
+    currentSeed = Math.random() * 999999; 
     resize(); reset(); state = 'playing';
     startScreen.classList.add('hidden'); overScreen.classList.add('hidden');
     hud.classList.remove('hidden'); authBar.classList.add('hidden');
@@ -466,24 +437,21 @@
 
   function endGame(){
     state = 'over'; playSound('hit');
-    overTitle.textContent = "GAME OVER";
-    overTitle.style.color = "#ffd27a"; // Default kuning
+    overTitle.innerHTML = "KAMU KALAH :(";
+    overTitle.style.color = "#ff6b6b"; 
     
-    // JIKA VS MODE, KIRIM SINYAL KALAH
+    // JIKA VS MODE, KIRIM SINYAL KALAH KE LAWAN DENGAN ID UNIK
     if (isVSMode && vsChannel) {
-        vsChannel.send({ type: 'broadcast', event: 'dead', payload: {} });
-        overTitle.textContent = "KALAH :(";
-        overTitle.style.color = "#ff6b6b"; // Merah kalah
-        cleanUpVS();
+        vsChannel.send({ type: 'broadcast', event: 'dead', payload: { id: myPlayerId } });
+        setTimeout(() => cleanUpVS(), 1000); // Tunggu 1 detik agar sinyal pasti terkirim ke server sebelum putus
     }
 
     if(score > 0 && !isVSMode){
-      // Hadiah koin normal hanya di solo
       flappyCoins += score;
       updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
       coinsGainedEl.textContent = `+${score} Koin`;
       coinsGainedEl.classList.remove('hidden');
-    } else {
+    } else if (!isVSMode) {
       coinsGainedEl.classList.add('hidden');
     }
 
@@ -538,14 +506,13 @@
     
     if(state !== 'playing') return;
     
-    // Broadcast Posisi Burung di VS Mode (sekitar 10 fps biar hemat data)
     if(isVSMode && vsChannel) {
         syncTimer -= dt;
         if(syncTimer <= 0) {
             syncTimer = 0.1;
             vsChannel.send({
                 type: 'broadcast', event: 'sync',
-                payload: { y: bird.y, rot: bird.rot }
+                payload: { id: myPlayerId, yRatio: bird.y / H, rot: bird.rot } // Gunakan Ratio
             });
         }
     }
@@ -620,7 +587,7 @@
     ctx.save(); 
     ctx.translate(b.x, b.y); 
     ctx.rotate(b.rot);
-    if(isGhost) ctx.globalAlpha = 0.4; // Burung lawan semi-transparan
+    if(isGhost) ctx.globalAlpha = 0.4; 
 
     ctx.fillStyle = colorConfig.body; ctx.beginPath(); ctx.ellipse(0,0, BIRD_R, BIRD_R*0.85, 0, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = colorConfig.belly; ctx.beginPath(); ctx.ellipse(-2,3, BIRD_R*0.6, BIRD_R*0.5, 0, 0, Math.PI*2); ctx.fill();
@@ -634,10 +601,9 @@
   function draw(){
     drawSky(); drawPipes(); drawParticles(); 
     
-    // Draw Ghost (Lawan) jika aktif
     if(isVSMode && ghostBird.active && state === 'playing') {
-        ghostBird.x = bird.x; // Set X sejajar
-        // Untuk lawan, kita pakai skin default biar simpel, atau jika mau pakai skin aktif bisa diubah
+        ghostBird.x = bird.x;
+        ghostBird.y = ghostBird.yRatio * H; // Konversi Ratio ke Piksel
         drawSingleBird(ghostBird, skinsData[0].colors, true);
     }
     
