@@ -191,7 +191,10 @@
       }
 
       leaderboardList.innerHTML = data.map((row, i) => `
-        <li><span><span class="lbRank">${i+1}.</span>${escapeHtml(row.player_name)}</span><span>${row.score}</span></li>
+        <li>
+          <span class="lbNameWrap"><span class="lbRank">${i+1}.</span><span class="lbName">${escapeHtml(row.player_name)}</span></span>
+          <span class="lbScore">${row.score}</span>
+        </li>
       `).join('');
     }catch(err){
       leaderboardList.innerHTML = '<li class="lbEmpty">Gagal memuat</li>';
