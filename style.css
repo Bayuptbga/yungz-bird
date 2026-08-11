@@ -132,24 +132,26 @@ canvas{
 }
 .authBar{
   position:absolute;
-  top:calc(env(safe-area-inset-top, 0px) + 14px);
-  right:14px;
+  top:calc(env(safe-area-inset-top, 0px) + 20px);
+  right:16px;
   z-index:20;
 }
 .gearBtn{
   display:flex;
   align-items:center;
   justify-content:center;
-  width:38px;
-  height:38px;
+  width:40px;
+  height:40px;
   background:rgba(255,243,214,0.12);
   color:var(--cream);
   border:2px solid rgba(255,243,214,0.3);
   border-radius:50%;
   cursor:pointer;
   padding:0;
+  box-shadow:0 3px 8px rgba(0,0,0,0.35);
+  transition:transform 0.15s ease, background 0.15s ease;
 }
-.gearBtn:active{ opacity:0.7; }
+.gearBtn:active{ opacity:0.7; transform:scale(0.92); }
 .loginOverlay{ z-index:30; }
 .loginCard{
   position:relative;
