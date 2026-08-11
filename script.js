@@ -15,11 +15,122 @@
   const scoreLine = document.getElementById('scoreLine');
   const bestLine = document.getElementById('bestLine');
   const saveStatus = document.getElementById('saveStatus');
-  const nameInput = document.getElementById('nameInput');
-  const nameError = document.getElementById('nameError');
   const leaderboardList = document.getElementById('leaderboardList');
 
-  nameInput.value = localStorage.getItem('flappy_player_name') || '';
+  const authBar = document.getElementById('authBar');
+  const loginBtn = document.getElementById('loginBtn');
+  const authUser = document.getElementById('authUser');
+  const authUsername = document.getElementById('authUsername');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loginScreen = document.getElementById('loginScreen');
+  const loginCloseBtn = document.getElementById('loginCloseBtn');
+  const loginUsernameInput = document.getElementById('loginUsername');
+  const loginPasswordInput = document.getElementById('loginPassword');
+  const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+  const loginError = document.getElementById('loginError');
+
+  let currentUser = localStorage.getItem('flappy_username') || null;
+
+  function updateAuthUI(){
+    if(currentUser){
+      loginBtn.classList.add('hidden');
+      authUser.classList.remove('hidden');
+      authUsername.textContent = currentUser;
+    }else{
+      loginBtn.classList.remove('hidden');
+      authUser.classList.add('hidden');
+    }
+  }
+  updateAuthUI();
+
+  async function sha256Hex(text){
+    const enc = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function handleLoginSubmit(){
+    const username = loginUsernameInput.value.trim();
+    const password = loginPasswordInput.value;
+    loginError.classList.add('hidden');
+
+    if(!username || !password){
+      loginError.textContent = 'Isi username & password dulu ya!';
+      loginError.classList.remove('hidden');
+      return;
+    }
+
+    loginSubmitBtn.disabled = true;
+    loginSubmitBtn.textContent = 'MEMPROSES...';
+
+    try{
+      const passwordHash = await sha256Hex(password);
+
+      const { data: existingUser, error: fetchErr } = await supabase
+        .from('users')
+        .select('username,password_hash')
+        .eq('username', username)
+        .maybeSingle();
+
+      if(fetchErr){
+        loginError.textContent = 'Gagal terhubung ke server';
+        loginError.classList.remove('hidden');
+        return;
+      }
+
+      if(existingUser){
+        if(existingUser.password_hash !== passwordHash){
+          loginError.textContent = 'Password salah';
+          loginError.classList.remove('hidden');
+          return;
+        }
+      }else{
+        const { error: insertErr } = await supabase
+          .from('users')
+          .insert({ username, password_hash: passwordHash });
+        if(insertErr){
+          loginError.textContent = 'Gagal mendaftar, coba username lain';
+          loginError.classList.remove('hidden');
+          return;
+        }
+      }
+
+      currentUser = username;
+      localStorage.setItem('flappy_username', username);
+      updateAuthUI();
+      loginScreen.classList.add('hidden');
+      loginUsernameInput.value = '';
+      loginPasswordInput.value = '';
+    }catch(err){
+      loginError.textContent = 'Terjadi kesalahan';
+      loginError.classList.remove('hidden');
+    }finally{
+      loginSubmitBtn.disabled = false;
+      loginSubmitBtn.textContent = 'MASUK';
+    }
+  }
+
+  loginBtn.addEventListener('click', () => {
+    loginError.classList.add('hidden');
+    loginScreen.classList.remove('hidden');
+  });
+  loginCloseBtn.addEventListener('click', () => {
+    loginScreen.classList.add('hidden');
+  });
+  loginSubmitBtn.addEventListener('click', handleLoginSubmit);
+  logoutBtn.addEventListener('click', () => {
+    currentUser = null;
+    localStorage.removeItem('flappy_username');
+    updateAuthUI();
+  });
+
+  loginUsernameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); });
+  loginUsernameInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+  loginPasswordInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+  loginPasswordInput.addEventListener('keydown', (e)=>{
+    e.stopPropagation();
+    if(e.key === 'Enter') handleLoginSubmit();
+  });
 
   async function loadLeaderboard(){
     try{
@@ -113,20 +224,12 @@
   }
 
   function startGame(){
-    const name = nameInput.value.trim();
-    if(!name){
-      nameError.classList.remove('hidden');
-      nameInput.focus();
-      return;
-    }
-    nameError.classList.add('hidden');
-    localStorage.setItem('flappy_player_name', name);
-
     reset();
     state = 'playing';
     startScreen.classList.add('hidden');
     overScreen.classList.add('hidden');
     hud.classList.remove('hidden');
+    authBar.classList.add('hidden');
   }
 
   async function saveScore(name, finalScore){
@@ -165,9 +268,13 @@
     bestLine.textContent = 'Terbaik: ' + best;
     overScreen.classList.remove('hidden');
     hud.classList.add('hidden');
+    authBar.classList.remove('hidden');
 
-    const playerName = localStorage.getItem('flappy_player_name') || 'Anon';
-    saveScore(playerName, score);
+    if(currentUser){
+      saveScore(currentUser, score);
+    }else{
+      saveStatus.textContent = 'Login untuk menyimpan skor';
+    }
   }
 
   canvas.addEventListener('pointerdown', (e)=>{ e.preventDefault(); flap(); });
@@ -183,14 +290,9 @@
     overScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
     hud.classList.add('hidden');
+    authBar.classList.remove('hidden');
     loadLeaderboard();
   }
-
-  nameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); });
-  nameInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
-  nameInput.addEventListener('keyup', (e)=>{
-    if(e.key === 'Enter') startGame();
-  });
 
   startBtn.addEventListener('click', startGame);
   retryBtn.addEventListener('click', startGame);
