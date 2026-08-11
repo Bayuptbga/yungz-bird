@@ -70,6 +70,34 @@ canvas{
   transition:transform 0.05s;
 }
 .btn:active{ transform:translateY(4px); box-shadow:0 1px 0 #b8842f; }
+.btnSmall{
+  font-size:10px;
+  padding:9px 16px;
+  box-shadow:0 4px 0 #a89579;
+  margin-top:-6px;
+}
+.btnSmall:active{ box-shadow:0 1px 0 #a89579; }
+.startUserInfo{
+  margin-top:-6px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+.startUsername{
+  font-size:12px;
+  color:var(--sun);
+  max-width:220px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.startUserBest{
+  font-size:10px;
+  color:var(--cream);
+  opacity:0.8;
+  margin:0;
+}
 .btnRow{ display:flex; gap:14px; }
 .btnSecondary{
   background:var(--cream);
@@ -108,35 +136,20 @@ canvas{
   right:14px;
   z-index:20;
 }
-.authBtn{
-  font-family:'Press Start 2P', monospace;
-  font-size:9px;
+.gearBtn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
   background:rgba(255,243,214,0.12);
   color:var(--cream);
   border:2px solid rgba(255,243,214,0.3);
-  padding:9px 11px;
+  border-radius:50%;
   cursor:pointer;
+  padding:0;
 }
-.authBtn:active{ opacity:0.7; }
-.authUser{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  background:rgba(255,243,214,0.12);
-  border:2px solid rgba(255,243,214,0.3);
-  padding:9px 12px;
-  font-size:9px;
-  font-family:'Press Start 2P', monospace;
-  cursor:pointer;
-}
-.authUser:active{ opacity:0.7; }
-.authUser span{
-  color:var(--sun);
-  max-width:110px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
+.gearBtn:active{ opacity:0.7; }
 .loginOverlay{ z-index:30; }
 .loginCard{
   position:relative;
