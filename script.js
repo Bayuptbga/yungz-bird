@@ -7,6 +7,7 @@
   const overScreen = document.getElementById('overScreen');
   const startBtn = document.getElementById('startBtn');
   const retryBtn = document.getElementById('retryBtn');
+  const homeBtn = document.getElementById('homeBtn');
   const scoreLine = document.getElementById('scoreLine');
   const bestLine = document.getElementById('bestLine');
 
@@ -97,8 +98,16 @@
       flap();
     }
   });
+  function goHome(){
+    reset();
+    state = 'start';
+    overScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+  }
+
   startBtn.addEventListener('click', startGame);
   retryBtn.addEventListener('click', startGame);
+  homeBtn.addEventListener('click', goHome);
 
   function circleRectCollide(cx, cy, r, rx, ry, rw, rh){
     const nx = Math.max(rx, Math.min(cx, rx+rw));
