@@ -126,6 +126,7 @@
     state = 'playing';
     startScreen.classList.add('hidden');
     overScreen.classList.add('hidden');
+    hud.classList.remove('hidden');
   }
 
   async function saveScore(name, finalScore){
@@ -163,6 +164,7 @@
     scoreLine.textContent = 'Skor: ' + score;
     bestLine.textContent = 'Terbaik: ' + best;
     overScreen.classList.remove('hidden');
+    hud.classList.add('hidden');
 
     const playerName = localStorage.getItem('flappy_player_name') || 'Anon';
     saveScore(playerName, score);
@@ -180,6 +182,7 @@
     state = 'start';
     overScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
+    hud.classList.add('hidden');
     loadLeaderboard();
   }
 
