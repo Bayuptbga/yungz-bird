@@ -81,3 +81,21 @@ canvas{
   opacity:0.75;
   margin-top:2px;
 }
+.nameInput{
+  font-family:'Press Start 2P', monospace;
+  font-size:12px;
+  background:var(--cream);
+  color:var(--ink);
+  border:none;
+  padding:12px 14px;
+  width:100%;
+  max-width:260px;
+  text-align:center;
+  box-shadow:0 4px 0 #b8a06f;
+  outline:none;
+}
+.errorText{
+  font-size:10px;
+  color:#ff7a7a;
+  margin:-8px 0 0;
+}
