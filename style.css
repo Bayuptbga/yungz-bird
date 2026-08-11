@@ -105,6 +105,17 @@ canvas{
   box-shadow:0 5px 0 #a89579, 0 5px 12px rgba(0,0,0,0.4);
 }
 .btnSecondary:active{ box-shadow:0 1px 0 #a89579; }
+.btnDanger{
+  background:#ff6b6b;
+  color:var(--ink);
+  box-shadow:0 5px 0 #b83f3f, 0 5px 12px rgba(0,0,0,0.4);
+}
+.btnDanger:active{ box-shadow:0 1px 0 #b83f3f; }
+.btnDanger.confirming{
+  background:#ffe066;
+  box-shadow:0 5px 0 #b89a2f, 0 5px 12px rgba(0,0,0,0.4);
+}
+.btnDanger.confirming:active{ box-shadow:0 1px 0 #b89a2f; }
 .hidden{ display:none !important; }
 .badge{
   font-size:11px;
