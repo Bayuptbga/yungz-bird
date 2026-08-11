@@ -26,10 +26,7 @@
     lbFullList.innerHTML = '<li class="lbStatusText" style="width:100%;list-style:none;">Memuat...</li>';
     try{
       const { data, error } = await supabase
-        .from('scores')
-        .select('player_name,score')
-        .order('score', { ascending:false })
-        .limit(100);
+        .rpc('get_leaderboard', { p_limit: 100 });
 
       if(error){
         lbFullList.innerHTML = '<li class="lbStatusText" style="width:100%;list-style:none;">Gagal memuat leaderboard</li>';
