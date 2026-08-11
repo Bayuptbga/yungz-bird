@@ -211,8 +211,8 @@
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
   }
 
-  // Gunakan yRatio untuk memastikan akurasi sinkronisasi ukuran layar beda (HP vs PC)
-  let ghostBird = { active: false, x: 0, yRatio: 0, rot: 0 };
+  // Objek burung lawan
+  let ghostBird = { active: false, x: 0, yRatio: 0, rot: 0, skinId: 'default' };
 
   async function startVSMatchmaking() {
       if (!currentUser) {
@@ -222,6 +222,8 @@
       isVSMode = true;
       startScreen.classList.add('hidden');
       vsWaitingScreen.classList.remove('hidden');
+      vsStatusText.style.fontSize = "12px";
+      vsStatusText.style.color = "var(--cream)";
       vsStatusText.textContent = "Mencari ruangan kosong...";
 
       try {
@@ -230,7 +232,7 @@
               vsRoomId = data[0].id;
               isHost = false;
               currentSeed = data[0].pipe_seed; 
-              vsStatusText.textContent = `Room ketemu! Menghubungkan ke ${data[0].player1_username}...`;
+              vsStatusText.textContent = `Menghubungkan ke ${data[0].player1_username}...`;
               await supabase.from('rooms').update({ player2_username: currentUser, status: 'playing' }).eq('id', vsRoomId);
               setupRealtime();
           } else {
@@ -252,27 +254,60 @@
       }
   }
 
+  function startVSCountdown() {
+      let count = 3;
+      vsStatusText.style.fontSize = "28px";
+      vsStatusText.style.fontWeight = "bold";
+      vsStatusText.style.color = "#ffd27a";
+      vsStatusText.textContent = count;
+      playSound('score'); 
+      
+      let iv = setInterval(() => {
+          count--;
+          if(count > 0) {
+              vsStatusText.textContent = count;
+              playSound('score');
+          } else {
+              clearInterval(iv);
+              vsStatusText.textContent = "GO!";
+              playSound('flap');
+              setTimeout(() => startGameVS(), 400);
+          }
+      }, 1000);
+  }
+
   function setupRealtime() {
       vsChannel = supabase.channel('room_' + vsRoomId, {
           config: { broadcast: { self: false } }
       });
 
       vsChannel.on('broadcast', { event: 'sync' }, (payload) => {
-          if(payload.payload.id === myPlayerId) return; // ABAIKAN JIKA PESAN DARI DIRI SENDIRI
+          const data = payload.payload || {};
+          if(data.id === myPlayerId) return; 
           ghostBird.active = true;
-          ghostBird.yRatio = payload.payload.yRatio;
-          ghostBird.rot = payload.payload.rot;
+          ghostBird.yRatio = data.yRatio;
+          ghostBird.rot = data.rot;
+          ghostBird.skinId = data.skinId;
       });
 
       vsChannel.on('broadcast', { event: 'dead' }, (payload) => {
-          if(payload.payload.id === myPlayerId) return; // ABAIKAN JIKA PESAN DARI DIRI SENDIRI
+          const data = payload.payload || {};
+          if(data.id === myPlayerId) return; 
+          
           if (state === 'playing') {
               winVS(); 
+          } else if (state === 'over') {
+              // Jika kita juga mati, cek skor. Jika sama, artinya SERI!
+              if (score === data.score) {
+                  drawVS();
+              } else if (score > data.score) {
+                  winVS(); 
+              }
           }
       });
 
-      vsChannel.on('broadcast', { event: 'start' }, (payload) => {
-          if(!isHost) startGameVS();
+      vsChannel.on('broadcast', { event: 'start' }, () => {
+          if(!isHost) startVSCountdown();
       });
 
       vsChannel.subscribe((status) => {
@@ -283,9 +318,8 @@
 
       if (isHost) {
           vsChannel.on('broadcast', { event: 'ready' }, () => {
-              vsStatusText.textContent = "Lawan masuk! Mulai dalam 3 detik...";
               vsChannel.send({ type: 'broadcast', event: 'start', payload: {} });
-              startGameVS();
+              startVSCountdown();
           });
       }
   }
@@ -293,7 +327,7 @@
   function startGameVS() {
       currentSeed = isHost ? currentSeed : currentSeed; 
       resize(); reset(); state = 'playing';
-      ghostBird = { active: false, x: W*0.32, yRatio: 0.42, rot: 0 };
+      ghostBird = { active: false, x: W*0.32, yRatio: 0.42, rot: 0, skinId: 'default' };
       vsWaitingScreen.classList.add('hidden');
       hud.classList.remove('hidden'); authBar.classList.add('hidden');
   }
@@ -316,9 +350,25 @@
       setTimeout(() => cleanUpVS(), 1000);
   }
 
+  function drawVS() {
+      overTitle.innerHTML = "SERI / DRAW!";
+      overTitle.style.color = "#ffd27a"; // Kuning
+      
+      let reward = 50; // Hadiah hiburan seri
+      flappyCoins += reward;
+      updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
+      
+      coinsGainedEl.textContent = `+${reward} Koin Hiburan`;
+      coinsGainedEl.classList.remove('hidden');
+      
+      if(currentUser) saveScoreAndCoinsToServer(currentUser, score, reward);
+  }
+
   function cleanUpVS() {
       if (vsChannel) { vsChannel.unsubscribe(); vsChannel = null; }
       isVSMode = false; ghostBird.active = false;
+      vsStatusText.style.fontSize = "12px";
+      vsStatusText.style.color = "var(--cream)";
   }
 
   cancelVsBtn.addEventListener('click', () => {
@@ -386,7 +436,7 @@
         centerRatio = lo + prng() * (hi - lo);
     }
     lastGapRatio = centerRatio;
-    let centerY = centerRatio * H; // Convert rasio ke Piksel agar 100% konsisten walau beda HP
+    let centerY = centerRatio * H; // Convert rasio ke Piksel
 
     const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55);
     const moving = score >= 150 && prng() < moveChance;
@@ -440,30 +490,36 @@
     overTitle.innerHTML = "KAMU KALAH :(";
     overTitle.style.color = "#ff6b6b"; 
     
-    // JIKA VS MODE, KIRIM SINYAL KALAH KE LAWAN DENGAN ID UNIK
+    // JIKA VS MODE, KIRIM SINYAL KALAH KE LAWAN DENGAN ID & SKOR
     if (isVSMode && vsChannel) {
-        vsChannel.send({ type: 'broadcast', event: 'dead', payload: { id: myPlayerId } });
-        setTimeout(() => cleanUpVS(), 1000); // Tunggu 1 detik agar sinyal pasti terkirim ke server sebelum putus
-    }
-
-    if(score > 0 && !isVSMode){
-      flappyCoins += score;
-      updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
-      coinsGainedEl.textContent = `+${score} Koin`;
-      coinsGainedEl.classList.remove('hidden');
-    } else if (!isVSMode) {
-      coinsGainedEl.classList.add('hidden');
+        vsChannel.send({ type: 'broadcast', event: 'dead', payload: { id: myPlayerId, score: score } });
+        coinsGainedEl.classList.add('hidden'); // Sembunyikan koin dulu, tunggu konfirmasi seri
+        
+        setTimeout(() => {
+            // Jika tulisan masih "KALAH" (Bukan SERI), berarti kalah murni. Simpan data 0 koin.
+            if(overTitle.innerHTML.includes("KALAH")) {
+                if(currentUser) saveScoreAndCoinsToServer(currentUser, score, 0); 
+                cleanUpVS();
+            }
+        }, 1500); 
+    } else {
+        // Mode SOLO Biasa
+        if(score > 0){
+          flappyCoins += score;
+          updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
+          coinsGainedEl.textContent = `+${score} Koin`;
+          coinsGainedEl.classList.remove('hidden');
+        } else {
+          coinsGainedEl.classList.add('hidden');
+        }
+        if(currentUser) saveScoreAndCoinsToServer(currentUser, score, score);
     }
 
     if(score > best){ best = score; localStorage.setItem('flappy_best', String(best)); }
     scoreLine.textContent = 'Skor: ' + score; bestLine.textContent = 'Terbaik: ' + best;
     overScreen.classList.remove('hidden'); hud.classList.add('hidden'); authBar.classList.remove('hidden');
 
-    if(currentUser){ 
-      saveScoreAndCoinsToServer(currentUser, score, isVSMode ? 0 : score); 
-    }else{ 
-      saveStatus.textContent = 'Login untuk simpan permanen'; 
-    }
+    if(!currentUser){ saveStatus.textContent = 'Login untuk simpan permanen'; }
   }
 
   canvas.addEventListener('pointerdown', (e)=>{ e.preventDefault(); flap(); }, {passive: false});
@@ -506,13 +562,14 @@
     
     if(state !== 'playing') return;
     
+    // Broadcast Posisi Burung 20 fps agar mulus
     if(isVSMode && vsChannel) {
         syncTimer -= dt;
         if(syncTimer <= 0) {
-            syncTimer = 0.1;
+            syncTimer = 0.05; 
             vsChannel.send({
                 type: 'broadcast', event: 'sync',
-                payload: { id: myPlayerId, yRatio: bird.y / H, rot: bird.rot } // Gunakan Ratio
+                payload: { id: myPlayerId, yRatio: bird.y / H, rot: bird.rot, skinId: activeSkinId } 
             });
         }
     }
@@ -601,10 +658,12 @@
   function draw(){
     drawSky(); drawPipes(); drawParticles(); 
     
-    if(isVSMode && ghostBird.active && state === 'playing') {
+    // Draw Ghost walau kita mati (selama mode VS dan ghost active)
+    if(isVSMode && ghostBird.active) {
         ghostBird.x = bird.x;
-        ghostBird.y = ghostBird.yRatio * H; // Konversi Ratio ke Piksel
-        drawSingleBird(ghostBird, skinsData[0].colors, true);
+        ghostBird.y = ghostBird.yRatio * H; 
+        const ghostSkin = skinsData.find(s => s.id === ghostBird.skinId) || skinsData[0];
+        drawSingleBird(ghostBird, ghostSkin.colors, true);
     }
     
     drawSingleBird(bird, activeSkin.colors, false);
