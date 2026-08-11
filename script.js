@@ -311,7 +311,7 @@
   const GROUND_H = 70;
 
   let state = 'start'; // start | playing | over
-  let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, particles, pipeSpeed, gapSize;
+  let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize;
 
   best = Number(localStorage.getItem('flappy_best') || 0);
   bestLine.textContent = 'Terbaik: ' + best;
@@ -328,6 +328,7 @@
     elapsed = 0;
     pipeTimer = 0;
     groundOffset = 0;
+    bgOffset = 0;
     pipeSpeed = 165;
     gapSize = PIPE_GAP_BASE;
     hud.textContent = '0';
@@ -451,8 +452,16 @@
   }
 
   function update(dt){
-    groundOffset -= (state === 'over' ? 0 : pipeSpeed) * dt;
+    const scrollDelta = (state === 'over' ? 0 : pipeSpeed) * dt;
+
+    groundOffset -= scrollDelta;
     if(groundOffset < -40) groundOffset += 40;
+
+    // bgOffset dipakai khusus untuk paralaks gunung, geraknya terus-menerus
+    // tanpa dibatasi ke rentang kecil seperti groundOffset di atas -> jadi
+    // mulus, tidak "patah/lompat" setiap 40px.
+    bgOffset -= scrollDelta;
+    if(bgOffset < -100000) bgOffset += 100000;
 
     for(let i=particles.length-1;i>=0;i--){
       const p = particles[i];
@@ -527,14 +536,19 @@
 
     drawMountainsFar();
     drawMountainsNear();
-    drawHousingRow();
+  }
+
+  // Modulo yang selalu positif, biar tiling gunung tidak "lompat" saat
+  // offset negatif (bug lama: pakai % biasa bisa bikin hasil negatif).
+  function mod(n, m){
+    return ((n % m) + m) % m;
   }
 
   // Lapisan gunung paling jauh: gerak paling lambat (kesan paling jauh)
   function drawMountainsFar(){
     const baseY = H - GROUND_H;
     const tileW = 240;
-    const offset = (groundOffset * 0.07) % tileW;
+    const offset = mod(bgOffset * 0.07, tileW);
     ctx.save();
     ctx.globalAlpha = 0.55;
     ctx.fillStyle = '#3a2a55';
@@ -549,7 +563,7 @@
   function drawMountainsNear(){
     const baseY = H - GROUND_H;
     const tileW = 200;
-    const offset = (groundOffset * 0.15) % tileW;
+    const offset = mod(bgOffset * 0.15, tileW);
     ctx.save();
     ctx.globalAlpha = 0.8;
     ctx.fillStyle = '#221530';
@@ -580,41 +594,6 @@
       ctx.fill();
       ctx.restore();
     }
-  }
-
-  // Barisan rumah kecil paling depan, di atas garis tanah: gerak paling cepat
-  // (kesan paling dekat) dengan jendela menyala.
-  const housePalette = ['#3d2a4a', '#4a3358', '#33263f', '#432c52'];
-  function drawHousingRow(){
-    const baseY = H - GROUND_H;
-    const tileW = 96;
-    const offset = (groundOffset * 0.35) % tileW;
-    ctx.save();
-    ctx.globalAlpha = 0.95;
-    let i = 0;
-    for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){
-      const houseW = 42;
-      const houseH = 30 + (i % 3) * 8;
-      drawHouse(x + tileW*0.22, baseY, houseW, houseH, housePalette[i % housePalette.length]);
-      i++;
-    }
-    ctx.restore();
-  }
-
-  function drawHouse(x, baseY, w, h, color){
-    ctx.fillStyle = color;
-    ctx.fillRect(x, baseY - h, w, h);
-
-    ctx.beginPath();
-    ctx.moveTo(x - 6, baseY - h);
-    ctx.lineTo(x + w/2, baseY - h - 16);
-    ctx.lineTo(x + w + 6, baseY - h);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,210,120,0.7)';
-    ctx.fillRect(x + w*0.18, baseY - h*0.6, 6, 6);
-    ctx.fillRect(x + w*0.6, baseY - h*0.6, 6, 6);
   }
 
   function drawPipes(){
