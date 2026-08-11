@@ -86,6 +86,7 @@
   const profileCloseBtn = document.getElementById('profileCloseBtn');
   const profileUsername = document.getElementById('profileUsername');
   const profileBest = document.getElementById('profileBest');
+  const resetScoreBtn = document.getElementById('resetScoreBtn');
   const profileLogoutBtn = document.getElementById('profileLogoutBtn');
   const loginScreen = document.getElementById('loginScreen');
   const loginCloseBtn = document.getElementById('loginCloseBtn');
@@ -221,6 +222,7 @@
 
   async function openProfile(){
     if(!currentUser) return;
+    cancelResetConfirm();
     profileUsername.textContent = currentUser;
     profileBest.textContent = 'Skor Terbaik: ' + best;
     profileScreen.classList.remove('hidden');
@@ -228,9 +230,11 @@
     profileBest.textContent = 'Skor Terbaik: ' + best;
   }
   profileCloseBtn.addEventListener('click', () => {
+    cancelResetConfirm();
     profileScreen.classList.add('hidden');
   });
   profileLogoutBtn.addEventListener('click', () => {
+    cancelResetConfirm();
     currentUser = null;
     localStorage.removeItem('flappy_username');
     localStorage.removeItem('flappy_best');
@@ -238,6 +242,62 @@
     bestLine.textContent = 'Terbaik: ' + best;
     updateAuthUI();
     profileScreen.classList.add('hidden');
+  });
+
+  // --- Reset skor: butuh 2 tap biar gak kepencet gak sengaja ---
+  // Tap pertama: tombol berubah jadi "YAKIN? TAP LAGI" selama beberapa detik.
+  // Tap kedua (dalam jeda itu): baru benar-benar hapus skor.
+  let confirmingReset = false;
+  let resetConfirmTimer = null;
+
+  function cancelResetConfirm(){
+    confirmingReset = false;
+    clearTimeout(resetConfirmTimer);
+    resetScoreBtn.textContent = 'RESET SKOR';
+    resetScoreBtn.classList.remove('confirming');
+  }
+
+  async function resetScore(){
+    if(!currentUser) return;
+    resetScoreBtn.disabled = true;
+    resetScoreBtn.classList.remove('confirming');
+    resetScoreBtn.textContent = 'MERESET...';
+    try{
+      const { error } = await supabase
+        .from('scores')
+        .delete()
+        .eq('player_name', currentUser);
+
+      if(error){
+        profileBest.textContent = 'Gagal reset skor';
+      }else{
+        best = 0;
+        localStorage.setItem('flappy_best', '0');
+        bestLine.textContent = 'Terbaik: ' + best;
+        if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best;
+        profileBest.textContent = 'Skor Terbaik: ' + best;
+        loadLeaderboard();
+      }
+    }catch(err){
+      profileBest.textContent = 'Gagal reset skor';
+    }finally{
+      resetScoreBtn.disabled = false;
+      resetScoreBtn.textContent = 'RESET SKOR';
+      confirmingReset = false;
+    }
+  }
+
+  resetScoreBtn.addEventListener('click', () => {
+    if(!confirmingReset){
+      confirmingReset = true;
+      resetScoreBtn.textContent = 'YAKIN? TAP LAGI';
+      resetScoreBtn.classList.add('confirming');
+      clearTimeout(resetConfirmTimer);
+      resetConfirmTimer = setTimeout(cancelResetConfirm, 3500);
+    }else{
+      clearTimeout(resetConfirmTimer);
+      resetScore();
+    }
   });
 
   loginUsernameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); });
