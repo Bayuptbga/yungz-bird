@@ -1,4 +1,8 @@
 (function(){
+  const SUPABASE_URL = 'https://ahaojtuqxfmaysniyxei.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoYW9qdHVxeGZtYXlzbml5eGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NDc4MTYsImV4cCI6MjEwMjAyMzgxNn0.e5u-wpLnNkIMm_f5nla4jfBUqPYKT6iEuDEr-tXJEVs';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const stage = document.getElementById('stage');
@@ -10,6 +14,11 @@
   const homeBtn = document.getElementById('homeBtn');
   const scoreLine = document.getElementById('scoreLine');
   const bestLine = document.getElementById('bestLine');
+  const saveStatus = document.getElementById('saveStatus');
+  const nameInput = document.getElementById('nameInput');
+  const nameError = document.getElementById('nameError');
+
+  nameInput.value = localStorage.getItem('flappy_player_name') || '';
 
   let W, H, DPR;
   function resize(){
@@ -74,10 +83,32 @@
   }
 
   function startGame(){
+    const name = nameInput.value.trim();
+    if(!name){
+      nameError.classList.remove('hidden');
+      nameInput.focus();
+      return;
+    }
+    nameError.classList.add('hidden');
+    localStorage.setItem('flappy_player_name', name);
+
     reset();
     state = 'playing';
     startScreen.classList.add('hidden');
     overScreen.classList.add('hidden');
+  }
+
+  async function saveScore(name, finalScore){
+    saveStatus.textContent = 'Menyimpan skor...';
+    try{
+      const { error } = await supabase.from('scores').insert({
+        player_name: name,
+        score: finalScore
+      });
+      saveStatus.textContent = error ? 'Gagal menyimpan skor' : 'Skor tersimpan';
+    }catch(err){
+      saveStatus.textContent = 'Gagal menyimpan skor';
+    }
   }
 
   function endGame(){
@@ -89,6 +120,9 @@
     scoreLine.textContent = 'Skor: ' + score;
     bestLine.textContent = 'Terbaik: ' + best;
     overScreen.classList.remove('hidden');
+
+    const playerName = localStorage.getItem('flappy_player_name') || 'Anon';
+    saveScore(playerName, score);
   }
 
   canvas.addEventListener('pointerdown', (e)=>{ e.preventDefault(); flap(); });
@@ -104,6 +138,12 @@
     overScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
   }
+
+  nameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); });
+  nameInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+  nameInput.addEventListener('keyup', (e)=>{
+    if(e.key === 'Enter') startGame();
+  });
 
   startBtn.addEventListener('click', startGame);
   retryBtn.addEventListener('click', startGame);
