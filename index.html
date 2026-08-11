@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="stage">
@@ -16,6 +17,8 @@
   <div class="overlay" id="startScreen">
     <h1>YUNGZ<br>BIRD</h1>
     <p>Ketuk layar, klik, atau<br>tekan SPASI untuk terbang.<br>Hindari pipa!</p>
+    <input class="nameInput" id="nameInput" type="text" placeholder="Nama kamu" maxlength="16" autocomplete="off">
+    <p id="nameError" class="errorText hidden">Isi nama dulu ya!</p>
     <button class="btn" id="startBtn">MULAI</button>
   </div>
 
@@ -23,6 +26,7 @@
     <h1>GAME OVER</h1>
     <p id="scoreLine">Skor: 0</p>
     <p id="bestLine" class="badge">Terbaik: 0</p>
+    <p id="saveStatus" class="badge"></p>
     <div class="btnRow">
       <button class="btn" id="retryBtn">COBA LAGI</button>
       <button class="btn btnSecondary" id="homeBtn">HOME</button>
