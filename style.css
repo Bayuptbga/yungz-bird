@@ -124,26 +124,19 @@ canvas{
   gap:8px;
   background:rgba(255,243,214,0.12);
   border:2px solid rgba(255,243,214,0.3);
-  padding:7px 10px;
+  padding:9px 12px;
   font-size:9px;
+  font-family:'Press Start 2P', monospace;
+  cursor:pointer;
 }
+.authUser:active{ opacity:0.7; }
 .authUser span{
   color:var(--sun);
-  max-width:90px;
+  max-width:110px;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.authLogoutBtn{
-  background:none;
-  border:none;
-  color:var(--cream);
-  cursor:pointer;
-  font-size:13px;
-  padding:0;
-  line-height:1;
-}
-.authLogoutBtn:active{ opacity:0.6; }
 .loginOverlay{ z-index:30; }
 .loginCard{
   position:relative;
@@ -170,6 +163,14 @@ canvas{
   padding:4px;
 }
 .loginCloseBtn:active{ opacity:0.6; }
+.profileCard{ gap:16px; }
+.profileUsername{
+  font-size:15px;
+  color:var(--sun);
+  text-shadow:2px 2px 0 var(--ink);
+  margin:0;
+  word-break:break-word;
+}
 .leaderboard{
   position:fixed;
   top:16px;
