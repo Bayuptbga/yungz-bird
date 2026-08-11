@@ -3,6 +3,21 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoYW9qdHVxeGZtYXlzbml5eGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NDc4MTYsImV4cCI6MjEwMjAyMzgxNn0.e5u-wpLnNkIMm_f5nla4jfBUqPYKT6iEuDEr-tXJEVs';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  const sounds = {
+    flap: new Audio('sounds/flap.mp3'),
+    score: new Audio('sounds/score.mp3'),
+    hit: new Audio('sounds/hit.mp3')
+  };
+  Object.values(sounds).forEach(a => { a.preload = 'auto'; a.volume = 0.6; });
+
+  function playSound(name){
+    const base = sounds[name];
+    if(!base) return;
+    const s = base.cloneNode();
+    s.volume = base.volume;
+    s.play().catch(()=>{});
+  }
+
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const stage = document.getElementById('stage');
@@ -278,6 +293,7 @@
     }
     if(state === 'over') return;
     bird.vy = FLAP_V;
+    playSound('flap');
     for(let i=0;i<5;i++){
       particles.push({
         x: bird.x - 10, y: bird.y + 6,
@@ -324,6 +340,7 @@
 
   function endGame(){
     state = 'over';
+    playSound('hit');
     if(score > best){
       best = score;
       localStorage.setItem('flappy_best', String(best));
@@ -412,6 +429,7 @@
       if(!p.passed && p.x + PIPE_W < bird.x){
         p.passed = true;
         score++;
+        playSound('score');
         hud.textContent = String(score);
       }
 
