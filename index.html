@@ -21,6 +21,7 @@
       <ol class="lbList" id="leaderboardList">
         <li class="lbEmpty">Memuat...</li>
       </ol>
+      <button class="lbMoreLink" id="lbMoreBtn" type="button">Lihat semua &rsaquo;</button>
     </div>
     <input class="nameInput" id="nameInput" type="text" placeholder="Nama kamu" maxlength="16" autocomplete="off">
     <p id="nameError" class="errorText hidden">Isi nama dulu ya!</p>
@@ -37,8 +38,19 @@
       <button class="btn btnSecondary" id="homeBtn">HOME</button>
     </div>
   </div>
+
+  <div class="overlay hidden lbFullOverlay" id="lbFullScreen">
+    <div class="lbPageHead">
+      <button class="lbBackBtn" id="lbBackBtn" type="button">&lsaquo;</button>
+      <h1>TOP 100<br>SKOR</h1>
+    </div>
+    <ol class="lbFullList" id="lbFullList">
+      <li class="lbStatusText" style="width:100%;list-style:none;">Memuat...</li>
+    </ol>
+  </div>
 </div>
 
 <script src="script.js"></script>
+<script src="leaderboard.js"></script>
 </body>
 </html>
