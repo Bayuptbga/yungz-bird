@@ -21,7 +21,11 @@
   const loginBtn = document.getElementById('loginBtn');
   const authUser = document.getElementById('authUser');
   const authUsername = document.getElementById('authUsername');
-  const logoutBtn = document.getElementById('logoutBtn');
+  const profileScreen = document.getElementById('profileScreen');
+  const profileCloseBtn = document.getElementById('profileCloseBtn');
+  const profileUsername = document.getElementById('profileUsername');
+  const profileBest = document.getElementById('profileBest');
+  const profileLogoutBtn = document.getElementById('profileLogoutBtn');
   const loginScreen = document.getElementById('loginScreen');
   const loginCloseBtn = document.getElementById('loginCloseBtn');
   const loginUsernameInput = document.getElementById('loginUsername');
@@ -118,10 +122,22 @@
     loginScreen.classList.add('hidden');
   });
   loginSubmitBtn.addEventListener('click', handleLoginSubmit);
-  logoutBtn.addEventListener('click', () => {
+
+  function openProfile(){
+    if(!currentUser) return;
+    profileUsername.textContent = currentUser;
+    profileBest.textContent = 'Skor Terbaik: ' + best;
+    profileScreen.classList.remove('hidden');
+  }
+  authUser.addEventListener('click', openProfile);
+  profileCloseBtn.addEventListener('click', () => {
+    profileScreen.classList.add('hidden');
+  });
+  profileLogoutBtn.addEventListener('click', () => {
     currentUser = null;
     localStorage.removeItem('flappy_username');
     updateAuthUI();
+    profileScreen.classList.add('hidden');
   });
 
   loginUsernameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); });
