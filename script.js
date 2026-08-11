@@ -96,6 +96,7 @@
   const loginError = document.getElementById('loginError');
 
   let currentUser = localStorage.getItem('flappy_username') || null;
+  let currentPasswordHash = localStorage.getItem('flappy_pwhash') || null;
 
   function updateAuthUI(){
     if(currentUser){
@@ -120,14 +121,12 @@
   });
 
   async function fetchBestScore(username){
+    if(!currentPasswordHash) return null;
     try{
       const { data, error } = await supabase
-        .from('scores')
-        .select('score')
-        .eq('player_name', username)
-        .maybeSingle();
-      if(error || !data) return null;
-      return data.score;
+        .rpc('get_my_best', { p_username: username, p_password_hash: currentPasswordHash });
+      if(error) return null;
+      return data;
     }catch(err){
       return null;
     }
@@ -166,42 +165,35 @@
     try{
       const passwordHash = await sha256Hex(password);
 
-      const { data: existingUser, error: fetchErr } = await supabase
-        .from('users')
-        .select('username,password_hash')
-        .eq('username', username)
-        .maybeSingle();
+      // Login & register sekarang lewat 1 RPC di server (auth_login).
+      // Password dicek di dalam function Postgres (security definer),
+      // jadi client gak pernah baca/tulis langsung ke tabel users/scores.
+      const { data, error } = await supabase
+        .rpc('auth_login', { p_username: username, p_password_hash: passwordHash });
 
-      if(fetchErr){
-        loginError.textContent = 'Gagal terhubung ke server';
+      if(error){
+        loginError.textContent = error.message && error.message.includes('invalid_password')
+          ? 'Password salah'
+          : 'Gagal terhubung ke server';
         loginError.classList.remove('hidden');
         return;
       }
 
-      if(existingUser){
-        if(existingUser.password_hash !== passwordHash){
-          loginError.textContent = 'Password salah';
-          loginError.classList.remove('hidden');
-          return;
-        }
-      }else{
-        const { error: insertErr } = await supabase
-          .from('users')
-          .insert({ username, password_hash: passwordHash });
-        if(insertErr){
-          loginError.textContent = 'Gagal mendaftar, coba username lain';
-          loginError.classList.remove('hidden');
-          return;
-        }
-      }
+      const row = Array.isArray(data) ? data[0] : data;
 
       currentUser = username;
+      currentPasswordHash = passwordHash;
       localStorage.setItem('flappy_username', username);
+      localStorage.setItem('flappy_pwhash', passwordHash);
+
+      best = row && row.best_score != null ? row.best_score : 0;
+      localStorage.setItem('flappy_best', String(best));
+      bestLine.textContent = 'Terbaik: ' + best;
+
       updateAuthUI();
       loginScreen.classList.add('hidden');
       loginUsernameInput.value = '';
       loginPasswordInput.value = '';
-      await syncBestFromServer(currentUser);
     }catch(err){
       loginError.textContent = 'Terjadi kesalahan';
       loginError.classList.remove('hidden');
@@ -236,7 +228,9 @@
   profileLogoutBtn.addEventListener('click', () => {
     cancelResetConfirm();
     currentUser = null;
+    currentPasswordHash = null;
     localStorage.removeItem('flappy_username');
+    localStorage.removeItem('flappy_pwhash');
     localStorage.removeItem('flappy_best');
     best = 0;
     bestLine.textContent = 'Terbaik: ' + best;
@@ -264,9 +258,7 @@
     resetScoreBtn.textContent = 'MERESET...';
     try{
       const { error } = await supabase
-        .from('scores')
-        .delete()
-        .eq('player_name', currentUser);
+        .rpc('reset_score', { p_username: currentUser, p_password_hash: currentPasswordHash });
 
       if(error){
         profileBest.textContent = 'Gagal reset skor';
@@ -311,10 +303,7 @@
   async function loadLeaderboard(){
     try{
       const { data, error } = await supabase
-        .from('scores')
-        .select('player_name,score')
-        .order('score', { ascending:false })
-        .limit(3);
+        .rpc('get_leaderboard', { p_limit: 3 });
 
       if(error || !data || data.length === 0){
         leaderboardList.innerHTML = '<li class="lbEmpty">Belum ada skor</li>';
@@ -446,26 +435,24 @@
   }
 
   async function saveScore(name, finalScore){
+    if(!currentPasswordHash){
+      saveStatus.textContent = 'Login untuk menyimpan skor';
+      return;
+    }
     saveStatus.textContent = 'Menyimpan skor...';
     try{
-      const { data: existing } = await supabase
-        .from('scores')
-        .select('score')
-        .eq('player_name', name)
-        .maybeSingle();
+      // submit_score di server yang cek password DAN bandingkan skor lama vs
+      // baru, jadi client gak bisa lagi nembak upsert sembarang skor.
+      const { data, error } = await supabase
+        .rpc('submit_score', { p_username: name, p_password_hash: currentPasswordHash, p_score: finalScore });
 
-      if(existing && existing.score >= finalScore){
-        saveStatus.textContent = 'Skor tidak lebih tinggi';
-        loadLeaderboard();
+      if(error){
+        saveStatus.textContent = 'Gagal menyimpan skor';
         return;
       }
 
-      const { error } = await supabase
-        .from('scores')
-        .upsert({ player_name: name, score: finalScore }, { onConflict: 'player_name' });
-
-      saveStatus.textContent = error ? 'Gagal menyimpan skor' : 'Skor tersimpan';
-      if(!error) loadLeaderboard();
+      saveStatus.textContent = (data === finalScore) ? 'Skor tersimpan' : 'Skor tidak lebih tinggi';
+      loadLeaderboard();
     }catch(err){
       saveStatus.textContent = 'Gagal menyimpan skor';
     }
