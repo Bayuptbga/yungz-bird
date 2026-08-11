@@ -7,11 +7,7 @@
   const audioCtx = AudioContextClass ? new AudioContextClass() : null;
   const soundBuffers = {};
   const soundVolumes = { flap: 0.6, score: 0.6, hit: 0.6 };
-  const soundFiles = {
-    flap: 'sounds/flap.mp3',
-    score: 'sounds/score.mp3',
-    hit: 'sounds/hit.mp3'
-  };
+  const soundFiles = { flap: 'sounds/flap.mp3', score: 'sounds/score.mp3', hit: 'sounds/hit.mp3' };
 
   async function loadSound(name, url){
     if(!audioCtx) return;
@@ -24,11 +20,7 @@
   }
   Object.entries(soundFiles).forEach(([name, url]) => loadSound(name, url));
 
-  function unlockAudio(){
-    if(audioCtx && audioCtx.state === 'suspended'){
-      audioCtx.resume().catch(()=>{});
-    }
-  }
+  function unlockAudio(){ if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{}); }
   window.addEventListener('pointerdown', unlockAudio);
   window.addEventListener('keydown', unlockAudio);
   window.addEventListener('touchstart', unlockAudio, { passive: true });
@@ -37,9 +29,7 @@
     if(!audioCtx) return;
     const buffer = soundBuffers[name];
     if(!buffer) return;
-    if(audioCtx.state === 'suspended'){
-      audioCtx.resume().catch(()=>{});
-    }
+    if(audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
     try{
       const source = audioCtx.createBufferSource();
       source.buffer = buffer;
@@ -50,7 +40,7 @@
     }catch(err){}
   }
 
-  // --- SISTEM TOKO & DATABASE (SHOP, COINS, SKINS) ---
+  // --- SISTEM TOKO & LOKAL ---
   const skinsData = [
     { id: 'default', name: 'Si Kuning', price: 0, colors: { body: '#ff9f3f', belly: '#ffd27a', wing: '#e8823a', beak: '#ff6b3f' } },
     { id: 'blue', name: 'Si Biru', price: 150, colors: { body: '#3fa3ff', belly: '#7ad2ff', wing: '#3a8ee8', beak: '#ffc13f' } },
@@ -59,390 +49,314 @@
     { id: 'dark', name: 'Si Gelap', price: 1000, colors: { body: '#444444', belly: '#777777', wing: '#222222', beak: '#ff4444' } }
   ];
 
-  let flappyCoins = 0;
-  let unlockedSkins = ['default'];
-  let activeSkinId = 'default';
-  let activeSkin = skinsData[0];
+  let flappyCoins = 0; let unlockedSkins = ['default']; let activeSkinId = 'default'; let activeSkin = skinsData[0];
   let currentUser = localStorage.getItem('flappy_username') || null;
   let currentPasswordHash = localStorage.getItem('flappy_pwhash') || null;
 
-  const shopBtn = document.getElementById('shopBtn');
-  const shopScreen = document.getElementById('shopScreen');
-  const shopCloseBtn = document.getElementById('shopCloseBtn');
-  const shopCoinsDisplay = document.getElementById('shopCoinsDisplay');
-  const skinListEl = document.getElementById('skinList');
-  const coinsGainedEl = document.getElementById('coinsGained');
-  const shopSaveStatus = document.getElementById('shopSaveStatus');
-  const profileCoins = document.getElementById('profileCoins');
+  const shopBtn = document.getElementById('shopBtn'); const shopScreen = document.getElementById('shopScreen');
+  const shopCloseBtn = document.getElementById('shopCloseBtn'); const shopCoinsDisplay = document.getElementById('shopCoinsDisplay');
+  const skinListEl = document.getElementById('skinList'); const coinsGainedEl = document.getElementById('coinsGained');
+  const shopSaveStatus = document.getElementById('shopSaveStatus'); const profileCoins = document.getElementById('profileCoins');
 
   function updateLocalState(coins, skinsStr, active){
     flappyCoins = coins;
-    try{
-      unlockedSkins = JSON.parse(skinsStr);
-      if(!Array.isArray(unlockedSkins)) unlockedSkins = ['default'];
-    }catch(e){ unlockedSkins = ['default']; }
-    activeSkinId = active || 'default';
-    activeSkin = skinsData.find(s => s.id === activeSkinId) || skinsData[0];
-
-    localStorage.setItem('flappy_coins', flappyCoins);
-    localStorage.setItem('flappy_skins', JSON.stringify(unlockedSkins));
-    localStorage.setItem('flappy_active_skin', activeSkinId);
+    try{ unlockedSkins = JSON.parse(skinsStr); if(!Array.isArray(unlockedSkins)) unlockedSkins = ['default']; }catch(e){ unlockedSkins = ['default']; }
+    activeSkinId = active || 'default'; activeSkin = skinsData.find(s => s.id === activeSkinId) || skinsData[0];
+    localStorage.setItem('flappy_coins', flappyCoins); localStorage.setItem('flappy_skins', JSON.stringify(unlockedSkins)); localStorage.setItem('flappy_active_skin', activeSkinId);
   }
 
-  // Load awal dari local storage sebagai backup sementara
-  updateLocalState(
-    Number(localStorage.getItem('flappy_coins') || 0),
-    localStorage.getItem('flappy_skins') || '["default"]',
-    localStorage.getItem('flappy_active_skin') || 'default'
-  );
+  updateLocalState( Number(localStorage.getItem('flappy_coins') || 0), localStorage.getItem('flappy_skins') || '["default"]', localStorage.getItem('flappy_active_skin') || 'default' );
 
   function renderShop(){
     shopCoinsDisplay.textContent = 'Koin: ' + flappyCoins;
     skinListEl.innerHTML = skinsData.map(skin => {
-      const isUnlocked = unlockedSkins.includes(skin.id);
-      const isSelected = activeSkinId === skin.id;
-      
+      const isUnlocked = unlockedSkins.includes(skin.id); const isSelected = activeSkinId === skin.id;
       let btnHtml = '';
-      if(isSelected){
-        btnHtml = `<button class="btn btnSmall btnSelected" disabled>DIPAKAI</button>`;
-      } else if(isUnlocked){
-        btnHtml = `<button class="btn btnSmall btnSecondary" onclick="window.selectSkin('${skin.id}')">PAKAI</button>`;
-      } else {
-        const canAfford = flappyCoins >= skin.price;
-        const opacity = canAfford ? '1' : '0.5';
-        const pointer = canAfford ? 'auto' : 'none';
+      if(isSelected){ btnHtml = `<button class="btn btnSmall btnSelected" disabled>DIPAKAI</button>`; }
+      else if(isUnlocked){ btnHtml = `<button class="btn btnSmall btnSecondary" onclick="window.selectSkin('${skin.id}')">PAKAI</button>`; }
+      else {
+        const canAfford = flappyCoins >= skin.price; const opacity = canAfford ? '1' : '0.5'; const pointer = canAfford ? 'auto' : 'none';
         btnHtml = `<button class="btn btnSmall" onclick="window.buySkin('${skin.id}', ${skin.price})" style="opacity:${opacity}; pointer-events:${pointer}">${skin.price} Koin</button>`;
       }
-      
-      return `
-        <div class="skinItem">
-          <div class="skinPreview" style="background:${skin.colors.body}; border:3px solid ${skin.colors.belly}"></div>
-          <div class="skinInfo">
-            <p class="skinName">${skin.name}</p>
-            ${!isUnlocked ? `<p class="skinPrice">Harga: ${skin.price} Koin</p>` : `<p class="skinPrice">Sudah Terbuka</p>`}
-          </div>
-          <div class="skinAction">${btnHtml}</div>
-        </div>
-      `;
+      return `<div class="skinItem"><div class="skinPreview" style="background:${skin.colors.body}; border:3px solid ${skin.colors.belly}"></div><div class="skinInfo"><p class="skinName">${skin.name}</p>${!isUnlocked ? `<p class="skinPrice">Harga: ${skin.price} Koin</p>` : `<p class="skinPrice">Sudah Terbuka</p>`}</div><div class="skinAction">${btnHtml}</div></div>`;
     }).join('');
   }
 
   async function syncShopDataToServer(){
     if(!currentUser || !currentPasswordHash) return;
-    try{
-      const { error } = await supabase.rpc('update_shop_data', { 
-        p_username: currentUser, 
-        p_password_hash: currentPasswordHash,
-        p_coins: flappyCoins,
-        p_skins: JSON.stringify(unlockedSkins),
-        p_active_skin: activeSkinId
-      });
-      if(error) console.error("Gagal sync shop", error);
-    }catch(err){ console.error(err); }
+    try{ await supabase.rpc('update_shop_data', { p_username: currentUser, p_password_hash: currentPasswordHash, p_coins: flappyCoins, p_skins: JSON.stringify(unlockedSkins), p_active_skin: activeSkinId }); }catch(err){}
   }
 
   window.buySkin = async function(id, price){
     if(flappyCoins >= price){
-      if(!currentUser){
-        shopSaveStatus.textContent = "Login dulu untuk membeli skin!";
-        shopSaveStatus.style.color = "#ff6b6b";
-        shopSaveStatus.style.display = "block";
-        setTimeout(() => shopSaveStatus.style.display = "none", 3000);
-        return;
-      }
-      
-      flappyCoins -= price;
-      unlockedSkins.push(id);
-      updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), id);
-      renderShop();
-      draw();
-
-      shopSaveStatus.textContent = "Membeli & menyimpan...";
-      shopSaveStatus.style.color = "#5fc084";
-      shopSaveStatus.style.display = "block";
-
+      if(!currentUser){ shopSaveStatus.textContent = "Login dulu untuk membeli skin!"; shopSaveStatus.style.color = "#ff6b6b"; shopSaveStatus.style.display = "block"; setTimeout(() => shopSaveStatus.style.display = "none", 3000); return; }
+      flappyCoins -= price; unlockedSkins.push(id); updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), id); renderShop(); draw();
+      shopSaveStatus.textContent = "Membeli & menyimpan..."; shopSaveStatus.style.color = "#5fc084"; shopSaveStatus.style.display = "block";
       await syncShopDataToServer();
-      
-      shopSaveStatus.textContent = "Skin tersimpan!";
-      setTimeout(() => shopSaveStatus.style.display = "none", 2000);
+      shopSaveStatus.textContent = "Skin tersimpan!"; setTimeout(() => shopSaveStatus.style.display = "none", 2000);
     }
   };
+  window.selectSkin = async function(id){ updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), id); renderShop(); draw(); if(currentUser) { syncShopDataToServer(); } };
+  shopBtn.addEventListener('click', () => { if(!currentUser){ shopSaveStatus.textContent = "Mode Tamu. Login untuk simpan permanen."; shopSaveStatus.style.color = "#ffd27a"; shopSaveStatus.style.display = "block"; } renderShop(); shopScreen.classList.remove('hidden'); });
+  shopCloseBtn.addEventListener('click', () => { shopScreen.classList.add('hidden'); shopSaveStatus.style.display = "none"; });
 
-  window.selectSkin = async function(id){
-    updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), id);
-    renderShop();
-    draw(); 
-    if(currentUser) {
-      syncShopDataToServer();
-    }
-  };
-
-  shopBtn.addEventListener('click', () => {
-    if(!currentUser){
-      shopSaveStatus.textContent = "Mode Tamu. Login untuk simpan permanen.";
-      shopSaveStatus.style.color = "#ffd27a";
-      shopSaveStatus.style.display = "block";
-    }
-    renderShop();
-    shopScreen.classList.remove('hidden');
-  });
-
-  shopCloseBtn.addEventListener('click', () => {
-    shopScreen.classList.add('hidden');
-    shopSaveStatus.style.display = "none";
-  });
-
-  // --- INISIALISASI GAME & UI ---
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const stage = document.getElementById('stage');
-  const hud = document.getElementById('hud');
-  const startScreen = document.getElementById('startScreen');
-  const overScreen = document.getElementById('overScreen');
-  const startBtn = document.getElementById('startBtn');
-  const retryBtn = document.getElementById('retryBtn');
-  const homeBtn = document.getElementById('homeBtn');
-  const scoreLine = document.getElementById('scoreLine');
-  const bestLine = document.getElementById('bestLine');
-  const saveStatus = document.getElementById('saveStatus');
-  const leaderboardList = document.getElementById('leaderboardList');
+  // --- UI & AUTH ---
+  const canvas = document.getElementById('game'); const ctx = canvas.getContext('2d'); const stage = document.getElementById('stage');
+  const hud = document.getElementById('hud'); const startScreen = document.getElementById('startScreen'); const overScreen = document.getElementById('overScreen');
+  const startBtn = document.getElementById('startBtn'); const retryBtn = document.getElementById('retryBtn'); const homeBtn = document.getElementById('homeBtn');
+  const scoreLine = document.getElementById('scoreLine'); const bestLine = document.getElementById('bestLine'); const saveStatus = document.getElementById('saveStatus');
+  const leaderboardList = document.getElementById('leaderboardList'); const authBar = document.getElementById('authBar'); const settingsBtn = document.getElementById('settingsBtn');
+  const loginBtn = document.getElementById('loginBtn'); const startUserInfo = document.getElementById('startUserInfo'); const startUsername = document.getElementById('startUsername');
+  const startUserBest = document.getElementById('startUserBest'); const profileScreen = document.getElementById('profileScreen'); const profileCloseBtn = document.getElementById('profileCloseBtn');
+  const profileUsername = document.getElementById('profileUsername'); const profileBest = document.getElementById('profileBest'); const resetScoreBtn = document.getElementById('resetScoreBtn');
+  const profileLogoutBtn = document.getElementById('profileLogoutBtn'); const loginScreen = document.getElementById('loginScreen'); const loginCloseBtn = document.getElementById('loginCloseBtn');
+  const loginUsernameInput = document.getElementById('loginUsername'); const loginPasswordInput = document.getElementById('loginPassword'); const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+  const loginError = document.getElementById('loginError'); const overTitle = document.getElementById('overTitle');
   
-  const authBar = document.getElementById('authBar');
-  const settingsBtn = document.getElementById('settingsBtn');
-  const loginBtn = document.getElementById('loginBtn');
-  const startUserInfo = document.getElementById('startUserInfo');
-  const startUsername = document.getElementById('startUsername');
-  const startUserBest = document.getElementById('startUserBest');
-  const profileScreen = document.getElementById('profileScreen');
-  const profileCloseBtn = document.getElementById('profileCloseBtn');
-  const profileUsername = document.getElementById('profileUsername');
-  const profileBest = document.getElementById('profileBest');
-  const resetScoreBtn = document.getElementById('resetScoreBtn');
-  const profileLogoutBtn = document.getElementById('profileLogoutBtn');
-  const loginScreen = document.getElementById('loginScreen');
-  const loginCloseBtn = document.getElementById('loginCloseBtn');
-  const loginUsernameInput = document.getElementById('loginUsername');
-  const loginPasswordInput = document.getElementById('loginPassword');
-  const loginSubmitBtn = document.getElementById('loginSubmitBtn');
-  const loginError = document.getElementById('loginError');
+  // VS UI
+  const vsMenuBtn = document.getElementById('vsMenuBtn'); const vsWaitingScreen = document.getElementById('vsWaitingScreen');
+  const vsStatusText = document.getElementById('vsStatusText'); const cancelVsBtn = document.getElementById('cancelVsBtn');
 
   function updateAuthUI(){
-    if(currentUser){
-      loginBtn.classList.add('hidden');
-      startUserInfo.classList.remove('hidden');
-      startUsername.textContent = currentUser;
-      startUserBest.textContent = 'Terbaik: ' + best;
-    }else{
-      loginBtn.classList.remove('hidden');
-      startUserInfo.classList.add('hidden');
-    }
+    if(currentUser){ loginBtn.classList.add('hidden'); startUserInfo.classList.remove('hidden'); startUsername.textContent = currentUser; startUserBest.textContent = 'Terbaik: ' + best; }
+    else { loginBtn.classList.remove('hidden'); startUserInfo.classList.add('hidden'); }
   }
+  settingsBtn.addEventListener('click', () => { if(currentUser){ openProfile(); }else{ loginError.classList.add('hidden'); loginScreen.classList.remove('hidden'); } });
 
-  settingsBtn.addEventListener('click', () => {
-    if(currentUser){
-      openProfile();
-    }else{
-      loginError.classList.add('hidden');
-      loginScreen.classList.remove('hidden');
-    }
-  });
-
-  // FUNGSI LAMA (DIJAMIN AMAN UNTUK SKOR)
   async function fetchBestScore(username){
     if(!currentPasswordHash) return null;
-    try{
-      const { data, error } = await supabase
-        .rpc('get_my_best', { p_username: username, p_password_hash: currentPasswordHash });
-      if(error) return null;
-      return data;
-    }catch(err){ return null; }
+    try{ const { data, error } = await supabase.rpc('get_my_best', { p_username: username, p_password_hash: currentPasswordHash }); if(error) return null; return data; }catch(err){ return null; }
   }
-
-  // FUNGSI BARU (KHUSUS UNTUK TOKO SAJA)
   async function fetchShopData(username){
     if(!currentPasswordHash) return null;
-    try{
-      const { data, error } = await supabase
-        .rpc('get_shop_data', { p_username: username, p_password_hash: currentPasswordHash });
-      if(error || !data || data.length === 0) return null;
-      return data[0]; 
-    }catch(err){ return null; }
+    try{ const { data, error } = await supabase.rpc('get_shop_data', { p_username: username, p_password_hash: currentPasswordHash }); if(error || !data || data.length === 0) return null; return data[0]; }catch(err){ return null; }
   }
-
   async function syncDataFromServer(username){
-    // Sinkronisasi Skor (Aman)
     const serverBest = await fetchBestScore(username);
-    if(serverBest !== null){
-      best = serverBest;
-      localStorage.setItem('flappy_best', String(best));
-      bestLine.textContent = 'Terbaik: ' + best;
-      if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best;
-    }
-
-    // Sinkronisasi Toko (Aman)
+    if(serverBest !== null){ best = serverBest; localStorage.setItem('flappy_best', String(best)); bestLine.textContent = 'Terbaik: ' + best; if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best; }
     const shopData = await fetchShopData(username);
-    if(shopData !== null){
-      updateLocalState(
-        shopData.coins || 0,
-        shopData.unlocked_skins || '["default"]',
-        shopData.active_skin || 'default'
-      );
-      draw(); 
-    }
+    if(shopData !== null){ updateLocalState(shopData.coins || 0, shopData.unlocked_skins || '["default"]', shopData.active_skin || 'default'); draw(); }
   }
-
-  async function sha256Hex(text){
-    const enc = new TextEncoder().encode(text);
-    const buf = await crypto.subtle.digest('SHA-256', enc);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
+  async function sha256Hex(text){ const enc = new TextEncoder().encode(text); const buf = await crypto.subtle.digest('SHA-256', enc); return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join(''); }
 
   async function handleLoginSubmit(){
-    const username = loginUsernameInput.value.trim();
-    const password = loginPasswordInput.value;
-    loginError.classList.add('hidden');
-
-    if(!username || !password){
-      loginError.textContent = 'Isi username & password dulu ya!';
-      loginError.classList.remove('hidden');
-      return;
-    }
-
-    loginSubmitBtn.disabled = true;
-    loginSubmitBtn.textContent = 'MEMPROSES...';
-
+    const username = loginUsernameInput.value.trim(); const password = loginPasswordInput.value; loginError.classList.add('hidden');
+    if(!username || !password){ loginError.textContent = 'Isi username & password dulu ya!'; loginError.classList.remove('hidden'); return; }
+    loginSubmitBtn.disabled = true; loginSubmitBtn.textContent = 'MEMPROSES...';
     try{
       const passwordHash = await sha256Hex(password);
-      const { data, error } = await supabase
-        .rpc('auth_login', { p_username: username, p_password_hash: passwordHash });
-
-      if(error){
-        loginError.textContent = error.message && error.message.includes('invalid_password')
-          ? 'Password salah' : 'Gagal terhubung ke server';
-        loginError.classList.remove('hidden');
-        return;
-      }
-
-      const row = Array.isArray(data) ? data[0] : data;
-      currentUser = username;
-      currentPasswordHash = passwordHash;
-      localStorage.setItem('flappy_username', username);
-      localStorage.setItem('flappy_pwhash', passwordHash);
-
-      best = row && row.best_score != null ? row.best_score : 0;
-      localStorage.setItem('flappy_best', String(best));
-      bestLine.textContent = 'Terbaik: ' + best;
-
-      updateAuthUI();
-      loginScreen.classList.add('hidden');
-      loginUsernameInput.value = '';
-      loginPasswordInput.value = '';
-
+      const { data, error } = await supabase.rpc('auth_login', { p_username: username, p_password_hash: passwordHash });
+      if(error){ loginError.textContent = error.message && error.message.includes('invalid_password') ? 'Password salah' : 'Gagal terhubung ke server'; loginError.classList.remove('hidden'); return; }
+      const row = Array.isArray(data) ? data[0] : data; currentUser = username; currentPasswordHash = passwordHash;
+      localStorage.setItem('flappy_username', username); localStorage.setItem('flappy_pwhash', passwordHash);
+      best = row && row.best_score != null ? row.best_score : 0; localStorage.setItem('flappy_best', String(best)); bestLine.textContent = 'Terbaik: ' + best;
+      updateAuthUI(); loginScreen.classList.add('hidden'); loginUsernameInput.value = ''; loginPasswordInput.value = '';
       await syncDataFromServer(currentUser);
-
-    }catch(err){
-      loginError.textContent = 'Terjadi kesalahan';
-      loginError.classList.remove('hidden');
-    }finally{
-      loginSubmitBtn.disabled = false;
-      loginSubmitBtn.textContent = 'MASUK';
-    }
+    }catch(err){ loginError.textContent = 'Terjadi kesalahan'; loginError.classList.remove('hidden'); }finally{ loginSubmitBtn.disabled = false; loginSubmitBtn.textContent = 'MASUK'; }
   }
-
-  loginBtn.addEventListener('click', () => {
-    loginError.classList.add('hidden');
-    loginScreen.classList.remove('hidden');
-  });
-  loginCloseBtn.addEventListener('click', () => { loginScreen.classList.add('hidden'); });
-  loginSubmitBtn.addEventListener('click', handleLoginSubmit);
+  loginBtn.addEventListener('click', () => { loginError.classList.add('hidden'); loginScreen.classList.remove('hidden'); });
+  loginCloseBtn.addEventListener('click', () => { loginScreen.classList.add('hidden'); }); loginSubmitBtn.addEventListener('click', handleLoginSubmit);
 
   async function openProfile(){
-    if(!currentUser) return;
-    cancelResetConfirm();
-    profileUsername.textContent = currentUser;
-    profileBest.textContent = 'Skor Terbaik: ' + best;
-    profileCoins.textContent = 'Koin: ' + flappyCoins;
-    profileScreen.classList.remove('hidden');
-    await syncDataFromServer(currentUser);
-    profileBest.textContent = 'Skor Terbaik: ' + best;
-    profileCoins.textContent = 'Koin: ' + flappyCoins;
+    if(!currentUser) return; cancelResetConfirm(); profileUsername.textContent = currentUser; profileBest.textContent = 'Skor Terbaik: ' + best; profileCoins.textContent = 'Koin: ' + flappyCoins; profileScreen.classList.remove('hidden');
+    await syncDataFromServer(currentUser); profileBest.textContent = 'Skor Terbaik: ' + best; profileCoins.textContent = 'Koin: ' + flappyCoins;
   }
   profileCloseBtn.addEventListener('click', () => { cancelResetConfirm(); profileScreen.classList.add('hidden'); });
   profileLogoutBtn.addEventListener('click', () => {
-    cancelResetConfirm();
-    currentUser = null; currentPasswordHash = null;
-    localStorage.removeItem('flappy_username');
-    localStorage.removeItem('flappy_pwhash');
-    localStorage.removeItem('flappy_best');
-    best = 0; bestLine.textContent = 'Terbaik: ' + best;
-    
-    updateLocalState(0, '["default"]', 'default');
-    updateAuthUI(); profileScreen.classList.add('hidden');
-    draw();
+    cancelResetConfirm(); currentUser = null; currentPasswordHash = null; localStorage.removeItem('flappy_username'); localStorage.removeItem('flappy_pwhash'); localStorage.removeItem('flappy_best');
+    best = 0; bestLine.textContent = 'Terbaik: ' + best; updateLocalState(0, '["default"]', 'default'); updateAuthUI(); profileScreen.classList.add('hidden'); draw();
   });
 
-  let confirmingReset = false;
-  let resetConfirmTimer = null;
-
-  function cancelResetConfirm(){
-    confirmingReset = false;
-    clearTimeout(resetConfirmTimer);
-    resetScoreBtn.textContent = 'RESET SKOR';
-    resetScoreBtn.classList.remove('confirming');
-  }
-
+  let confirmingReset = false; let resetConfirmTimer = null;
+  function cancelResetConfirm(){ confirmingReset = false; clearTimeout(resetConfirmTimer); resetScoreBtn.textContent = 'RESET SKOR'; resetScoreBtn.classList.remove('confirming'); }
   async function resetScore(){
-    if(!currentUser) return;
-    resetScoreBtn.disabled = true;
-    resetScoreBtn.classList.remove('confirming');
-    resetScoreBtn.textContent = 'MERESET...';
+    if(!currentUser) return; resetScoreBtn.disabled = true; resetScoreBtn.classList.remove('confirming'); resetScoreBtn.textContent = 'MERESET...';
     try{
       const { error } = await supabase.rpc('reset_score', { p_username: currentUser, p_password_hash: currentPasswordHash });
       if(error){ profileBest.textContent = 'Gagal reset skor'; }else{
-        best = 0; localStorage.setItem('flappy_best', '0');
-        bestLine.textContent = 'Terbaik: ' + best;
-        if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best;
-        profileBest.textContent = 'Skor Terbaik: ' + best;
-        loadLeaderboard();
+        best = 0; localStorage.setItem('flappy_best', '0'); bestLine.textContent = 'Terbaik: ' + best; if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best; profileBest.textContent = 'Skor Terbaik: ' + best; loadLeaderboard();
       }
-    }catch(err){ profileBest.textContent = 'Gagal reset skor'; }
-    finally{
-      resetScoreBtn.disabled = false; resetScoreBtn.textContent = 'RESET SKOR'; confirmingReset = false;
-    }
+    }catch(err){ profileBest.textContent = 'Gagal reset skor'; }finally{ resetScoreBtn.disabled = false; resetScoreBtn.textContent = 'RESET SKOR'; confirmingReset = false; }
   }
-
-  resetScoreBtn.addEventListener('click', () => {
-    if(!confirmingReset){
-      confirmingReset = true; resetScoreBtn.textContent = 'YAKIN? TAP LAGI'; resetScoreBtn.classList.add('confirming');
-      clearTimeout(resetConfirmTimer); resetConfirmTimer = setTimeout(cancelResetConfirm, 3500);
-    }else{
-      clearTimeout(resetConfirmTimer); resetScore();
-    }
-  });
-
-  loginUsernameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); });
-  loginUsernameInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
-  loginPasswordInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
-  loginPasswordInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); if(e.key === 'Enter') handleLoginSubmit(); });
+  resetScoreBtn.addEventListener('click', () => { if(!confirmingReset){ confirmingReset = true; resetScoreBtn.textContent = 'YAKIN? TAP LAGI'; resetScoreBtn.classList.add('confirming'); clearTimeout(resetConfirmTimer); resetConfirmTimer = setTimeout(cancelResetConfirm, 3500); }else{ clearTimeout(resetConfirmTimer); resetScore(); } });
+  loginUsernameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); }); loginUsernameInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+  loginPasswordInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); }); loginPasswordInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); if(e.key === 'Enter') handleLoginSubmit(); });
 
   async function loadLeaderboard(){
     try{
       const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: 3 });
-      if(error || !data || data.length === 0){
-        leaderboardList.innerHTML = '<li class="lbEmpty">Belum ada skor</li>'; return;
-      }
-      leaderboardList.innerHTML = data.map((row, i) => `
-        <li>
-          <span class="lbNameWrap"><span class="lbRank">${i+1}.</span><span class="lbName">${escapeHtml(row.player_name)}</span></span>
-          <span class="lbScore">${row.score}</span>
-        </li>
-      `).join('');
+      if(error || !data || data.length === 0){ leaderboardList.innerHTML = '<li class="lbEmpty">Belum ada skor</li>'; return; }
+      leaderboardList.innerHTML = data.map((row, i) => `<li><span class="lbNameWrap"><span class="lbRank">${i+1}.</span><span class="lbName">${escapeHtml(row.player_name)}</span></span><span class="lbScore">${row.score}</span></li>`).join('');
     }catch(err){ leaderboardList.innerHTML = '<li class="lbEmpty">Gagal memuat</li>'; }
   }
-
   function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
   loadLeaderboard();
 
+  // --- MULTIPLAYER LOGIC (VS MODE) ---
+  let isVSMode = false;
+  let vsRoomId = null;
+  let vsChannel = null;
+  let isHost = false;
+  let syncTimer = 0;
+  
+  // Custom Pseudo-Random Generator based on seed (biar pipa player 1 dan 2 sama persis)
+  let currentSeed = 1;
+  function prng() {
+      if(!isVSMode) return Math.random(); // Kalau solo, pakai random normal
+      let t = currentSeed += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+
+  // Objek burung lawan
+  let ghostBird = { active: false, x: 0, y: 0, rot: 0 };
+
+  async function startVSMatchmaking() {
+      if (!currentUser) {
+          alert("Silakan Login terlebih dahulu untuk bermain VS Mode!");
+          return;
+      }
+      
+      isVSMode = true;
+      startScreen.classList.add('hidden');
+      vsWaitingScreen.classList.remove('hidden');
+      vsStatusText.textContent = "Mencari ruangan kosong...";
+
+      try {
+          // 1. Cari room yang 'waiting'
+          const { data, error } = await supabase.from('rooms').select('*').eq('status', 'waiting').limit(1);
+          
+          if (data && data.length > 0) {
+              // Kita join sebagai Player 2
+              vsRoomId = data[0].id;
+              isHost = false;
+              currentSeed = data[0].pipe_seed; // Ambil kunci pipa dari room
+              vsStatusText.textContent = `Room ketemu! Menghubungkan ke ${data[0].player1_username}...`;
+              
+              await supabase.from('rooms').update({ player2_username: currentUser, status: 'playing' }).eq('id', vsRoomId);
+              setupRealtime();
+          } else {
+              // 2. Buat room baru sebagai Player 1 (Host)
+              isHost = true;
+              currentSeed = Math.floor(Math.random() * 999999);
+              
+              const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{
+                  player1_username: currentUser,
+                  pipe_seed: currentSeed
+              }]).select();
+              
+              if(newRoom && newRoom.length > 0) {
+                  vsRoomId = newRoom[0].id;
+                  vsStatusText.textContent = "Room dibuat! Menunggu lawan masuk...";
+                  setupRealtime();
+              } else {
+                  throw new Error("Gagal membuat room");
+              }
+          }
+      } catch (err) {
+          console.error(err);
+          vsStatusText.textContent = "Terjadi kesalahan koneksi.";
+          setTimeout(() => { goHome(); }, 2000);
+      }
+  }
+
+  function setupRealtime() {
+      // Connect ke channel ruangan
+      vsChannel = supabase.channel('room_' + vsRoomId, {
+          config: { broadcast: { self: false } }
+      });
+
+      // Menerima update posisi (Y & Rotasi) burung lawan
+      vsChannel.on('broadcast', { event: 'sync' }, (payload) => {
+          ghostBird.active = true;
+          ghostBird.y = payload.payload.y;
+          ghostBird.rot = payload.payload.rot;
+      });
+
+      // Menerima info bahwa lawan mati
+      vsChannel.on('broadcast', { event: 'dead' }, (payload) => {
+          if (state === 'playing') {
+              winVS(); // Kalau lawan mati duluan dan kita masih main, kita menang!
+          }
+      });
+
+      // [Player 2] Menerima sinyal start dari Host
+      vsChannel.on('broadcast', { event: 'start' }, (payload) => {
+          if(!isHost) startGameVS();
+      });
+
+      vsChannel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+              if (!isHost) {
+                  // Jika kita Player 2, kasih tau Host kita udah standby
+                  vsChannel.send({ type: 'broadcast', event: 'ready', payload: {} });
+              }
+          }
+      });
+
+      if (isHost) {
+          // [Player 1] Dengar sinyal ready dari Player 2
+          vsChannel.on('broadcast', { event: 'ready' }, () => {
+              vsStatusText.textContent = "Lawan masuk! Mulai dalam 3 detik...";
+              vsChannel.send({ type: 'broadcast', event: 'start', payload: {} });
+              startGameVS();
+          });
+      }
+  }
+
+  function startGameVS() {
+      // Reset ulang seed agar generate pipa dari awal sama
+      currentSeed = isHost ? currentSeed : currentSeed; 
+      
+      resize(); 
+      reset(); 
+      state = 'playing';
+      ghostBird = { active: false, x: W*0.32, y: H*0.42, rot: 0 };
+      
+      vsWaitingScreen.classList.add('hidden');
+      hud.classList.remove('hidden'); 
+      authBar.classList.add('hidden');
+  }
+
+  function winVS() {
+      state = 'over'; playSound('score');
+      overTitle.textContent = "MENANG!";
+      overTitle.style.color = "#5fc084"; // Hijau kalau menang
+      
+      let reward = 100; // Hadiah menang VS 100 koin
+      flappyCoins += reward;
+      updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
+      
+      coinsGainedEl.textContent = `+${reward} Koin Hadiah VS!`;
+      coinsGainedEl.classList.remove('hidden');
+      scoreLine.textContent = 'Skor VS: ' + score;
+      
+      overScreen.classList.remove('hidden'); hud.classList.add('hidden'); authBar.classList.remove('hidden');
+      
+      if(currentUser) saveScoreAndCoinsToServer(currentUser, score, reward);
+      cleanUpVS();
+  }
+
+  function cleanUpVS() {
+      if (vsChannel) {
+          vsChannel.unsubscribe();
+          vsChannel = null;
+      }
+      isVSMode = false;
+      ghostBird.active = false;
+  }
+
+  cancelVsBtn.addEventListener('click', () => {
+      cleanUpVS();
+      // Hapus room kalau kita Host dan batal (optional)
+      if(isHost && vsRoomId) { supabase.from('rooms').delete().eq('id', vsRoomId).then(); }
+      goHome();
+  });
+
+  vsMenuBtn.addEventListener('click', startVSMatchmaking);
+
+  // --- RENDERING & FISIKA ---
   let skyGradient = null;
   function buildSkyGradient(){
     const g = ctx.createLinearGradient(0,0,0,H);
@@ -493,29 +407,31 @@
     const margin = 70; const minY = margin; const maxY = H - dynamicGroundH - margin;
     const maxDelta = Math.max(gapSize * 0.9, 90);
     let centerY;
-    if(lastGapY === null){ centerY = minY + Math.random() * (maxY - minY); }
+    
+    // GANTI Math.random() dengan prng() agar seed tersinkronisasi di VS Mode
+    if(lastGapY === null){ centerY = minY + prng() * (maxY - minY); }
     else {
       const lo = Math.max(minY, lastGapY - maxDelta);
       const hi = Math.min(maxY, lastGapY + maxDelta);
-      centerY = lo + Math.random() * (hi - lo);
+      centerY = lo + prng() * (hi - lo);
     }
     lastGapY = centerY;
 
     const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55);
-    const moving = score >= 150 && Math.random() < moveChance;
+    const moving = score >= 150 && prng() < moveChance;
     const hMoveChance = Math.min(0.12 + Math.floor(score / 200) * 0.07, 0.45);
-    const hMoving = score >= 250 && Math.random() < hMoveChance;
+    const hMoving = score >= 250 && prng() < hMoveChance;
 
     pipes.push({
       x: W + PIPE_W, gapY: centerY, baseGapY: centerY, passed: false,
-      moving, moveAmp: moving ? 30 + Math.random() * 40 : 0, moveSpeed: moving ? 1.2 + Math.random() * 1.3 : 0, moveAge: Math.random() * Math.PI * 2,
-      hMoving, hAmp: hMoving ? 18 + Math.random() * 22 : 0, hSpeed: hMoving ? 1.0 + Math.random() * 1.2 : 0, hAge: Math.random() * Math.PI * 2,
+      moving, moveAmp: moving ? 30 + prng() * 40 : 0, moveSpeed: moving ? 1.2 + prng() * 1.3 : 0, moveAge: prng() * Math.PI * 2,
+      hMoving, hAmp: hMoving ? 18 + prng() * 22 : 0, hSpeed: hMoving ? 1.0 + prng() * 1.2 : 0, hAge: prng() * Math.PI * 2,
       xOffset: 0, minY, maxY
     });
   }
 
   function flap(){
-    if(state === 'start'){ startGame(); return; }
+    if(state === 'start'){ startGameSolo(); return; }
     if(state === 'over') return;
     bird.vy = dynamicFlap; playSound('flap');
     for(let i=0;i<5;i++){
@@ -527,47 +443,42 @@
     }
   }
 
-  function startGame(){
+  function startGameSolo(){
+    isVSMode = false;
+    currentSeed = Math.random() * 999999; // Acak seed untuk solo
     resize(); reset(); state = 'playing';
     startScreen.classList.add('hidden'); overScreen.classList.add('hidden');
     hud.classList.remove('hidden'); authBar.classList.add('hidden');
   }
 
   async function saveScoreAndCoinsToServer(name, finalScore, finalCoins){
-    if(!currentPasswordHash){ saveStatus.textContent = 'Login untuk menyimpan skor'; return; }
-    saveStatus.textContent = 'Menyimpan data...';
+    if(!currentPasswordHash){ saveStatus.textContent = 'Login untuk menyimpan data'; return; }
+    saveStatus.textContent = 'Menyimpan...';
     try{
-      // 1. Simpan Skor (pakai fungsi bawaan lama kamu yang dijamin AMAN)
-      const { data: scoreData, error: scoreError } = await supabase.rpc('submit_score', { 
-        p_username: name, 
-        p_password_hash: currentPasswordHash, 
-        p_score: finalScore 
-      });
-      
-      if(scoreError) throw scoreError;
-
-      // 2. Simpan Koin (pakai fungsi baru yang sama sekali tidak menyentuh kolom skor lama kamu)
+      const { data: scoreData, error: scoreError } = await supabase.rpc('submit_score', { p_username: name, p_password_hash: currentPasswordHash, p_score: finalScore });
       if (finalCoins > 0) {
-        const { error: coinError } = await supabase.rpc('add_coins', { 
-          p_username: name, 
-          p_password_hash: currentPasswordHash, 
-          p_added_coins: finalCoins 
-        });
-        if(coinError) console.warn("Peringatan: Gagal simpan koin", coinError);
+        await supabase.rpc('add_coins', { p_username: name, p_password_hash: currentPasswordHash, p_added_coins: finalCoins });
       }
-
-      saveStatus.textContent = (scoreData === finalScore) ? 'Skor & Koin tersimpan' : 'Koin tersimpan';
+      saveStatus.textContent = 'Data tersimpan';
       loadLeaderboard();
-    }catch(err){ 
-      saveStatus.textContent = 'Gagal menyimpan: ' + (err.message || 'Error Server'); 
-    }
+    }catch(err){ saveStatus.textContent = 'Gagal menyimpan'; }
   }
 
   function endGame(){
     state = 'over'; playSound('hit');
+    overTitle.textContent = "GAME OVER";
+    overTitle.style.color = "#ffd27a"; // Default kuning
     
-    // UPDATE KOIN LOKAL
-    if(score > 0){
+    // JIKA VS MODE, KIRIM SINYAL KALAH
+    if (isVSMode && vsChannel) {
+        vsChannel.send({ type: 'broadcast', event: 'dead', payload: {} });
+        overTitle.textContent = "KALAH :(";
+        overTitle.style.color = "#ff6b6b"; // Merah kalah
+        cleanUpVS();
+    }
+
+    if(score > 0 && !isVSMode){
+      // Hadiah koin normal hanya di solo
       flappyCoins += score;
       updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
       coinsGainedEl.textContent = `+${score} Koin`;
@@ -576,15 +487,12 @@
       coinsGainedEl.classList.add('hidden');
     }
 
-    if(score > best){
-      best = score; localStorage.setItem('flappy_best', String(best));
-    }
+    if(score > best){ best = score; localStorage.setItem('flappy_best', String(best)); }
     scoreLine.textContent = 'Skor: ' + score; bestLine.textContent = 'Terbaik: ' + best;
-    
     overScreen.classList.remove('hidden'); hud.classList.add('hidden'); authBar.classList.remove('hidden');
 
     if(currentUser){ 
-      saveScoreAndCoinsToServer(currentUser, score, score); 
+      saveScoreAndCoinsToServer(currentUser, score, isVSMode ? 0 : score); 
     }else{ 
       saveStatus.textContent = 'Login untuk simpan permanen'; 
     }
@@ -595,14 +503,15 @@
   window.addEventListener('keydown', (e)=>{ if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); flap(); } });
   
   function goHome(){
+    cleanUpVS();
     reset(); state = 'start';
-    overScreen.classList.add('hidden'); startScreen.classList.remove('hidden');
+    overScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); vsWaitingScreen.classList.add('hidden');
     hud.classList.add('hidden'); authBar.classList.remove('hidden');
     loadLeaderboard();
   }
 
-  startBtn.addEventListener('click', startGame);
-  retryBtn.addEventListener('click', startGame);
+  startBtn.addEventListener('click', startGameSolo);
+  retryBtn.addEventListener('click', () => { if(isVSMode){ startVSMatchmaking(); } else { startGameSolo(); } });
   homeBtn.addEventListener('click', goHome);
 
   function circleRectCollide(cx, cy, r, rx, ry, rw, rh){
@@ -626,8 +535,21 @@
       const p = particles[i]; p.age += dt; p.x += p.vx*dt; p.y += p.vy*dt;
       if(p.age > p.life) particles.splice(i,1);
     }
+    
     if(state !== 'playing') return;
     
+    // Broadcast Posisi Burung di VS Mode (sekitar 10 fps biar hemat data)
+    if(isVSMode && vsChannel) {
+        syncTimer -= dt;
+        if(syncTimer <= 0) {
+            syncTimer = 0.1;
+            vsChannel.send({
+                type: 'broadcast', event: 'sync',
+                payload: { y: bird.y, rot: bird.rot }
+            });
+        }
+    }
+
     elapsed += dt;
     const speedLevel = Math.floor(score / 100); pipeSpeed = 165 + Math.min(speedLevel * 11, 110);
     const gapLevel = Math.floor(score / 50); gapSize = Math.max(dynamicGap - gapLevel * 7, 120);
@@ -656,7 +578,6 @@
     ctx.beginPath(); ctx.arc(W*0.76, H*0.28, 46, 0, Math.PI*2); ctx.fill(); ctx.restore();
     drawMountainsFar(); drawMountainsNear();
   }
-
   function mod(n, m){ return ((n % m) + m) % m; }
   function drawMountainsFar(){
     const baseY = H - dynamicGroundH; const tileW = 240; const offset = mod(bgOffset * 0.07, tileW);
@@ -664,23 +585,16 @@
     for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){ drawMountainPeak(x + tileW*0.28, baseY, tileW*0.62, 120); drawMountainPeak(x + tileW*0.78, baseY, tileW*0.58, 95); }
     ctx.restore();
   }
-
   function drawMountainsNear(){
     const baseY = H - dynamicGroundH; const tileW = 200; const offset = mod(bgOffset * 0.15, tileW);
     ctx.save(); ctx.globalAlpha = 0.8; ctx.fillStyle = '#221530';
     for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){ drawMountainPeak(x + tileW*0.3, baseY, tileW*0.72, 160, true); }
     ctx.restore();
   }
-
   function drawMountainPeak(cx, baseY, w, h, withSnow){
     ctx.beginPath(); ctx.moveTo(cx - w/2, baseY); ctx.lineTo(cx - w*0.1, baseY - h); ctx.lineTo(cx + w*0.06, baseY - h*0.8); ctx.lineTo(cx + w/2, baseY); ctx.closePath(); ctx.fill();
-    if(withSnow){
-      ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.beginPath(); ctx.moveTo(cx - w*0.1, baseY - h); ctx.lineTo(cx - w*0.02, baseY - h*0.86); ctx.lineTo(cx + w*0.06, baseY - h*0.8); ctx.lineTo(cx - w*0.01, baseY - h*0.82); ctx.closePath(); ctx.fill();
-      ctx.restore();
-    }
+    if(withSnow){ ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.moveTo(cx - w*0.1, baseY - h); ctx.lineTo(cx - w*0.02, baseY - h*0.86); ctx.lineTo(cx + w*0.06, baseY - h*0.8); ctx.lineTo(cx - w*0.01, baseY - h*0.82); ctx.closePath(); ctx.fill(); ctx.restore(); }
   }
-
   function drawPipes(){
     for(const p of pipes){
       const topH = p.gapY - gapSize/2; const botY = p.gapY + gapSize/2; const botH = H - dynamicGroundH - botY;
@@ -688,67 +602,47 @@
       drawPipeSegment(drawX, 0, PIPE_W, topH, true); drawPipeSegment(drawX, botY, PIPE_W, botH, false);
     }
   }
-
   function drawPipeSegment(x, y, w, h, isTop){
-    if (h < 0) return; 
-    const capH = 26;
-    ctx.fillStyle = '#2b6b41'; ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = '#3f8a5b'; ctx.fillRect(x+6, y, w-16, h);
-    ctx.fillStyle = '#5fc084'; ctx.fillRect(x+6, y, 6, h);
-    const capY = isTop ? y+h-capH : y;
-    ctx.fillStyle = '#2b6b41'; ctx.fillRect(x-5, capY, w+10, capH);
-    ctx.fillStyle = '#4fae72'; ctx.fillRect(x-5, capY, w+10, 6);
+    if (h < 0) return; const capH = 26; ctx.fillStyle = '#2b6b41'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#3f8a5b'; ctx.fillRect(x+6, y, w-16, h); ctx.fillStyle = '#5fc084'; ctx.fillRect(x+6, y, 6, h);
+    const capY = isTop ? y+h-capH : y; ctx.fillStyle = '#2b6b41'; ctx.fillRect(x-5, capY, w+10, capH); ctx.fillStyle = '#4fae72'; ctx.fillRect(x-5, capY, w+10, 6);
   }
-
   function drawGround(){
-    const y = H - dynamicGroundH;
-    ctx.fillStyle = '#4a2e1f'; ctx.fillRect(0, y, W, dynamicGroundH);
-    ctx.fillStyle = '#6b4229'; ctx.fillRect(0, y, W, 10);
-    ctx.fillStyle = '#5a3722';
+    const y = H - dynamicGroundH; ctx.fillStyle = '#4a2e1f'; ctx.fillRect(0, y, W, dynamicGroundH); ctx.fillStyle = '#6b4229'; ctx.fillRect(0, y, W, 10); ctx.fillStyle = '#5a3722';
     for(let x = groundOffset; x < W; x += 40){ ctx.fillRect(x, y+10, 20, 6); }
   }
-
   function drawParticles(){
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    for(const p of particles){
-      const a = 1 - p.age/p.life; ctx.globalAlpha = Math.max(a,0);
-      ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, Math.PI*2); ctx.fill();
-    }
+    for(const p of particles){ const a = 1 - p.age/p.life; ctx.globalAlpha = Math.max(a,0); ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, Math.PI*2); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
+  
+  function drawSingleBird(b, colorConfig, isGhost) {
+    ctx.save(); 
+    ctx.translate(b.x, b.y); 
+    ctx.rotate(b.rot);
+    if(isGhost) ctx.globalAlpha = 0.4; // Burung lawan semi-transparan
 
-  function drawBird(){
-    ctx.save(); ctx.translate(bird.x, bird.y); ctx.rotate(bird.rot);
-
-    // Gunakan warna dari activeSkin
-    const c = activeSkin.colors;
-
-    // Body
-    ctx.fillStyle = c.body;
-    ctx.beginPath(); ctx.ellipse(0,0, BIRD_R, BIRD_R*0.85, 0, 0, Math.PI*2); ctx.fill();
-
-    // Belly
-    ctx.fillStyle = c.belly;
-    ctx.beginPath(); ctx.ellipse(-2,3, BIRD_R*0.6, BIRD_R*0.5, 0, 0, Math.PI*2); ctx.fill();
-
-    // Wing
+    ctx.fillStyle = colorConfig.body; ctx.beginPath(); ctx.ellipse(0,0, BIRD_R, BIRD_R*0.85, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = colorConfig.belly; ctx.beginPath(); ctx.ellipse(-2,3, BIRD_R*0.6, BIRD_R*0.5, 0, 0, Math.PI*2); ctx.fill();
     const wingFlap = Math.sin(performance.now()/80) * 6;
-    ctx.fillStyle = c.wing;
-    ctx.beginPath(); ctx.ellipse(-4, 2+wingFlap*0.3, BIRD_R*0.55, BIRD_R*0.35, -0.3, 0, Math.PI*2); ctx.fill();
-
-    // Beak
-    ctx.fillStyle = c.beak;
-    ctx.beginPath(); ctx.moveTo(BIRD_R-2, -2); ctx.lineTo(BIRD_R+10, 2); ctx.lineTo(BIRD_R-2, 6); ctx.closePath(); ctx.fill();
-
-    // Eye
-    ctx.fillStyle = '#1a1023';
-    ctx.beginPath(); ctx.arc(6, -4, 2.4, 0, Math.PI*2); ctx.fill();
-
+    ctx.fillStyle = colorConfig.wing; ctx.beginPath(); ctx.ellipse(-4, 2+wingFlap*0.3, BIRD_R*0.55, BIRD_R*0.35, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = colorConfig.beak; ctx.beginPath(); ctx.moveTo(BIRD_R-2, -2); ctx.lineTo(BIRD_R+10, 2); ctx.lineTo(BIRD_R-2, 6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#1a1023'; ctx.beginPath(); ctx.arc(6, -4, 2.4, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
   function draw(){
-    drawSky(); drawPipes(); drawParticles(); drawBird(); drawGround();
+    drawSky(); drawPipes(); drawParticles(); 
+    
+    // Draw Ghost (Lawan) jika aktif
+    if(isVSMode && ghostBird.active && state === 'playing') {
+        ghostBird.x = bird.x; // Set X sejajar
+        // Untuk lawan, kita pakai skin default biar simpel, atau jika mau pakai skin aktif bisa diubah
+        drawSingleBird(ghostBird, skinsData[0].colors, true);
+    }
+    
+    drawSingleBird(bird, activeSkin.colors, false);
+    drawGround();
   }
 
   requestAnimationFrame(loop);

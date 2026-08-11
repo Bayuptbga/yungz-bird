@@ -100,7 +100,6 @@ canvas{
   box-shadow:0 5px 0 #b8842f, 0 5px 12px rgba(0,0,0,0.4);
   transition:transform 0.05s;
   width: 100%;
-  max-width: 220px;
 }
 .btn:active{ transform:translateY(4px); box-shadow:0 1px 0 #b8842f; }
 .btnSmall{
@@ -270,7 +269,6 @@ canvas{
   box-shadow: 0 4px 0 #6e5e4a; 
   pointer-events: none; 
 }
-/* Scrollbar kustom untuk list skin */
 .skinList::-webkit-scrollbar { width: 6px; }
 .skinList::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
 .skinList::-webkit-scrollbar-thumb { background: var(--sun); border-radius: 4px; }
@@ -426,4 +424,18 @@ canvas{
   opacity:0.7;
   text-align:center;
   padding:30px 0;
+}
+
+/* Animasi Loader untuk Matchmaking */
+.loader-pulse {
+  width: 40px;
+  height: 40px;
+  background-color: var(--sun);
+  border-radius: 50%;
+  animation: pulse 1.2s infinite ease-in-out;
+  margin: 15px 0;
+}
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
