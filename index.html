@@ -16,7 +16,12 @@
 
   <div class="overlay" id="startScreen">
     <h1>YUNGZ<br>BIRD</h1>
-    <p>Ketuk layar, klik, atau<br>tekan SPASI untuk terbang.<br>Hindari pipa!</p>
+    <div class="leaderboard" id="leaderboard">
+      <p class="lbTitle">TOP SKOR</p>
+      <ol class="lbList" id="leaderboardList">
+        <li class="lbEmpty">Memuat...</li>
+      </ol>
+    </div>
     <input class="nameInput" id="nameInput" type="text" placeholder="Nama kamu" maxlength="16" autocomplete="off">
     <p id="nameError" class="errorText hidden">Isi nama dulu ya!</p>
     <button class="btn" id="startBtn">MULAI</button>
