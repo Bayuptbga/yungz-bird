@@ -406,10 +406,14 @@
     }
     lastGapY = centerY;
 
-    // Pipa gerak (naik-turun) random: baru mulai muncul setelah skor 150,
-    // dan makin sering muncul makin tinggi skor (maks 55% peluang).
+    // Pipa gerak vertikal (naik-turun): mulai skor 150
     const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55);
     const moving = score >= 150 && Math.random() < moveChance;
+
+    // Pipa gerak horizontal (maju-mundur): mulai skor 250, biasanya baru
+    // muncul setelah player sudah terbiasa sama gerak vertikal.
+    const hMoveChance = Math.min(0.12 + Math.floor(score / 200) * 0.07, 0.45);
+    const hMoving = score >= 250 && Math.random() < hMoveChance;
 
     pipes.push({
       x: W + PIPE_W,
@@ -420,6 +424,11 @@
       moveAmp: moving ? 30 + Math.random() * 40 : 0,
       moveSpeed: moving ? 1.2 + Math.random() * 1.3 : 0,
       moveAge: Math.random() * Math.PI * 2, // fase awal acak biar gak serempak
+      hMoving,
+      hAmp: hMoving ? 18 + Math.random() * 22 : 0,
+      hSpeed: hMoving ? 1.0 + Math.random() * 1.2 : 0,
+      hAge: Math.random() * Math.PI * 2,
+      xOffset: 0,
       minY, maxY
     });
   }
@@ -582,6 +591,11 @@
         const raw = p.baseGapY + Math.sin(p.moveAge * p.moveSpeed) * p.moveAmp;
         p.gapY = Math.max(p.minY, Math.min(p.maxY, raw));
       }
+      if(p.hMoving){
+        p.hAge += dt;
+        p.xOffset = Math.sin(p.hAge * p.hSpeed) * p.hAmp;
+      }
+      const drawX = p.x + p.xOffset;
 
       if(!p.passed && p.x + PIPE_W < bird.x){
         p.passed = true;
@@ -594,8 +608,8 @@
       const botY = p.gapY + gapSize/2;
       const botH = H - GROUND_H - botY;
 
-      if(circleRectCollide(bird.x, bird.y, BIRD_R-3, p.x, 0, PIPE_W, topH) ||
-         circleRectCollide(bird.x, bird.y, BIRD_R-3, p.x, botY, PIPE_W, botH)){
+      if(circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, 0, PIPE_W, topH) ||
+         circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, botY, PIPE_W, botH)){
         endGame();
       }
 
@@ -691,9 +705,10 @@
       const topH = p.gapY - gapSize/2;
       const botY = p.gapY + gapSize/2;
       const botH = H - GROUND_H - botY;
+      const drawX = p.x + (p.xOffset || 0);
 
-      drawPipeSegment(p.x, 0, PIPE_W, topH, true);
-      drawPipeSegment(p.x, botY, PIPE_W, botH, false);
+      drawPipeSegment(drawX, 0, PIPE_W, topH, true);
+      drawPipeSegment(drawX, botY, PIPE_W, botH, false);
     }
   }
 
