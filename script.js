@@ -3,12 +3,6 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoYW9qdHVxeGZtYXlzbml5eGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NDc4MTYsImV4cCI6MjEwMjAyMzgxNn0.e5u-wpLnNkIMm_f5nla4jfBUqPYKT6iEuDEr-tXJEVs';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // --- Sistem suara pakai Web Audio API ---
-  // (Sebelumnya pakai new Audio() + cloneNode() untuk tiap play, tapi itu bikin
-  // browser fetch ulang file MP3 dari server SETIAP KALI suara dibunyikan.
-  // Saat flap cepat-cepat, request numpuk -> suara telat/patah/kadang gak keluar.
-  // Solusi: decode semua suara sekali di awal jadi AudioBuffer di memori,
-  // lalu tiap play tinggal diputar dari memori -> instan & bisa overlap mulus.)
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   const audioCtx = AudioContextClass ? new AudioContextClass() : null;
   const soundBuffers = {};
@@ -32,8 +26,6 @@
   }
   Object.entries(soundFiles).forEach(([name, url]) => loadSound(name, url));
 
-  // Browser (terutama mobile) mengunci AudioContext sampai ada interaksi user.
-  // "Buka kunci" di sentuhan/klik/keydown pertama supaya suara langsung siap.
   function unlockAudio(){
     if(audioCtx && audioCtx.state === 'suspended'){
       audioCtx.resume().catch(()=>{});
@@ -46,7 +38,7 @@
   function playSound(name){
     if(!audioCtx) return;
     const buffer = soundBuffers[name];
-    if(!buffer) return; // belum selesai dimuat, lewati diam-diam
+    if(!buffer) return;
     if(audioCtx.state === 'suspended'){
       audioCtx.resume().catch(()=>{});
     }
@@ -57,9 +49,7 @@
       gainNode.gain.value = soundVolumes[name] ?? 0.6;
       source.connect(gainNode).connect(audioCtx.destination);
       source.start(0);
-    }catch(err){
-      // abaikan kegagalan play tunggal, jangan sampai crash game
-    }
+    }catch(err){}
   }
 
   const canvas = document.getElementById('game');
@@ -109,7 +99,6 @@
       startUserInfo.classList.add('hidden');
     }
   }
-  // updateAuthUI() dipanggil setelah variabel `best` diinisialisasi di bawah
 
   settingsBtn.addEventListener('click', () => {
     if(currentUser){
@@ -164,10 +153,6 @@
 
     try{
       const passwordHash = await sha256Hex(password);
-
-      // Login & register sekarang lewat 1 RPC di server (auth_login).
-      // Password dicek di dalam function Postgres (security definer),
-      // jadi client gak pernah baca/tulis langsung ke tabel users/scores.
       const { data, error } = await supabase
         .rpc('auth_login', { p_username: username, p_password_hash: passwordHash });
 
@@ -180,7 +165,6 @@
       }
 
       const row = Array.isArray(data) ? data[0] : data;
-
       currentUser = username;
       currentPasswordHash = passwordHash;
       localStorage.setItem('flappy_username', username);
@@ -238,9 +222,6 @@
     profileScreen.classList.add('hidden');
   });
 
-  // --- Reset skor: butuh 2 tap biar gak kepencet gak sengaja ---
-  // Tap pertama: tombol berubah jadi "YAKIN? TAP LAGI" selama beberapa detik.
-  // Tap kedua (dalam jeda itu): baru benar-benar hapus skor.
   let confirmingReset = false;
   let resetConfirmTimer = null;
 
@@ -339,7 +320,10 @@
     skyGradient = g;
   }
 
+  // Parameter Responsif (Menyesuaikan Tinggi Layar)
   let W, H, DPR;
+  let dynamicGravity, dynamicFlap, dynamicGap, dynamicGroundH;
+  
   function resize(){
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = stage.clientWidth;
@@ -348,16 +332,20 @@
     canvas.height = H * DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
     buildSkyGradient();
+
+    // Responsivitas Logika Game Berdasarkan Tinggi Layar
+    // Asumsi height optimal adalah 650px.
+    const hRatio = Math.max(0.6, Math.min(H / 650, 1.4)); 
+    dynamicGravity = 1500 * hRatio;
+    dynamicFlap = -430 * Math.sqrt(hRatio); 
+    dynamicGap = Math.max(140, 190 * hRatio);
+    dynamicGroundH = Math.max(60, H * 0.1); 
   }
   window.addEventListener('resize', resize);
   resize();
 
-  const GRAVITY = 1500;
-  const FLAP_V = -430;
-  const PIPE_GAP_BASE = 190;
   const PIPE_W = 68;
   const BIRD_R = 15;
-  const GROUND_H = 70;
 
   let state = 'start'; // start | playing | over
   let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize, lastGapY;
@@ -379,21 +367,16 @@
     groundOffset = 0;
     bgOffset = 0;
     pipeSpeed = 165;
-    gapSize = PIPE_GAP_BASE;
+    gapSize = dynamicGap;
     lastGapY = null;
     hud.textContent = '0';
   }
   reset();
 
-  // Batasi seberapa jauh posisi celah pipa berikutnya boleh naik/turun
-  // dari pipa sebelumnya, biar transisinya gak kejut tiba-tiba (dari
-  // rendah langsung ke tinggi) dan pemain masih sempat bereaksi.
   function spawnPipe(){
     const margin = 70;
     const minY = margin;
-    const maxY = H - GROUND_H - margin;
-    // maxDelta mengikuti ukuran celah saat ini: makin sempit celahnya
-    // (makin susah), makin kecil juga lompatan posisinya diperbolehkan.
+    const maxY = H - dynamicGroundH - margin;
     const maxDelta = Math.max(gapSize * 0.9, 90);
 
     let centerY;
@@ -406,12 +389,9 @@
     }
     lastGapY = centerY;
 
-    // Pipa gerak vertikal (naik-turun): mulai skor 150
     const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55);
     const moving = score >= 150 && Math.random() < moveChance;
 
-    // Pipa gerak horizontal (maju-mundur): mulai skor 250, biasanya baru
-    // muncul setelah player sudah terbiasa sama gerak vertikal.
     const hMoveChance = Math.min(0.12 + Math.floor(score / 200) * 0.07, 0.45);
     const hMoving = score >= 250 && Math.random() < hMoveChance;
 
@@ -423,7 +403,7 @@
       moving,
       moveAmp: moving ? 30 + Math.random() * 40 : 0,
       moveSpeed: moving ? 1.2 + Math.random() * 1.3 : 0,
-      moveAge: Math.random() * Math.PI * 2, // fase awal acak biar gak serempak
+      moveAge: Math.random() * Math.PI * 2,
       hMoving,
       hAmp: hMoving ? 18 + Math.random() * 22 : 0,
       hSpeed: hMoving ? 1.0 + Math.random() * 1.2 : 0,
@@ -439,7 +419,7 @@
       return;
     }
     if(state === 'over') return;
-    bird.vy = FLAP_V;
+    bird.vy = dynamicFlap;
     playSound('flap');
     for(let i=0;i<5;i++){
       particles.push({
@@ -451,6 +431,7 @@
   }
 
   function startGame(){
+    resize(); // Pastikan variabel responsif terupdate
     reset();
     state = 'playing';
     startScreen.classList.add('hidden');
@@ -466,8 +447,6 @@
     }
     saveStatus.textContent = 'Menyimpan skor...';
     try{
-      // submit_score di server yang cek password DAN bandingkan skor lama vs
-      // baru, jadi client gak bisa lagi nembak upsert sembarang skor.
       const { data, error } = await supabase
         .rpc('submit_score', { p_username: name, p_password_hash: currentPasswordHash, p_score: finalScore });
 
@@ -475,7 +454,6 @@
         saveStatus.textContent = 'Gagal menyimpan skor';
         return;
       }
-
       saveStatus.textContent = (data === finalScore) ? 'Skor tersimpan' : 'Skor tidak lebih tinggi';
       loadLeaderboard();
     }catch(err){
@@ -503,13 +481,16 @@
     }
   }
 
-  canvas.addEventListener('pointerdown', (e)=>{ e.preventDefault(); flap(); });
+  // Handle Event Input dengan preventDefault agar tidak ketarik
+  canvas.addEventListener('pointerdown', (e)=>{ e.preventDefault(); flap(); }, {passive: false});
+  canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); }, {passive: false});
   window.addEventListener('keydown', (e)=>{
     if(e.code === 'Space' || e.code === 'ArrowUp'){
       e.preventDefault();
       flap();
     }
   });
+  
   function goHome(){
     reset();
     state = 'start';
@@ -546,9 +527,6 @@
     groundOffset -= scrollDelta;
     if(groundOffset < -40) groundOffset += 40;
 
-    // bgOffset dipakai khusus untuk paralaks gunung, geraknya terus-menerus
-    // tanpa dibatasi ke rentang kecil seperti groundOffset di atas -> jadi
-    // mulus, tidak "patah/lompat" setiap 40px.
     bgOffset -= scrollDelta;
     if(bgOffset < -100000) bgOffset += 100000;
 
@@ -562,24 +540,20 @@
     if(state !== 'playing') return;
 
     elapsed += dt;
-    // Kesulitan naik bertahap tiap kelipatan 100 skor, dan baru mentok
-    // (speed & gap maksimal) di skor 1000 (level 10).
     const speedLevel = Math.floor(score / 100);
     pipeSpeed = 165 + Math.min(speedLevel * 11, 110);
 
-    // Gap makin sempit tiap kelipatan 50 skor, mentok di ukuran minimum
-    // pas skor 500.
     const gapLevel = Math.floor(score / 50);
-    gapSize = Math.max(PIPE_GAP_BASE - gapLevel * 7, 120);
+    gapSize = Math.max(dynamicGap - gapLevel * 7, 120);
 
-    bird.vy += GRAVITY * dt;
+    bird.vy += dynamicGravity * dt;
     bird.y += bird.vy * dt;
     bird.rot = Math.max(-0.5, Math.min(1.3, bird.vy/500));
 
     pipeTimer -= dt;
     if(pipeTimer <= 0){
       spawnPipe();
-      pipeTimer = 239 / pipeSpeed; // jaga jarak antar pipa tetap konsisten walau speed naik
+      pipeTimer = 239 / pipeSpeed;
     }
 
     for(let i=pipes.length-1;i>=0;i--){
@@ -606,7 +580,7 @@
 
       const topH = p.gapY - gapSize/2;
       const botY = p.gapY + gapSize/2;
-      const botH = H - GROUND_H - botY;
+      const botH = H - dynamicGroundH - botY;
 
       if(circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, 0, PIPE_W, topH) ||
          circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, botY, PIPE_W, botH)){
@@ -616,8 +590,8 @@
       if(p.x < -PIPE_W) pipes.splice(i,1);
     }
 
-    if(bird.y + BIRD_R > H - GROUND_H){
-      bird.y = H - GROUND_H - BIRD_R;
+    if(bird.y + BIRD_R > H - dynamicGroundH){
+      bird.y = H - dynamicGroundH - BIRD_R;
       endGame();
     }
     if(bird.y - BIRD_R < 0){
@@ -642,15 +616,10 @@
     drawMountainsNear();
   }
 
-  // Modulo yang selalu positif, biar tiling gunung tidak "lompat" saat
-  // offset negatif (bug lama: pakai % biasa bisa bikin hasil negatif).
-  function mod(n, m){
-    return ((n % m) + m) % m;
-  }
+  function mod(n, m){ return ((n % m) + m) % m; }
 
-  // Lapisan gunung paling jauh: gerak paling lambat (kesan paling jauh)
   function drawMountainsFar(){
-    const baseY = H - GROUND_H;
+    const baseY = H - dynamicGroundH;
     const tileW = 240;
     const offset = mod(bgOffset * 0.07, tileW);
     ctx.save();
@@ -663,9 +632,8 @@
     ctx.restore();
   }
 
-  // Lapisan gunung dekat: sedikit lebih cepat & lebih tinggi, ada salju di puncak
   function drawMountainsNear(){
-    const baseY = H - GROUND_H;
+    const baseY = H - dynamicGroundH;
     const tileW = 200;
     const offset = mod(bgOffset * 0.15, tileW);
     ctx.save();
@@ -704,7 +672,7 @@
     for(const p of pipes){
       const topH = p.gapY - gapSize/2;
       const botY = p.gapY + gapSize/2;
-      const botH = H - GROUND_H - botY;
+      const botH = H - dynamicGroundH - botY;
       const drawX = p.x + (p.xOffset || 0);
 
       drawPipeSegment(drawX, 0, PIPE_W, topH, true);
@@ -713,6 +681,7 @@
   }
 
   function drawPipeSegment(x, y, w, h, isTop){
+    if (h < 0) return; // Prevent negative height rendering glitch
     const capH = 26;
     ctx.fillStyle = '#2b6b41';
     ctx.fillRect(x, y, w, h);
@@ -729,9 +698,9 @@
   }
 
   function drawGround(){
-    const y = H - GROUND_H;
+    const y = H - dynamicGroundH;
     ctx.fillStyle = '#4a2e1f';
-    ctx.fillRect(0, y, W, GROUND_H);
+    ctx.fillRect(0, y, W, dynamicGroundH);
     ctx.fillStyle = '#6b4229';
     ctx.fillRect(0, y, W, 10);
     ctx.fillStyle = '#5a3722';
