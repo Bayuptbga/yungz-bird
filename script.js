@@ -464,8 +464,11 @@
     if(state !== 'playing') return;
 
     elapsed += dt;
-    pipeSpeed = 165 + Math.min(score * 4, 110);
-    gapSize = Math.max(PIPE_GAP_BASE - score * 3, 120);
+    // Kesulitan naik bertahap tiap kelipatan 100 skor, dan baru mentok
+    // (speed & gap maksimal) di skor 1000 (level 10).
+    const level = Math.floor(score / 100);
+    pipeSpeed = 165 + Math.min(level * 11, 110);
+    gapSize = Math.max(PIPE_GAP_BASE - level * 7, 120);
 
     bird.vy += GRAVITY * dt;
     bird.y += bird.vy * dt;
