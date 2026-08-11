@@ -3,19 +3,63 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoYW9qdHVxeGZtYXlzbml5eGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NDc4MTYsImV4cCI6MjEwMjAyMzgxNn0.e5u-wpLnNkIMm_f5nla4jfBUqPYKT6iEuDEr-tXJEVs';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const sounds = {
-    flap: new Audio('sounds/flap.mp3'),
-    score: new Audio('sounds/score.mp3'),
-    hit: new Audio('sounds/hit.mp3')
+  // --- Sistem suara pakai Web Audio API ---
+  // (Sebelumnya pakai new Audio() + cloneNode() untuk tiap play, tapi itu bikin
+  // browser fetch ulang file MP3 dari server SETIAP KALI suara dibunyikan.
+  // Saat flap cepat-cepat, request numpuk -> suara telat/patah/kadang gak keluar.
+  // Solusi: decode semua suara sekali di awal jadi AudioBuffer di memori,
+  // lalu tiap play tinggal diputar dari memori -> instan & bisa overlap mulus.)
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = AudioContextClass ? new AudioContextClass() : null;
+  const soundBuffers = {};
+  const soundVolumes = { flap: 0.6, score: 0.6, hit: 0.6 };
+  const soundFiles = {
+    flap: 'sounds/flap.mp3',
+    score: 'sounds/score.mp3',
+    hit: 'sounds/hit.mp3'
   };
-  Object.values(sounds).forEach(a => { a.preload = 'auto'; a.volume = 0.6; });
+
+  async function loadSound(name, url){
+    if(!audioCtx) return;
+    try{
+      const res = await fetch(url);
+      const arrayBuffer = await res.arrayBuffer();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      soundBuffers[name] = audioBuffer;
+    }catch(err){
+      console.warn('Gagal memuat suara "' + name + '":', err);
+    }
+  }
+  Object.entries(soundFiles).forEach(([name, url]) => loadSound(name, url));
+
+  // Browser (terutama mobile) mengunci AudioContext sampai ada interaksi user.
+  // "Buka kunci" di sentuhan/klik/keydown pertama supaya suara langsung siap.
+  function unlockAudio(){
+    if(audioCtx && audioCtx.state === 'suspended'){
+      audioCtx.resume().catch(()=>{});
+    }
+  }
+  window.addEventListener('pointerdown', unlockAudio);
+  window.addEventListener('keydown', unlockAudio);
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
 
   function playSound(name){
-    const base = sounds[name];
-    if(!base) return;
-    const s = base.cloneNode();
-    s.volume = base.volume;
-    s.play().catch(()=>{});
+    if(!audioCtx) return;
+    const buffer = soundBuffers[name];
+    if(!buffer) return; // belum selesai dimuat, lewati diam-diam
+    if(audioCtx.state === 'suspended'){
+      audioCtx.resume().catch(()=>{});
+    }
+    try{
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = soundVolumes[name] ?? 0.6;
+      source.connect(gainNode).connect(audioCtx.destination);
+      source.start(0);
+    }catch(err){
+      // abaikan kegagalan play tunggal, jangan sampai crash game
+    }
   }
 
   const canvas = document.getElementById('game');
