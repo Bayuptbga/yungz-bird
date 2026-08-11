@@ -132,7 +132,7 @@ canvas{
 }
 .authBar{
   position:absolute;
-  top:calc(env(safe-area-inset-top, 0px) + 20px);
+  top:calc(env(safe-area-inset-top, 0px) + 26px);
   right:16px;
   z-index:20;
 }
