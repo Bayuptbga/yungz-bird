@@ -236,6 +236,16 @@
 
   loadLeaderboard();
 
+  let skyGradient = null;
+  function buildSkyGradient(){
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0, '#2b1055');
+    g.addColorStop(0.45, '#7b2d6e');
+    g.addColorStop(0.8, '#ff7a59');
+    g.addColorStop(1, '#ffb570');
+    skyGradient = g;
+  }
+
   let W, H, DPR;
   function resize(){
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -244,6 +254,7 @@
     canvas.width = W * DPR;
     canvas.height = H * DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
+    buildSkyGradient();
   }
   window.addEventListener('resize', resize);
   resize();
@@ -409,8 +420,8 @@
     if(state !== 'playing') return;
 
     elapsed += dt;
-    pipeSpeed = 165 + Math.min(elapsed*2.2, 70);
-    gapSize = Math.max(PIPE_GAP_BASE - elapsed*1.1, 132);
+    pipeSpeed = 165 + Math.min(score * 4, 110);
+    gapSize = Math.max(PIPE_GAP_BASE - score * 3, 120);
 
     bird.vy += GRAVITY * dt;
     bird.y += bird.vy * dt;
@@ -419,7 +430,7 @@
     pipeTimer -= dt;
     if(pipeTimer <= 0){
       spawnPipe();
-      pipeTimer = 1.45;
+      pipeTimer = 239 / pipeSpeed; // jaga jarak antar pipa tetap konsisten walau speed naik
     }
 
     for(let i=pipes.length-1;i>=0;i--){
@@ -456,12 +467,7 @@
   }
 
   function drawSky(){
-    const g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0, '#2b1055');
-    g.addColorStop(0.45, '#7b2d6e');
-    g.addColorStop(0.8, '#ff7a59');
-    g.addColorStop(1, '#ffb570');
-    ctx.fillStyle = g;
+    ctx.fillStyle = skyGradient;
     ctx.fillRect(0,0,W,H);
 
     ctx.save();
