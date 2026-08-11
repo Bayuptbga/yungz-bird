@@ -17,8 +17,38 @@
   const saveStatus = document.getElementById('saveStatus');
   const nameInput = document.getElementById('nameInput');
   const nameError = document.getElementById('nameError');
+  const leaderboardList = document.getElementById('leaderboardList');
 
   nameInput.value = localStorage.getItem('flappy_player_name') || '';
+
+  async function loadLeaderboard(){
+    try{
+      const { data, error } = await supabase
+        .from('scores')
+        .select('player_name,score')
+        .order('score', { ascending:false })
+        .limit(3);
+
+      if(error || !data || data.length === 0){
+        leaderboardList.innerHTML = '<li class="lbEmpty">Belum ada skor</li>';
+        return;
+      }
+
+      leaderboardList.innerHTML = data.map((row, i) => `
+        <li><span><span class="lbRank">${i+1}.</span>${escapeHtml(row.player_name)}</span><span>${row.score}</span></li>
+      `).join('');
+    }catch(err){
+      leaderboardList.innerHTML = '<li class="lbEmpty">Gagal memuat</li>';
+    }
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  loadLeaderboard();
 
   let W, H, DPR;
   function resize(){
@@ -106,6 +136,7 @@
         score: finalScore
       });
       saveStatus.textContent = error ? 'Gagal menyimpan skor' : 'Skor tersimpan';
+      if(!error) loadLeaderboard();
     }catch(err){
       saveStatus.textContent = 'Gagal menyimpan skor';
     }
@@ -137,6 +168,7 @@
     state = 'start';
     overScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
+    loadLeaderboard();
   }
 
   nameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); });
