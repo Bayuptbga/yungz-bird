@@ -525,22 +525,96 @@
     ctx.fill();
     ctx.restore();
 
+    drawMountainsFar();
+    drawMountainsNear();
+    drawHousingRow();
+  }
+
+  // Lapisan gunung paling jauh: gerak paling lambat (kesan paling jauh)
+  function drawMountainsFar(){
+    const baseY = H - GROUND_H;
+    const tileW = 240;
+    const offset = (groundOffset * 0.07) % tileW;
     ctx.save();
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#1a1023';
-    for(let i=0;i<3;i++){
-      const bx = ((W*0.2*i + W*0.1) - groundOffset*0.15*(i+1)) % (W+200) - 100;
-      drawHillSilhouette(bx, H-GROUND_H, 180+i*40, 90+i*20);
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#3a2a55';
+    for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){
+      drawMountainPeak(x + tileW*0.28, baseY, tileW*0.62, 120);
+      drawMountainPeak(x + tileW*0.78, baseY, tileW*0.58, 95);
     }
     ctx.restore();
   }
 
-  function drawHillSilhouette(cx, baseY, w, h){
+  // Lapisan gunung dekat: sedikit lebih cepat & lebih tinggi, ada salju di puncak
+  function drawMountainsNear(){
+    const baseY = H - GROUND_H;
+    const tileW = 200;
+    const offset = (groundOffset * 0.15) % tileW;
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = '#221530';
+    for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){
+      drawMountainPeak(x + tileW*0.3, baseY, tileW*0.72, 160, true);
+    }
+    ctx.restore();
+  }
+
+  function drawMountainPeak(cx, baseY, w, h, withSnow){
     ctx.beginPath();
-    ctx.moveTo(cx-w/2, baseY);
-    ctx.quadraticCurveTo(cx, baseY-h, cx+w/2, baseY);
+    ctx.moveTo(cx - w/2, baseY);
+    ctx.lineTo(cx - w*0.1, baseY - h);
+    ctx.lineTo(cx + w*0.06, baseY - h*0.8);
+    ctx.lineTo(cx + w/2, baseY);
     ctx.closePath();
     ctx.fill();
+
+    if(withSnow){
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.moveTo(cx - w*0.1, baseY - h);
+      ctx.lineTo(cx - w*0.02, baseY - h*0.86);
+      ctx.lineTo(cx + w*0.06, baseY - h*0.8);
+      ctx.lineTo(cx - w*0.01, baseY - h*0.82);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Barisan rumah kecil paling depan, di atas garis tanah: gerak paling cepat
+  // (kesan paling dekat) dengan jendela menyala.
+  const housePalette = ['#3d2a4a', '#4a3358', '#33263f', '#432c52'];
+  function drawHousingRow(){
+    const baseY = H - GROUND_H;
+    const tileW = 96;
+    const offset = (groundOffset * 0.35) % tileW;
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    let i = 0;
+    for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){
+      const houseW = 42;
+      const houseH = 30 + (i % 3) * 8;
+      drawHouse(x + tileW*0.22, baseY, houseW, houseH, housePalette[i % housePalette.length]);
+      i++;
+    }
+    ctx.restore();
+  }
+
+  function drawHouse(x, baseY, w, h, color){
+    ctx.fillStyle = color;
+    ctx.fillRect(x, baseY - h, w, h);
+
+    ctx.beginPath();
+    ctx.moveTo(x - 6, baseY - h);
+    ctx.lineTo(x + w/2, baseY - h - 16);
+    ctx.lineTo(x + w + 6, baseY - h);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,210,120,0.7)';
+    ctx.fillRect(x + w*0.18, baseY - h*0.6, 6, 6);
+    ctx.fillRect(x + w*0.6, baseY - h*0.6, 6, 6);
   }
 
   function drawPipes(){
