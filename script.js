@@ -47,6 +47,29 @@
   }
   updateAuthUI();
 
+  async function fetchBestScore(username){
+    try{
+      const { data, error } = await supabase
+        .from('scores')
+        .select('score')
+        .eq('player_name', username)
+        .maybeSingle();
+      if(error || !data) return null;
+      return data.score;
+    }catch(err){
+      return null;
+    }
+  }
+
+  async function syncBestFromServer(username){
+    const serverBest = await fetchBestScore(username);
+    if(serverBest !== null){
+      best = serverBest;
+      localStorage.setItem('flappy_best', String(best));
+      bestLine.textContent = 'Terbaik: ' + best;
+    }
+  }
+
   async function sha256Hex(text){
     const enc = new TextEncoder().encode(text);
     const buf = await crypto.subtle.digest('SHA-256', enc);
@@ -105,6 +128,7 @@
       loginScreen.classList.add('hidden');
       loginUsernameInput.value = '';
       loginPasswordInput.value = '';
+      await syncBestFromServer(currentUser);
     }catch(err){
       loginError.textContent = 'Terjadi kesalahan';
       loginError.classList.remove('hidden');
@@ -123,11 +147,13 @@
   });
   loginSubmitBtn.addEventListener('click', handleLoginSubmit);
 
-  function openProfile(){
+  async function openProfile(){
     if(!currentUser) return;
     profileUsername.textContent = currentUser;
     profileBest.textContent = 'Skor Terbaik: ' + best;
     profileScreen.classList.remove('hidden');
+    await syncBestFromServer(currentUser);
+    profileBest.textContent = 'Skor Terbaik: ' + best;
   }
   authUser.addEventListener('click', openProfile);
   profileCloseBtn.addEventListener('click', () => {
@@ -136,6 +162,9 @@
   profileLogoutBtn.addEventListener('click', () => {
     currentUser = null;
     localStorage.removeItem('flappy_username');
+    localStorage.removeItem('flappy_best');
+    best = 0;
+    bestLine.textContent = 'Terbaik: ' + best;
     updateAuthUI();
     profileScreen.classList.add('hidden');
   });
@@ -201,6 +230,9 @@
 
   best = Number(localStorage.getItem('flappy_best') || 0);
   bestLine.textContent = 'Terbaik: ' + best;
+  if(currentUser){
+    syncBestFromServer(currentUser);
+  }
 
   function reset(){
     bird = { x: W*0.32, y: H*0.42, vy: 0, rot: 0 };
