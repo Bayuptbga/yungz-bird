@@ -311,7 +311,7 @@
   const GROUND_H = 70;
 
   let state = 'start'; // start | playing | over
-  let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize;
+  let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize, lastGapY;
 
   best = Number(localStorage.getItem('flappy_best') || 0);
   bestLine.textContent = 'Terbaik: ' + best;
@@ -331,14 +331,31 @@
     bgOffset = 0;
     pipeSpeed = 165;
     gapSize = PIPE_GAP_BASE;
+    lastGapY = null;
     hud.textContent = '0';
   }
   reset();
 
+  // Batasi seberapa jauh posisi celah pipa berikutnya boleh naik/turun
+  // dari pipa sebelumnya, biar transisinya gak kejut tiba-tiba (dari
+  // rendah langsung ke tinggi) dan pemain masih sempat bereaksi.
   function spawnPipe(){
     const margin = 70;
-    const usable = H - GROUND_H - margin*2;
-    const centerY = margin + Math.random()*usable;
+    const minY = margin;
+    const maxY = H - GROUND_H - margin;
+    // maxDelta mengikuti ukuran celah saat ini: makin sempit celahnya
+    // (makin susah), makin kecil juga lompatan posisinya diperbolehkan.
+    const maxDelta = Math.max(gapSize * 0.9, 90);
+
+    let centerY;
+    if(lastGapY === null){
+      centerY = minY + Math.random() * (maxY - minY);
+    }else{
+      const lo = Math.max(minY, lastGapY - maxDelta);
+      const hi = Math.min(maxY, lastGapY + maxDelta);
+      centerY = lo + Math.random() * (hi - lo);
+    }
+    lastGapY = centerY;
     pipes.push({ x: W + PIPE_W, gapY: centerY, passed:false });
   }
 
