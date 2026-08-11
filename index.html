@@ -16,10 +16,9 @@
 
   <div class="authBar" id="authBar">
     <button class="authBtn" id="loginBtn" type="button">LOGIN</button>
-    <div class="authUser hidden" id="authUser">
+    <button class="authUser hidden" id="authUser" type="button" title="Buka profil">
       <span id="authUsername"></span>
-      <button class="authLogoutBtn" id="logoutBtn" type="button" title="Logout">&#9211;</button>
-    </div>
+    </button>
   </div>
 
   <div class="overlay" id="startScreen">
@@ -64,6 +63,16 @@
       <p id="loginError" class="errorText hidden"></p>
       <button class="btn" id="loginSubmitBtn">MASUK</button>
       <p class="badge">Username baru? Otomatis terdaftar saat login pertama kali.</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden loginOverlay" id="profileScreen">
+    <div class="loginCard profileCard">
+      <button class="loginCloseBtn" id="profileCloseBtn" type="button">&times;</button>
+      <h1>PROFIL</h1>
+      <p class="profileUsername" id="profileUsername"></p>
+      <p class="badge" id="profileBest">Skor Terbaik: 0</p>
+      <button class="btn btnSecondary" id="profileLogoutBtn">LOGOUT</button>
     </div>
   </div>
 </div>
