@@ -405,7 +405,23 @@
       centerY = lo + Math.random() * (hi - lo);
     }
     lastGapY = centerY;
-    pipes.push({ x: W + PIPE_W, gapY: centerY, passed:false });
+
+    // Pipa gerak (naik-turun) random: baru mulai muncul setelah skor 150,
+    // dan makin sering muncul makin tinggi skor (maks 55% peluang).
+    const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55);
+    const moving = score >= 150 && Math.random() < moveChance;
+
+    pipes.push({
+      x: W + PIPE_W,
+      gapY: centerY,
+      baseGapY: centerY,
+      passed: false,
+      moving,
+      moveAmp: moving ? 30 + Math.random() * 40 : 0,
+      moveSpeed: moving ? 1.2 + Math.random() * 1.3 : 0,
+      moveAge: Math.random() * Math.PI * 2, // fase awal acak biar gak serempak
+      minY, maxY
+    });
   }
 
   function flap(){
@@ -539,9 +555,14 @@
     elapsed += dt;
     // Kesulitan naik bertahap tiap kelipatan 100 skor, dan baru mentok
     // (speed & gap maksimal) di skor 1000 (level 10).
-    const level = Math.floor(score / 100);
-    pipeSpeed = 165 + Math.min(level * 11, 110);
-    gapSize = Math.max(PIPE_GAP_BASE - level * 7, 120);
+    const speedLevel = Math.floor(score / 100);
+    pipeSpeed = 165 + Math.min(speedLevel * 11, 110);
+
+    // Gap makin sempit tiap kelipatan 50 skor (dulu tiap 100), step diperkecil
+    // separuhnya biar total penyempitan sampai mentok di skor 1000 tetap sama,
+    // cuma lebih bertahap/halus.
+    const gapLevel = Math.floor(score / 50);
+    gapSize = Math.max(PIPE_GAP_BASE - gapLevel * 3.5, 120);
 
     bird.vy += GRAVITY * dt;
     bird.y += bird.vy * dt;
@@ -556,6 +577,12 @@
     for(let i=pipes.length-1;i>=0;i--){
       const p = pipes[i];
       p.x -= pipeSpeed*dt;
+
+      if(p.moving){
+        p.moveAge += dt;
+        const raw = p.baseGapY + Math.sin(p.moveAge * p.moveSpeed) * p.moveAmp;
+        p.gapY = Math.max(p.minY, Math.min(p.maxY, raw));
+      }
 
       if(!p.passed && p.x + PIPE_W < bird.x){
         p.passed = true;
