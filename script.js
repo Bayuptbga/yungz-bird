@@ -18,9 +18,11 @@
   const leaderboardList = document.getElementById('leaderboardList');
 
   const authBar = document.getElementById('authBar');
+  const settingsBtn = document.getElementById('settingsBtn');
   const loginBtn = document.getElementById('loginBtn');
-  const authUser = document.getElementById('authUser');
-  const authUsername = document.getElementById('authUsername');
+  const startUserInfo = document.getElementById('startUserInfo');
+  const startUsername = document.getElementById('startUsername');
+  const startUserBest = document.getElementById('startUserBest');
   const profileScreen = document.getElementById('profileScreen');
   const profileCloseBtn = document.getElementById('profileCloseBtn');
   const profileUsername = document.getElementById('profileUsername');
@@ -38,14 +40,24 @@
   function updateAuthUI(){
     if(currentUser){
       loginBtn.classList.add('hidden');
-      authUser.classList.remove('hidden');
-      authUsername.textContent = currentUser;
+      startUserInfo.classList.remove('hidden');
+      startUsername.textContent = currentUser;
+      startUserBest.textContent = 'Terbaik: ' + best;
     }else{
       loginBtn.classList.remove('hidden');
-      authUser.classList.add('hidden');
+      startUserInfo.classList.add('hidden');
     }
   }
-  updateAuthUI();
+  // updateAuthUI() dipanggil setelah variabel `best` diinisialisasi di bawah
+
+  settingsBtn.addEventListener('click', () => {
+    if(currentUser){
+      openProfile();
+    }else{
+      loginError.classList.add('hidden');
+      loginScreen.classList.remove('hidden');
+    }
+  });
 
   async function fetchBestScore(username){
     try{
@@ -67,6 +79,7 @@
       best = serverBest;
       localStorage.setItem('flappy_best', String(best));
       bestLine.textContent = 'Terbaik: ' + best;
+      if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best;
     }
   }
 
@@ -155,7 +168,6 @@
     await syncBestFromServer(currentUser);
     profileBest.textContent = 'Skor Terbaik: ' + best;
   }
-  authUser.addEventListener('click', openProfile);
   profileCloseBtn.addEventListener('click', () => {
     profileScreen.classList.add('hidden');
   });
@@ -233,6 +245,7 @@
 
   best = Number(localStorage.getItem('flappy_best') || 0);
   bestLine.textContent = 'Terbaik: ' + best;
+  updateAuthUI();
   if(currentUser){
     syncBestFromServer(currentUser);
   }
