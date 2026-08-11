@@ -14,7 +14,15 @@
   <canvas id="game"></canvas>
   <div class="hud hidden" id="hud">0</div>
 
-  <div class="authBar" id="authBar">
+  <div class="authBar" id="authBar" style="display:flex; gap:10px;">
+    <!-- TOMBOL SHOP -->
+    <button class="gearBtn" id="shopBtn" type="button" title="Toko" aria-label="Toko">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+      </svg>
+    </button>
+    <!-- TOMBOL SETTINGS -->
     <button class="gearBtn" id="settingsBtn" type="button" title="Pengaturan" aria-label="Pengaturan">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"></circle>
@@ -44,10 +52,24 @@
     <h1>GAME OVER</h1>
     <p id="scoreLine">Skor: 0</p>
     <p id="bestLine" class="badge">Terbaik: 0</p>
+    <p id="coinsGained" class="badge" style="color:#ffd27a; margin-top:-5px;">+0 Koin</p>
     <p id="saveStatus" class="badge"></p>
     <div class="btnRow">
       <button class="btn" id="retryBtn">COBA LAGI</button>
       <button class="btn btnSecondary" id="homeBtn">HOME</button>
+    </div>
+  </div>
+
+  <!-- LAYAR SHOP -->
+  <div class="overlay hidden loginOverlay" id="shopScreen">
+    <div class="loginCard shopCard">
+      <button class="loginCloseBtn" id="shopCloseBtn" type="button">&times;</button>
+      <h1>TOKO SKIN</h1>
+      <p class="badge" id="shopCoinsDisplay" style="color:#ffd27a; font-size:12px; margin-bottom:10px;">Koin: 0</p>
+      <p id="shopSaveStatus" class="badge" style="display:none; color:#5fc084; font-size:8px; margin-top:-5px; margin-bottom:10px;"></p>
+      <div class="skinList" id="skinList">
+        <!-- List Skin Injected via JS -->
+      </div>
     </div>
   </div>
 
@@ -79,6 +101,7 @@
       <h1>PROFIL</h1>
       <p class="profileUsername" id="profileUsername"></p>
       <p class="badge" id="profileBest">Skor Terbaik: 0</p>
+      <p class="badge" id="profileCoins">Koin: 0</p>
       <button class="btn btnDanger" id="resetScoreBtn" type="button">RESET SKOR</button>
       <button class="btn btnSecondary" id="profileLogoutBtn">LOGOUT</button>
     </div>
