@@ -14,6 +14,14 @@
   <canvas id="game"></canvas>
   <div class="hud hidden" id="hud">0</div>
 
+  <div class="authBar" id="authBar">
+    <button class="authBtn" id="loginBtn" type="button">LOGIN</button>
+    <div class="authUser hidden" id="authUser">
+      <span id="authUsername"></span>
+      <button class="authLogoutBtn" id="logoutBtn" type="button" title="Logout">&#9211;</button>
+    </div>
+  </div>
+
   <div class="overlay" id="startScreen">
     <h1>YUNGZ<br>BIRD</h1>
     <div class="leaderboard" id="leaderboard">
@@ -23,8 +31,6 @@
       </ol>
       <button class="lbMoreLink" id="lbMoreBtn" type="button">Lihat semua &rsaquo;</button>
     </div>
-    <input class="nameInput" id="nameInput" type="text" placeholder="Nama kamu" maxlength="16" autocomplete="off">
-    <p id="nameError" class="errorText hidden">Isi nama dulu ya!</p>
     <button class="btn" id="startBtn">MULAI</button>
   </div>
 
@@ -47,6 +53,18 @@
     <ol class="lbFullList" id="lbFullList">
       <li class="lbStatusText" style="width:100%;list-style:none;">Memuat...</li>
     </ol>
+  </div>
+
+  <div class="overlay hidden loginOverlay" id="loginScreen">
+    <div class="loginCard">
+      <button class="loginCloseBtn" id="loginCloseBtn" type="button">&times;</button>
+      <h1>LOGIN</h1>
+      <input class="nameInput" id="loginUsername" type="text" placeholder="Username" maxlength="16" autocomplete="off">
+      <input class="nameInput" id="loginPassword" type="password" placeholder="Password" maxlength="32" autocomplete="off">
+      <p id="loginError" class="errorText hidden"></p>
+      <button class="btn" id="loginSubmitBtn">MASUK</button>
+      <p class="badge">Username baru? Otomatis terdaftar saat login pertama kali.</p>
+    </div>
   </div>
 </div>
 
