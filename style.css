@@ -139,3 +139,95 @@ canvas{
   justify-content:center !important;
   opacity:0.6;
 }
+.lbMoreLink{
+  display:block;
+  margin-top:10px;
+  font-family:'Press Start 2P', monospace;
+  font-size:9px;
+  color:var(--sun);
+  background:none;
+  border:none;
+  opacity:0.85;
+  text-align:right;
+  width:100%;
+  cursor:pointer;
+  padding:0;
+}
+.lbMoreLink:active{ opacity:0.6; }
+
+/* ===== Overlay leaderboard penuh (di dalam index.html) ===== */
+.lbFullOverlay{
+  overflow-y:auto;
+  align-items:stretch;
+  justify-content:flex-start;
+  padding:20px 16px 30px;
+  gap:14px;
+}
+.lbPageHead{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-shrink:0;
+}
+.lbBackBtn{
+  font-family:'Press Start 2P', monospace;
+  font-size:14px;
+  color:var(--cream);
+  background:rgba(255,243,214,0.1);
+  border:2px solid rgba(255,243,214,0.25);
+  padding:8px 12px;
+  line-height:1;
+  cursor:pointer;
+}
+.lbBackBtn:active{ opacity:0.6; }
+.lbPageHead h1{
+  font-size:14px;
+  color:var(--sun);
+  text-shadow:2px 2px 0 var(--ink);
+  margin:0;
+  line-height:1.5;
+  text-align:left;
+}
+.lbFullList{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  width:100%;
+}
+.lbFullList li{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:11px;
+  padding:10px 12px;
+  background:rgba(255,243,214,0.06);
+  border:1px solid rgba(255,243,214,0.15);
+}
+.lbFullList .lbRank{
+  color:var(--sun);
+  min-width:28px;
+  flex-shrink:0;
+}
+.lbFullList .lbName{
+  flex:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:left;
+}
+.lbFullList .lbScore{
+  flex-shrink:0;
+  opacity:0.9;
+}
+.lbFullList li.lbTop1 .lbRank{ color:#ffe9a8; }
+.lbFullList li.lbTop2 .lbRank{ color:#e0c9ff; }
+.lbFullList li.lbTop3 .lbRank{ color:#ffb98a; }
+.lbStatusText{
+  font-size:11px;
+  opacity:0.7;
+  text-align:center;
+  padding:30px 0;
+}
