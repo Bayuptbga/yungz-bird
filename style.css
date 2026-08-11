@@ -36,23 +36,7 @@ html,body{
   background:var(--ink);
 }
 
-@media (max-width: 800px) and (max-height: 500px) and (orientation: landscape) {
-  #stage { display: none !important; }
-  body::before {
-    content: "Silakan putar HP ke mode Portrait (Berdiri) untuk bermain.";
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--sun);
-    width: 100vw;
-    height: 100dvh;
-    z-index: 9999;
-  }
-}
+/* PERINGATAN LANDSCAPE DIHAPUS AGAR BISA MAIN DI SPLIT-SCREEN 2 LAYAR */
 
 canvas{
   display:block;
