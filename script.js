@@ -89,6 +89,7 @@
     localStorage.setItem('flappy_active_skin', activeSkinId);
   }
 
+  // Load awal dari local storage sebagai backup sementara
   updateLocalState(
     Number(localStorage.getItem('flappy_coins') || 0),
     localStorage.getItem('flappy_skins') || '["default"]',
@@ -129,7 +130,7 @@
   async function syncShopDataToServer(){
     if(!currentUser || !currentPasswordHash) return;
     try{
-      const { data, error } = await supabase.rpc('update_shop_data', { 
+      const { error } = await supabase.rpc('update_shop_data', { 
         p_username: currentUser, 
         p_password_hash: currentPasswordHash,
         p_coins: flappyCoins,
@@ -156,7 +157,7 @@
       renderShop();
       draw();
 
-      shopSaveStatus.textContent = "Membeli & menyimpan ke server...";
+      shopSaveStatus.textContent = "Membeli & menyimpan...";
       shopSaveStatus.style.color = "#5fc084";
       shopSaveStatus.style.display = "block";
 
@@ -178,7 +179,7 @@
 
   shopBtn.addEventListener('click', () => {
     if(!currentUser){
-      shopSaveStatus.textContent = "Mode Tamu. Login untuk simpan koin & skin permanen.";
+      shopSaveStatus.textContent = "Mode Tamu. Login untuk simpan permanen.";
       shopSaveStatus.style.color = "#ffd27a";
       shopSaveStatus.style.display = "block";
     }
@@ -246,31 +247,46 @@
     }
   });
 
-  async function fetchUserData(username){
+  // FUNGSI LAMA (DIJAMIN AMAN UNTUK SKOR)
+  async function fetchBestScore(username){
     if(!currentPasswordHash) return null;
     try{
       const { data, error } = await supabase
-        .rpc('get_user_data', { p_username: username, p_password_hash: currentPasswordHash });
-      
+        .rpc('get_my_best', { p_username: username, p_password_hash: currentPasswordHash });
+      if(error) return null;
+      return data;
+    }catch(err){ return null; }
+  }
+
+  // FUNGSI BARU (KHUSUS UNTUK TOKO SAJA)
+  async function fetchShopData(username){
+    if(!currentPasswordHash) return null;
+    try{
+      const { data, error } = await supabase
+        .rpc('get_shop_data', { p_username: username, p_password_hash: currentPasswordHash });
       if(error || !data || data.length === 0) return null;
       return data[0]; 
     }catch(err){ return null; }
   }
 
   async function syncDataFromServer(username){
-    const sData = await fetchUserData(username);
-    if(sData !== null){
-      best = sData.best_score != null ? sData.best_score : 0;
+    // Sinkronisasi Skor (Aman)
+    const serverBest = await fetchBestScore(username);
+    if(serverBest !== null){
+      best = serverBest;
       localStorage.setItem('flappy_best', String(best));
       bestLine.textContent = 'Terbaik: ' + best;
       if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best;
+    }
 
+    // Sinkronisasi Toko (Aman)
+    const shopData = await fetchShopData(username);
+    if(shopData !== null){
       updateLocalState(
-        sData.coins || 0,
-        sData.unlocked_skins || '["default"]',
-        sData.active_skin || 'default'
+        shopData.coins || 0,
+        shopData.unlocked_skins || '["default"]',
+        shopData.active_skin || 'default'
       );
-      
       draw(); 
     }
   }
@@ -361,7 +377,6 @@
     best = 0; bestLine.textContent = 'Terbaik: ' + best;
     
     updateLocalState(0, '["default"]', 'default');
-    
     updateAuthUI(); profileScreen.classList.add('hidden');
     draw();
   });
@@ -520,38 +535,31 @@
 
   async function saveScoreAndCoinsToServer(name, finalScore, finalCoins){
     if(!currentPasswordHash){ saveStatus.textContent = 'Login untuk menyimpan skor'; return; }
-    saveStatus.textContent = 'Menyimpan skor...';
+    saveStatus.textContent = 'Menyimpan data...';
     try{
-      const { data, error } = await supabase.rpc('submit_score_and_coins', { 
+      // 1. Simpan Skor (pakai fungsi bawaan lama kamu yang dijamin AMAN)
+      const { data: scoreData, error: scoreError } = await supabase.rpc('submit_score', { 
         p_username: name, 
         p_password_hash: currentPasswordHash, 
-        p_score: finalScore,
-        p_added_coins: finalScore 
+        p_score: finalScore 
       });
-      if(error){
-        console.error("DB Error:", error);
-        
-        // Fallback: Jika fungsi submit_score_and_coins belum ada di server (belum run SQL)
-        if(error.message.includes('Could not find') || error.code === 'PGRST202'){
-           try {
-             const fallback = await supabase.rpc('submit_score', { p_username: name, p_password_hash: currentPasswordHash, p_score: finalScore });
-             if(fallback.error) throw fallback.error;
-             saveStatus.textContent = 'Skor tersimpan (Belum run SQL)';
-             loadLeaderboard();
-             return;
-           } catch(e) {
-             saveStatus.textContent = 'Gagal menyimpan: ' + (e.message || 'Error');
-             return;
-           }
-        }
-        
-        saveStatus.textContent = 'Gagal menyimpan: ' + error.message; 
-        return; 
+      
+      if(scoreError) throw scoreError;
+
+      // 2. Simpan Koin (pakai fungsi baru yang sama sekali tidak menyentuh kolom skor lama kamu)
+      if (finalCoins > 0) {
+        const { error: coinError } = await supabase.rpc('add_coins', { 
+          p_username: name, 
+          p_password_hash: currentPasswordHash, 
+          p_added_coins: finalCoins 
+        });
+        if(coinError) console.warn("Peringatan: Gagal simpan koin", coinError);
       }
-      saveStatus.textContent = (data === finalScore) ? 'Skor & Koin tersimpan' : 'Koin tersimpan';
+
+      saveStatus.textContent = (scoreData === finalScore) ? 'Skor & Koin tersimpan' : 'Koin tersimpan';
       loadLeaderboard();
     }catch(err){ 
-      saveStatus.textContent = 'Gagal: ' + (err.message || 'Koneksi terputus'); 
+      saveStatus.textContent = 'Gagal menyimpan: ' + (err.message || 'Error Server'); 
     }
   }
 
