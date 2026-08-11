@@ -558,11 +558,10 @@
     const speedLevel = Math.floor(score / 100);
     pipeSpeed = 165 + Math.min(speedLevel * 11, 110);
 
-    // Gap makin sempit tiap kelipatan 50 skor (dulu tiap 100), step diperkecil
-    // separuhnya biar total penyempitan sampai mentok di skor 1000 tetap sama,
-    // cuma lebih bertahap/halus.
+    // Gap makin sempit tiap kelipatan 50 skor, mentok di ukuran minimum
+    // pas skor 500.
     const gapLevel = Math.floor(score / 50);
-    gapSize = Math.max(PIPE_GAP_BASE - gapLevel * 3.5, 120);
+    gapSize = Math.max(PIPE_GAP_BASE - gapLevel * 7, 120);
 
     bird.vy += GRAVITY * dt;
     bird.y += bird.vy * dt;
