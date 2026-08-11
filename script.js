@@ -131,10 +131,22 @@
   async function saveScore(name, finalScore){
     saveStatus.textContent = 'Menyimpan skor...';
     try{
-      const { error } = await supabase.from('scores').insert({
-        player_name: name,
-        score: finalScore
-      });
+      const { data: existing } = await supabase
+        .from('scores')
+        .select('score')
+        .eq('player_name', name)
+        .maybeSingle();
+
+      if(existing && existing.score >= finalScore){
+        saveStatus.textContent = 'Skor tidak lebih tinggi';
+        loadLeaderboard();
+        return;
+      }
+
+      const { error } = await supabase
+        .from('scores')
+        .upsert({ player_name: name, score: finalScore }, { onConflict: 'player_name' });
+
       saveStatus.textContent = error ? 'Gagal menyimpan skor' : 'Skor tersimpan';
       if(!error) loadLeaderboard();
     }catch(err){
