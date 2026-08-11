@@ -89,7 +89,6 @@
     localStorage.setItem('flappy_active_skin', activeSkinId);
   }
 
-  // Load awal dari local storage sebagai backup sementara jika belum fetch
   updateLocalState(
     Number(localStorage.getItem('flappy_coins') || 0),
     localStorage.getItem('flappy_skins') || '["default"]',
@@ -151,7 +150,6 @@
         return;
       }
       
-      // Update local dulu biar cepat
       flappyCoins -= price;
       unlockedSkins.push(id);
       updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), id);
@@ -162,7 +160,6 @@
       shopSaveStatus.style.color = "#5fc084";
       shopSaveStatus.style.display = "block";
 
-      // Sync ke server
       await syncShopDataToServer();
       
       shopSaveStatus.textContent = "Skin tersimpan!";
@@ -175,7 +172,7 @@
     renderShop();
     draw(); 
     if(currentUser) {
-      syncShopDataToServer(); // Sync perubahan active skin diam-diam
+      syncShopDataToServer();
     }
   };
 
@@ -252,12 +249,11 @@
   async function fetchUserData(username){
     if(!currentPasswordHash) return null;
     try{
-      // Sekarang kita fetch data user komplit (termasuk coin & skin) bukan cuma best score
       const { data, error } = await supabase
         .rpc('get_user_data', { p_username: username, p_password_hash: currentPasswordHash });
       
       if(error || !data || data.length === 0) return null;
-      return data[0]; // {best_score, coins, unlocked_skins, active_skin}
+      return data[0]; 
     }catch(err){ return null; }
   }
 
@@ -269,14 +265,13 @@
       bestLine.textContent = 'Terbaik: ' + best;
       if(startUserBest) startUserBest.textContent = 'Terbaik: ' + best;
 
-      // Update koin & skin dari server
       updateLocalState(
         sData.coins || 0,
         sData.unlocked_skins || '["default"]',
         sData.active_skin || 'default'
       );
       
-      draw(); // Redraw burung dengan skin baru
+      draw(); 
     }
   }
 
@@ -327,7 +322,6 @@
       loginUsernameInput.value = '';
       loginPasswordInput.value = '';
 
-      // Segera sinkronisasi data koin & skin dari server setelah login
       await syncDataFromServer(currentUser);
 
     }catch(err){
@@ -366,7 +360,6 @@
     localStorage.removeItem('flappy_best');
     best = 0; bestLine.textContent = 'Terbaik: ' + best;
     
-    // Reset skin ke default lokal
     updateLocalState(0, '["default"]', 'default');
     
     updateAuthUI(); profileScreen.classList.add('hidden');
@@ -529,17 +522,37 @@
     if(!currentPasswordHash){ saveStatus.textContent = 'Login untuk menyimpan skor'; return; }
     saveStatus.textContent = 'Menyimpan skor...';
     try{
-      // Panggil rpc baru yang handle submit score dan juga tambah koin
       const { data, error } = await supabase.rpc('submit_score_and_coins', { 
         p_username: name, 
         p_password_hash: currentPasswordHash, 
         p_score: finalScore,
-        p_added_coins: finalScore // tambahkan koin sebanyak skor yang didapat ronde ini
+        p_added_coins: finalScore 
       });
-      if(error){ saveStatus.textContent = 'Gagal menyimpan data'; return; }
+      if(error){
+        console.error("DB Error:", error);
+        
+        // Fallback: Jika fungsi submit_score_and_coins belum ada di server (belum run SQL)
+        if(error.message.includes('Could not find') || error.code === 'PGRST202'){
+           try {
+             const fallback = await supabase.rpc('submit_score', { p_username: name, p_password_hash: currentPasswordHash, p_score: finalScore });
+             if(fallback.error) throw fallback.error;
+             saveStatus.textContent = 'Skor tersimpan (Belum run SQL)';
+             loadLeaderboard();
+             return;
+           } catch(e) {
+             saveStatus.textContent = 'Gagal menyimpan: ' + (e.message || 'Error');
+             return;
+           }
+        }
+        
+        saveStatus.textContent = 'Gagal menyimpan: ' + error.message; 
+        return; 
+      }
       saveStatus.textContent = (data === finalScore) ? 'Skor & Koin tersimpan' : 'Koin tersimpan';
       loadLeaderboard();
-    }catch(err){ saveStatus.textContent = 'Gagal menyimpan data'; }
+    }catch(err){ 
+      saveStatus.textContent = 'Gagal: ' + (err.message || 'Koneksi terputus'); 
+    }
   }
 
   function endGame(){
