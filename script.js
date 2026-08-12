@@ -117,6 +117,13 @@
   const vsMenuBtn = document.getElementById('vsMenuBtn'); const vsWaitingScreen = document.getElementById('vsWaitingScreen');
   const vsStatusText = document.getElementById('vsStatusText'); const cancelVsBtn = document.getElementById('cancelVsBtn');
   const vsStatusHUD = document.getElementById('vsStatusHUD'); const spectateEndBtn = document.getElementById('spectateEndBtn');
+  const vsLoaderPulse = document.getElementById('vsLoaderPulse');
+  
+  // MENU VS BARU
+  const vsMenuScreen = document.getElementById('vsMenuScreen');
+  const vsJoinScreen = document.getElementById('vsJoinScreen');
+  const inputRoomCode = document.getElementById('inputRoomCode');
+  const joinError = document.getElementById('joinError');
 
   function updateAuthUI(){
     if(currentUser){ loginBtn.classList.add('hidden'); startUserInfo.classList.remove('hidden'); startUsername.textContent = currentUser; startUserBest.textContent = 'Terbaik: ' + best; }
@@ -180,8 +187,13 @@
     }catch(err){ profileBest.textContent = 'Gagal reset skor'; }finally{ resetScoreBtn.disabled = false; resetScoreBtn.textContent = 'RESET SKOR'; confirmingReset = false; }
   }
   resetScoreBtn.addEventListener('click', () => { if(!confirmingReset){ confirmingReset = true; resetScoreBtn.textContent = 'YAKIN? TAP LAGI'; resetScoreBtn.classList.add('confirming'); clearTimeout(resetConfirmTimer); resetConfirmTimer = setTimeout(cancelResetConfirm, 3500); }else{ clearTimeout(resetConfirmTimer); resetScore(); } });
-  loginUsernameInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); }); loginUsernameInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
-  loginPasswordInput.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); }); loginPasswordInput.addEventListener('keydown', (e)=>{ e.stopPropagation(); if(e.key === 'Enter') handleLoginSubmit(); });
+  
+  // Prevent default keydown for inputs
+  const inputs = [loginUsernameInput, loginPasswordInput, inputRoomCode];
+  inputs.forEach(el => {
+      el.addEventListener('keydown', (e)=>{ e.stopPropagation(); if(e.key === 'Enter') { if(el === inputRoomCode) document.getElementById('btnSubmitJoin').click(); else handleLoginSubmit(); } });
+      el.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); });
+  });
 
   async function loadLeaderboard(){
     try{
@@ -215,26 +227,82 @@
 
   let ghostBird = { active: false, x: 0, yRatio: 0, rot: 0, skinId: 'default' };
 
-  async function startVSMatchmaking() {
+  // NAVIGASI MENU VS
+  vsMenuBtn.addEventListener('click', () => {
       if (!currentUser) { alert("Silakan Login terlebih dahulu untuk bermain VS Mode!"); return; }
-      isVSMode = true;
       startScreen.classList.add('hidden');
+      vsMenuScreen.classList.remove('hidden');
+  });
+  document.getElementById('btnBackVsMenu').addEventListener('click', () => { vsMenuScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); });
+  document.getElementById('btnRandomVS').addEventListener('click', () => { vsMenuScreen.classList.add('hidden'); startVSMatchmaking('random'); });
+  document.getElementById('btnCreatePrivateVS').addEventListener('click', () => { vsMenuScreen.classList.add('hidden'); startVSMatchmaking('create_private'); });
+  document.getElementById('btnJoinPrivateVS').addEventListener('click', () => { 
+      vsMenuScreen.classList.add('hidden'); vsJoinScreen.classList.remove('hidden'); 
+      inputRoomCode.value = ''; joinError.classList.add('hidden');
+  });
+  document.getElementById('btnBackJoin').addEventListener('click', () => { vsJoinScreen.classList.add('hidden'); vsMenuScreen.classList.remove('hidden'); });
+  document.getElementById('btnSubmitJoin').addEventListener('click', () => {
+      const code = inputRoomCode.value.trim().toUpperCase();
+      if(!code) return;
+      vsJoinScreen.classList.add('hidden');
+      startVSMatchmaking('join_private', code);
+  });
+
+  async function startVSMatchmaking(mode, code = null) {
+      isVSMode = true;
       vsWaitingScreen.classList.remove('hidden');
-      vsStatusText.style.fontSize = "12px"; vsStatusText.style.color = "var(--cream)"; vsStatusText.textContent = "Mencari ruangan kosong...";
+      vsStatusText.style.fontSize = "12px"; vsStatusText.style.color = "var(--cream)"; 
+      vsLoaderPulse.classList.remove('hidden');
 
       try {
-          const { data, error } = await supabase.from('rooms').select('*').eq('status', 'waiting').limit(1);
-          if (data && data.length > 0) {
-              vsRoomId = data[0].id; isHost = false; currentSeed = data[0].pipe_seed; 
-              vsStatusText.textContent = `Menghubungkan ke ${data[0].player1_username}...`;
-              await supabase.from('rooms').update({ player2_username: currentUser, status: 'playing' }).eq('id', vsRoomId);
-              setupRealtime();
-          } else {
+          if (mode === 'random') {
+              vsStatusText.innerHTML = "Mencari ruangan acak...<br><span style='font-size:9px;opacity:0.7'>(Random Match)</span>";
+              const { data, error } = await supabase.from('rooms').select('*').eq('status', 'waiting').is('room_code', null).limit(1);
+              
+              if (data && data.length > 0) {
+                  vsRoomId = data[0].id; isHost = false; currentSeed = data[0].pipe_seed; 
+                  vsStatusText.textContent = `Room ketemu! Menghubungkan ke ${data[0].player1_username}...`;
+                  await supabase.from('rooms').update({ player2_username: currentUser, status: 'playing' }).eq('id', vsRoomId);
+                  setupRealtime();
+              } else {
+                  isHost = true; currentSeed = Math.floor(Math.random() * 999999);
+                  const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{ player1_username: currentUser, pipe_seed: currentSeed }]).select();
+                  if(newRoom && newRoom.length > 0) {
+                      vsRoomId = newRoom[0].id; vsStatusText.textContent = "Room dibuat! Menunggu lawan acak..."; setupRealtime();
+                  } else { throw new Error("Gagal membuat room"); }
+              }
+          } 
+          else if (mode === 'create_private') {
+              const newCode = Math.random().toString(36).substring(2, 7).toUpperCase();
               isHost = true; currentSeed = Math.floor(Math.random() * 999999);
-              const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{ player1_username: currentUser, pipe_seed: currentSeed }]).select();
+              
+              vsStatusText.innerHTML = `MABAR PRIVATE<br><br><span style="font-size:32px; color:#ffd27a; font-weight:bold; letter-spacing:4px; text-shadow:2px 2px 0 var(--ink);">${newCode}</span><br><br>Berikan kode ini ke temanmu...`;
+              vsLoaderPulse.classList.add('hidden'); // Sembunyikan loader karena dia nunggu diam
+
+              const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{ 
+                  player1_username: currentUser, pipe_seed: currentSeed, room_code: newCode 
+              }]).select();
+              
               if(newRoom && newRoom.length > 0) {
-                  vsRoomId = newRoom[0].id; vsStatusText.textContent = "Room dibuat! Menunggu lawan masuk..."; setupRealtime();
+                  vsRoomId = newRoom[0].id; setupRealtime();
               } else { throw new Error("Gagal membuat room"); }
+          }
+          else if (mode === 'join_private') {
+              vsStatusText.textContent = `Mencari room ${code}...`;
+              const { data, error } = await supabase.from('rooms').select('*').eq('status', 'waiting').eq('room_code', code).limit(1);
+              
+              if (data && data.length > 0) {
+                  vsRoomId = data[0].id; isHost = false; currentSeed = data[0].pipe_seed;
+                  vsStatusText.textContent = `Room ketemu! Menghubungkan ke ${data[0].player1_username}...`;
+                  await supabase.from('rooms').update({ player2_username: currentUser, status: 'playing' }).eq('id', vsRoomId);
+                  setupRealtime();
+              } else {
+                  cleanUpVS();
+                  vsWaitingScreen.classList.add('hidden');
+                  vsJoinScreen.classList.remove('hidden');
+                  joinError.textContent = "Kode tidak ditemukan atau room penuh!";
+                  joinError.classList.remove('hidden');
+              }
           }
       } catch (err) {
           vsStatusText.textContent = "Terjadi kesalahan koneksi."; setTimeout(() => { goHome(); }, 2000);
@@ -243,7 +311,8 @@
 
   function startVSCountdown() {
       let count = 3;
-      vsStatusText.style.fontSize = "28px"; vsStatusText.style.fontWeight = "bold"; vsStatusText.style.color = "#ffd27a"; vsStatusText.textContent = count;
+      vsLoaderPulse.classList.add('hidden');
+      vsStatusText.style.fontSize = "36px"; vsStatusText.style.fontWeight = "bold"; vsStatusText.style.color = "#ffd27a"; vsStatusText.textContent = count;
       playSound('score'); 
       let iv = setInterval(() => {
           count--;
@@ -358,7 +427,6 @@
       if(isHost && vsRoomId) { supabase.from('rooms').delete().eq('id', vsRoomId).then(); }
       goHome();
   });
-  vsMenuBtn.addEventListener('click', startVSMatchmaking);
 
   // --- RENDERING & FISIKA ---
   let skyGradient = null;
@@ -476,11 +544,12 @@
   function goHome(){
     cleanUpVS(); reset(); state = 'start';
     overScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); vsWaitingScreen.classList.add('hidden');
+    vsMenuScreen.classList.add('hidden'); vsJoinScreen.classList.add('hidden');
     hud.classList.add('hidden'); authBar.classList.remove('hidden'); loadLeaderboard();
   }
 
   startBtn.addEventListener('click', startGameSolo);
-  retryBtn.addEventListener('click', () => { if(isVSMode){ startVSMatchmaking(); } else { startGameSolo(); } });
+  retryBtn.addEventListener('click', () => { if(isVSMode){ startScreen.classList.add('hidden'); vsMenuScreen.classList.remove('hidden'); } else { startGameSolo(); } });
   homeBtn.addEventListener('click', goHome);
 
   function circleRectCollide(cx, cy, r, rx, ry, rw, rh){
@@ -508,7 +577,7 @@
       if(p.age > p.life) particles.splice(i,1);
     }
     
-    if(isVSMode && vsChannel) {
+    if(isVSMode && vsChannel && state === 'playing') {
         syncTimer -= dt;
         if(syncTimer <= 0) {
             syncTimer = 0.05; 
