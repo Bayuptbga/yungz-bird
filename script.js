@@ -7,6 +7,7 @@
   const audioCtx = AudioContextClass ? new AudioContextClass() : null;
   const soundBuffers = {};
   const soundVolumes = { flap: 0.6, score: 0.6, hit: 0.6 };
+  
   const soundFiles = { flap: 'sounds/flap.mp3', score: 'sounds/score.mp3', hit: 'sounds/hit.mp3' };
 
   async function loadSound(name, url){
@@ -104,7 +105,7 @@
     }
   };
   window.selectSkin = async function(id){ updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), id); renderShop(); draw(); if(currentUser) { syncShopDataToServer(); } };
-  shopBtn.addEventListener('click', () => { if(!currentUser){ shopSaveStatus.textContent = "Mode Tamu. Login untuk simpan permanen."; shopSaveStatus.style.color = "#ffd27a"; shopSaveStatus.style.display = "block"; } renderShop(); shopScreen.classList.remove('hidden'); });
+  shopBtn.addEventListener('click', (e) => { e.stopPropagation(); if(!currentUser){ shopSaveStatus.textContent = "Mode Tamu. Login untuk simpan permanen."; shopSaveStatus.style.color = "#ffd27a"; shopSaveStatus.style.display = "block"; } renderShop(); shopScreen.classList.remove('hidden'); });
   shopCloseBtn.addEventListener('click', () => { shopScreen.classList.add('hidden'); shopSaveStatus.style.display = "none"; });
 
   // --- UI & AUTH ---
@@ -134,7 +135,7 @@
     if(currentUser){ loginBtn.classList.add('hidden'); startUserInfo.classList.remove('hidden'); startUsername.textContent = currentUser; startUserBest.textContent = 'Terbaik: ' + best; }
     else { loginBtn.classList.remove('hidden'); startUserInfo.classList.add('hidden'); }
   }
-  settingsBtn.addEventListener('click', () => { if(currentUser){ openProfile(); }else{ loginError.classList.add('hidden'); loginScreen.classList.remove('hidden'); } });
+  settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); if(currentUser){ openProfile(); }else{ loginError.classList.add('hidden'); loginScreen.classList.remove('hidden'); } });
 
   async function fetchBestScore(username){
     if(!currentPasswordHash) return null;
@@ -473,6 +474,7 @@
   }
   reset();
 
+  // ALGORTIMA PIPA DINAMIS (NAIK TURUN, MAJU MUNDUR, MENYEMPIT)
   function spawnPipe(){
     let centerRatio;
     if(lastGapRatio === null){ centerRatio = 0.2 + prng() * 0.5; } 
@@ -482,25 +484,33 @@
     }
     lastGapRatio = centerRatio; let centerY = centerRatio * H; 
 
-    const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55); const moving = score >= 150 && prng() < moveChance;
-    const hMoveChance = Math.min(0.12 + Math.floor(score / 200) * 0.07, 0.45); const hMoving = score >= 250 && prng() < hMoveChance;
+    const speedLevel = Math.floor(score / 100); 
+    const currentGapSize = Math.max(dynamicGap - Math.floor(score / 50) * 7, 120);
+
+    let pType = 'normal';
+    let roll = prng();
+    
+    // Semakin tinggi skor, rintangan semakin "menggila"
+    if (score >= 15 && roll < 0.25) pType = 'chomping'; // Pipa Menyempit (Mangap)
+    else if (score >= 10 && roll < 0.55) pType = 'moving_x'; // Pipa Maju Mundur (Berjalan)
+    else if (score >= 5 && roll < 0.85) pType = 'moving_y'; // Pipa Naik Turun
 
     pipes.push({
-      x: W + PIPE_W, gapY: centerY, baseGapY: centerY, passed: false,
-      moving, moveAmp: moving ? 30 + prng() * 40 : 0, moveSpeed: moving ? 1.2 + prng() * 1.3 : 0, moveAge: prng() * Math.PI * 2,
-      hMoving, hAmp: hMoving ? 18 + prng() * 22 : 0, hSpeed: hMoving ? 1.0 + prng() * 1.2 : 0, hAge: prng() * Math.PI * 2,
-      xOffset: 0, minY: 70, maxY: H - dynamicGroundH - 70
+      x: W + PIPE_W, 
+      gapY: centerY, baseGapY: centerY, 
+      baseGapSize: currentGapSize, gapSize: currentGapSize, 
+      passed: false,
+      type: pType, phaseOffset: prng() * Math.PI * 2, speed: 1.5 + prng() * 1.5, xOffset: 0,
+      minY: 70, maxY: H - dynamicGroundH - 70
     });
     
-    // --- SPAWN MUSUH BURUNG TERBANG ---
-    // Musuh mulai muncul setelah skor 5, dengan probabilitas yang pelan-pelan naik hingga 60%
     const enemyChance = Math.min(0.15 + Math.floor(score / 30) * 0.1, 0.6);
     if (score >= 5 && prng() < enemyChance) {
         enemies.push({
-            x: W + PIPE_W + 150 + prng() * 200, // Muncul di sela-sela pipa
+            x: W + PIPE_W + 150 + prng() * 200,
             yBase: 100 + prng() * (H - dynamicGroundH - 200),
             y: 0,
-            speed: pipeSpeed * (1.2 + prng() * 0.5), // Bergerak lebih cepat dari pipa
+            speed: pipeSpeed * (1.2 + prng() * 0.5), 
             sinOffset: prng() * Math.PI * 2
         });
     }
@@ -606,8 +616,7 @@
 
     elapsed += dt;
     const speedLevel = Math.floor(score / 100); pipeSpeed = 165 + Math.min(speedLevel * 11, 110);
-    const gapLevel = Math.floor(score / 50); gapSize = Math.max(dynamicGap - gapLevel * 7, 120);
-
+    
     bird.vy += dynamicGravity * dt; bird.y += bird.vy * dt; bird.rot = Math.max(-0.5, Math.min(1.3, bird.vy/500));
     
     if(bird.y + BIRD_R > H - dynamicGroundH){ 
@@ -618,11 +627,20 @@
 
     pipeTimer -= dt; if(pipeTimer <= 0){ spawnPipe(); pipeTimer = 239 / pipeSpeed; }
 
-    // Update Pipa
+    // Update Pipa Dinamis
     for(let i=pipes.length-1;i>=0;i--){
       const p = pipes[i]; p.x -= pipeSpeed*dt;
-      if(p.moving){ p.moveAge += dt; const raw = p.baseGapY + Math.sin(p.moveAge * p.moveSpeed) * p.moveAmp; p.gapY = Math.max(p.minY, Math.min(p.maxY, raw)); }
-      if(p.hMoving){ p.hAge += dt; p.xOffset = Math.sin(p.hAge * p.hSpeed) * p.hAmp; }
+      
+      // LOGIKA PIPA BERGERAK (NAIK TURUN, MAJU MUNDUR, MENYEMPIT)
+      if(p.type === 'moving_y') {
+          p.gapY = p.baseGapY + Math.sin(elapsed * p.speed + p.phaseOffset) * (H * 0.15); // Naik turun 15% dari tinggi layar
+      } else if(p.type === 'moving_x') {
+          p.xOffset = Math.sin(elapsed * p.speed + p.phaseOffset) * 45; // Maju mundur
+      } else if(p.type === 'chomping') {
+          // Menyempit hingga tersisa 45% dari celah asli
+          p.gapSize = p.baseGapSize - Math.abs(Math.sin(elapsed * p.speed + p.phaseOffset)) * (p.baseGapSize * 0.55);
+      }
+
       const drawX = p.x + p.xOffset;
       if(!p.passed && p.x + PIPE_W < bird.x){ 
           p.passed = true; 
@@ -631,27 +649,23 @@
           }
       }
       
-      const topH = p.gapY - gapSize/2; const botY = p.gapY + gapSize/2; const botH = H - dynamicGroundH - botY;
+      const topH = p.gapY - p.gapSize/2; const botY = p.gapY + p.gapSize/2; const botH = H - dynamicGroundH - botY;
       if(state === 'playing'){
           if(circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, 0, PIPE_W, topH) || circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, botY, PIPE_W, botH)){ endGame(); }
       }
-      if(p.x < -PIPE_W) pipes.splice(i,1);
+      
+      // Hapus pipa yang sudah lewat jauh (diperlebar sedikit batasnya karena xOffset)
+      if(p.x < -PIPE_W * 2) pipes.splice(i,1);
     }
     
-    // Update Musuh Terbang
     for(let i=enemies.length-1; i>=0; i--){
       const e = enemies[i];
       e.x -= e.speed * dt;
       e.y = e.yBase + Math.sin(e.x * 0.015 + e.sinOffset) * 40;
       
       if(state === 'playing') {
-          let dx = bird.x - e.x;
-          let dy = bird.y - e.y;
-          // Radius kira-kira burung musuh sekitar 10 (karena di-scale 0.7 dari 15)
-          // Total radius = 15 (player) + 10 (musuh) = 25. Jarak kuadrat = 625.
-          if(dx*dx + dy*dy < 450) { 
-              endGame();
-          }
+          let dx = bird.x - e.x; let dy = bird.y - e.y;
+          if(dx*dx + dy*dy < 450) { endGame(); }
       }
       if(e.x < -50) enemies.splice(i, 1);
     }
@@ -681,7 +695,7 @@
   }
   function drawPipes(){
     for(const p of pipes){
-      const topH = p.gapY - gapSize/2; const botY = p.gapY + gapSize/2; const botH = H - dynamicGroundH - botY;
+      const topH = p.gapY - p.gapSize/2; const botY = p.gapY + p.gapSize/2; const botH = H - dynamicGroundH - botY;
       const drawX = p.x + (p.xOffset || 0);
       drawPipeSegment(drawX, 0, PIPE_W, topH, true); drawPipeSegment(drawX, botY, PIPE_W, botH, false);
     }
@@ -721,14 +735,12 @@
   }
 
   function drawEnemies() {
-      // Skin untuk burung musuh yang terbang (mirip zombie/gagak)
       const enemySkin = { id: 'enemy', type: 'normal', acc: 'zombie', colors: { body: '#1a1a1a', belly: '#333333', wing: '#000000', beak: '#e53935' } };
       for(const e of enemies) {
           ctx.save();
           ctx.translate(e.x, e.y);
-          ctx.scale(-0.7, 0.7); // Di-scale negatif X agar menghadap ke kiri
-          
-          let eRot = Math.sin(e.x * 0.05) * 0.3; // Ayunan rotasi sayap
+          ctx.scale(-0.7, 0.7); 
+          let eRot = Math.sin(e.x * 0.05) * 0.3; 
           if(window.drawBirdSkin) {
               window.drawBirdSkin(ctx, {x:0, y:0, rot:eRot}, enemySkin, false);
           }
