@@ -36,8 +36,6 @@ html,body{
   background:var(--ink);
 }
 
-/* PERINGATAN LANDSCAPE DIHAPUS AGAR BISA MAIN DI SPLIT-SCREEN 2 LAYAR */
-
 canvas{
   display:block;
   width:100%;
@@ -208,7 +206,7 @@ canvas{
 }
 .loginCloseBtn:active{ opacity:0.6; }
 
-/* === TAMPILAN SHOP === */
+/* === TAMPILAN SHOP BARU (CANVAS PREVIEW) === */
 .shopCard { max-width: 350px; padding: 25px 20px 20px; }
 .skinList { 
   display: flex; 
@@ -228,14 +226,15 @@ canvas{
   padding: 12px 10px; 
   border-radius: 8px; 
 }
-.skinPreview { 
-  width: 40px; 
-  height: 40px; 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+.skinPreviewCanvas { 
+  width: 48px; 
+  height: 48px; 
+  border-radius: 10px; 
+  background: linear-gradient(135deg, #3fa3ff, #7ad2ff);
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.3);
+  border: 2px solid rgba(255,243,214,0.3);
+  flex-shrink: 0;
+  image-rendering: pixelated;
 }
 .skinInfo { flex: 1; text-align: left; margin-left: 12px; }
 .skinName { font-size: 11px; color: var(--sun); margin: 0 0 5px; }

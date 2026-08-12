@@ -61,6 +61,7 @@
 
   updateLocalState( Number(localStorage.getItem('flappy_coins') || 0), localStorage.getItem('flappy_skins') || '["default"]', localStorage.getItem('flappy_active_skin') || 'default' );
 
+  // MERENDER CANVAS MINI DI TOKO SKIN
   function renderShop(){
     shopCoinsDisplay.textContent = 'Koin: ' + flappyCoins;
     skinListEl.innerHTML = skinsData.map(skin => {
@@ -72,8 +73,22 @@
         const canAfford = flappyCoins >= skin.price; const opacity = canAfford ? '1' : '0.5'; const pointer = canAfford ? 'auto' : 'none';
         btnHtml = `<button class="btn btnSmall" onclick="window.buySkin('${skin.id}', ${skin.price})" style="opacity:${opacity}; pointer-events:${pointer}">${skin.price} Koin</button>`;
       }
-      return `<div class="skinItem"><div class="skinPreview" style="background:${skin.colors.body}; border:3px solid ${skin.colors.belly}"></div><div class="skinInfo"><p class="skinName">${skin.name}</p>${!isUnlocked ? `<p class="skinPrice">Harga: ${skin.price} Koin</p>` : `<p class="skinPrice">Sudah Terbuka</p>`}</div><div class="skinAction">${btnHtml}</div></div>`;
+      return `<div class="skinItem"><canvas class="skinPreviewCanvas" id="preview-${skin.id}" width="48" height="48"></canvas><div class="skinInfo"><p class="skinName">${skin.name}</p>${!isUnlocked ? `<p class="skinPrice">Harga: ${skin.price} Koin</p>` : `<p class="skinPrice">Sudah Terbuka</p>`}</div><div class="skinAction">${btnHtml}</div></div>`;
     }).join('');
+  }
+
+  function drawShopPreviews() {
+      skinsData.forEach(skin => {
+          const c = document.getElementById(`preview-${skin.id}`);
+          if(c) {
+              const cCtx = c.getContext('2d');
+              cCtx.clearRect(0,0,48,48);
+              if(window.drawBirdSkin) {
+                  // Render bentuk asli burung ke dalam etalase toko
+                  window.drawBirdSkin(cCtx, {x:24, y:28, rot:0}, skin, false);
+              }
+          }
+      });
   }
 
   async function syncShopDataToServer(){
@@ -554,6 +569,12 @@
   function loop(now){
     const dt = Math.min((now - last)/1000, 1/30);
     last = now; update(dt); draw();
+    
+    // --- ANIMASI LIVE PREVIEW DI TOKO SKIN ---
+    if(!shopScreen.classList.contains('hidden')) {
+        drawShopPreviews();
+    }
+    
     requestAnimationFrame(loop);
   }
 
@@ -660,8 +681,6 @@
     ctx.globalAlpha = 1;
   }
   
-  // LOGIKA GAMBAR BURUNG DIGANTI KE skin.js
-  
   function draw(){
     drawSky(); drawPipes(); drawParticles(); 
     
@@ -671,11 +690,9 @@
         const ghostSkin = window.SKINS_DATA.find(s => s.id === ghostBird.skinId) || window.SKINS_DATA[0];
         
         const isGhostTransparent = state === 'playing'; 
-        // Panggil fungsi dari skin.js
         if(window.drawBirdSkin) window.drawBirdSkin(ctx, ghostBird, ghostSkin, isGhostTransparent);
     }
     
-    // Panggil fungsi dari skin.js
     if(window.drawBirdSkin) window.drawBirdSkin(ctx, bird, activeSkin, false);
     
     drawGround();
