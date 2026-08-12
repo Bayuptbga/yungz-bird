@@ -61,7 +61,6 @@
 
   updateLocalState( Number(localStorage.getItem('flappy_coins') || 0), localStorage.getItem('flappy_skins') || '["default"]', localStorage.getItem('flappy_active_skin') || 'default' );
 
-  // MERENDER CANVAS MINI DI TOKO SKIN
   function renderShop(){
     shopCoinsDisplay.textContent = 'Koin: ' + flappyCoins;
     skinListEl.innerHTML = skinsData.map(skin => {
@@ -84,7 +83,6 @@
               const cCtx = c.getContext('2d');
               cCtx.clearRect(0,0,48,48);
               if(window.drawBirdSkin) {
-                  // Render bentuk asli burung ke dalam etalase toko
                   window.drawBirdSkin(cCtx, {x:24, y:28, rot:0}, skin, false);
               }
           }
@@ -122,7 +120,6 @@
   const loginUsernameInput = document.getElementById('loginUsername'); const loginPasswordInput = document.getElementById('loginPassword'); const loginSubmitBtn = document.getElementById('loginSubmitBtn');
   const loginError = document.getElementById('loginError'); const overTitle = document.getElementById('overTitle');
   
-  // VS UI 
   const vsMenuBtn = document.getElementById('vsMenuBtn'); const vsWaitingScreen = document.getElementById('vsWaitingScreen');
   const vsStatusText = document.getElementById('vsStatusText'); const cancelVsBtn = document.getElementById('cancelVsBtn');
   const vsStatusHUD = document.getElementById('vsStatusHUD'); const spectateEndBtn = document.getElementById('spectateEndBtn');
@@ -196,7 +193,6 @@
   }
   resetScoreBtn.addEventListener('click', () => { if(!confirmingReset){ confirmingReset = true; resetScoreBtn.textContent = 'YAKIN? TAP LAGI'; resetScoreBtn.classList.add('confirming'); clearTimeout(resetConfirmTimer); resetConfirmTimer = setTimeout(cancelResetConfirm, 3500); }else{ clearTimeout(resetConfirmTimer); resetScore(); } });
   
-  // Prevent default keydown for inputs
   const inputs = [loginUsernameInput, loginPasswordInput, inputRoomCode];
   inputs.forEach(el => {
       el.addEventListener('keydown', (e)=>{ e.stopPropagation(); if(e.key === 'Enter') { if(el === inputRoomCode) document.getElementById('btnSubmitJoin').click(); else handleLoginSubmit(); } });
@@ -235,7 +231,6 @@
 
   let ghostBird = { active: false, x: 0, yRatio: 0, rot: 0, skinId: 'default' };
 
-  // NAVIGASI MENU VS
   vsMenuBtn.addEventListener('click', () => {
       if (!currentUser) { alert("Silakan Login terlebih dahulu untuk bermain VS Mode!"); return; }
       startScreen.classList.add('hidden');
@@ -285,7 +280,7 @@
               isHost = true; currentSeed = Math.floor(Math.random() * 999999);
               
               vsStatusText.innerHTML = `MABAR PRIVATE<br><br><span style="font-size:32px; color:#ffd27a; font-weight:bold; letter-spacing:4px; text-shadow:2px 2px 0 var(--ink);">${newCode}</span><br><br>Berikan kode ini ke temanmu...`;
-              vsLoaderPulse.classList.add('hidden'); // Sembunyikan loader karena dia nunggu diam
+              vsLoaderPulse.classList.add('hidden');
 
               const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{ 
                   player1_username: currentUser, pipe_seed: currentSeed, room_code: newCode 
@@ -372,7 +367,6 @@
       vsStatusHUD.classList.remove('hidden');
   }
 
-  // --- LOGIKA GAME OVER & SPECTATOR ---
   function resolveVSMatch(myScore, oppScore) {
       state = 'over';
       spectateEndBtn.classList.add('hidden');
@@ -389,7 +383,7 @@
       } else {
           overTitle.innerHTML = "SERI / DRAW!";
           overTitle.style.color = "#ffd27a"; 
-          finalizeMatch(50); // Hiburan
+          finalizeMatch(50); 
       }
   }
 
@@ -426,7 +420,7 @@
 
   spectateEndBtn.addEventListener('click', () => {
       if(state === 'spectating') {
-          resolveVSMatch(score, 999999); // Anggap lawan menang karena kita menyerah
+          resolveVSMatch(score, 999999); 
       }
   });
 
@@ -440,8 +434,10 @@
   let skyGradient = null;
   function buildSkyGradient(){
     const g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0, '#2b1055'); g.addColorStop(0.45, '#7b2d6e');
-    g.addColorStop(0.8, '#ff7a59'); g.addColorStop(1, '#ffb570');
+    g.addColorStop(0, '#1e3c72'); 
+    g.addColorStop(0.4, '#2a5298'); 
+    g.addColorStop(0.7, '#ff7e5f'); 
+    g.addColorStop(1, '#feb47b'); 
     skyGradient = g;
   }
 
@@ -462,13 +458,13 @@
 
   const PIPE_W = 68; const BIRD_R = 15;
   let state = 'start'; 
-  let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize, lastGapRatio;
+  let bird, pipes, enemies, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize, lastGapRatio;
 
   best = Number(localStorage.getItem('flappy_best') || 0); bestLine.textContent = 'Terbaik: ' + best;
   updateAuthUI(); if(currentUser){ syncDataFromServer(currentUser); }
 
   function reset(){
-    bird = { x: W*0.32, y: H*0.42, vy: 0, rot: 0 }; pipes = []; particles = [];
+    bird = { x: W*0.32, y: H*0.42, vy: 0, rot: 0 }; pipes = []; particles = []; enemies = [];
     score = 0; elapsed = 0; pipeTimer = 0; groundOffset = 0; bgOffset = 0;
     pipeSpeed = 165; gapSize = dynamicGap; lastGapRatio = null;
     opponentDead = false; opponentScore = 0;
@@ -495,11 +491,24 @@
       hMoving, hAmp: hMoving ? 18 + prng() * 22 : 0, hSpeed: hMoving ? 1.0 + prng() * 1.2 : 0, hAge: prng() * Math.PI * 2,
       xOffset: 0, minY: 70, maxY: H - dynamicGroundH - 70
     });
+    
+    // --- SPAWN MUSUH BURUNG TERBANG ---
+    // Musuh mulai muncul setelah skor 5, dengan probabilitas yang pelan-pelan naik hingga 60%
+    const enemyChance = Math.min(0.15 + Math.floor(score / 30) * 0.1, 0.6);
+    if (score >= 5 && prng() < enemyChance) {
+        enemies.push({
+            x: W + PIPE_W + 150 + prng() * 200, // Muncul di sela-sela pipa
+            yBase: 100 + prng() * (H - dynamicGroundH - 200),
+            y: 0,
+            speed: pipeSpeed * (1.2 + prng() * 0.5), // Bergerak lebih cepat dari pipa
+            sinOffset: prng() * Math.PI * 2
+        });
+    }
   }
 
   function flap(){
     if(state === 'start'){ startGameSolo(); return; }
-    if(state !== 'playing') return; // Matikan flap jika sudah mati atau sedang spectating
+    if(state !== 'playing') return;
     bird.vy = dynamicFlap; playSound('flap');
     for(let i=0;i<5;i++){ particles.push({ x: bird.x - 10, y: bird.y + 6, vx: -80 - Math.random()*60, vy: (Math.random()-0.5)*60, life: 0.4, age:0 }); }
   }
@@ -537,7 +546,6 @@
             spectateEndBtn.classList.remove('hidden');
         }
     } else {
-        // Solo Mode
         state = 'over';
         overTitle.innerHTML = "GAME OVER";
         overTitle.style.color = "#ffd27a"; 
@@ -569,17 +577,11 @@
   function loop(now){
     const dt = Math.min((now - last)/1000, 1/30);
     last = now; update(dt); draw();
-    
-    // --- ANIMASI LIVE PREVIEW DI TOKO SKIN ---
-    if(!shopScreen.classList.contains('hidden')) {
-        drawShopPreviews();
-    }
-    
+    if(!shopScreen.classList.contains('hidden')) { drawShopPreviews(); }
     requestAnimationFrame(loop);
   }
 
   function update(dt){
-    // Update selalu jalan saat playing atau spectating
     if(state !== 'playing' && state !== 'spectating') return;
 
     const scrollDelta = pipeSpeed * dt;
@@ -608,7 +610,6 @@
 
     bird.vy += dynamicGravity * dt; bird.y += bird.vy * dt; bird.rot = Math.max(-0.5, Math.min(1.3, bird.vy/500));
     
-    // Jika spectating, biarkan burung jatuh ke tanah dan terseret
     if(bird.y + BIRD_R > H - dynamicGroundH){ 
         bird.y = H - dynamicGroundH - BIRD_R; 
         if (state === 'playing') endGame(); 
@@ -617,6 +618,7 @@
 
     pipeTimer -= dt; if(pipeTimer <= 0){ spawnPipe(); pipeTimer = 239 / pipeSpeed; }
 
+    // Update Pipa
     for(let i=pipes.length-1;i>=0;i--){
       const p = pipes[i]; p.x -= pipeSpeed*dt;
       if(p.moving){ p.moveAge += dt; const raw = p.baseGapY + Math.sin(p.moveAge * p.moveSpeed) * p.moveAmp; p.gapY = Math.max(p.minY, Math.min(p.maxY, raw)); }
@@ -635,6 +637,24 @@
       }
       if(p.x < -PIPE_W) pipes.splice(i,1);
     }
+    
+    // Update Musuh Terbang
+    for(let i=enemies.length-1; i>=0; i--){
+      const e = enemies[i];
+      e.x -= e.speed * dt;
+      e.y = e.yBase + Math.sin(e.x * 0.015 + e.sinOffset) * 40;
+      
+      if(state === 'playing') {
+          let dx = bird.x - e.x;
+          let dy = bird.y - e.y;
+          // Radius kira-kira burung musuh sekitar 10 (karena di-scale 0.7 dari 15)
+          // Total radius = 15 (player) + 10 (musuh) = 25. Jarak kuadrat = 625.
+          if(dx*dx + dy*dy < 450) { 
+              endGame();
+          }
+      }
+      if(e.x < -50) enemies.splice(i, 1);
+    }
   }
 
   function drawSky(){
@@ -646,19 +666,18 @@
   function mod(n, m){ return ((n % m) + m) % m; }
   function drawMountainsFar(){
     const baseY = H - dynamicGroundH; const tileW = 240; const offset = mod(bgOffset * 0.07, tileW);
-    ctx.save(); ctx.globalAlpha = 0.55; ctx.fillStyle = '#3a2a55';
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.fillStyle = '#2c3e50'; 
     for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){ drawMountainPeak(x + tileW*0.28, baseY, tileW*0.62, 120); drawMountainPeak(x + tileW*0.78, baseY, tileW*0.58, 95); }
     ctx.restore();
   }
   function drawMountainsNear(){
     const baseY = H - dynamicGroundH; const tileW = 200; const offset = mod(bgOffset * 0.15, tileW);
-    ctx.save(); ctx.globalAlpha = 0.8; ctx.fillStyle = '#221530';
+    ctx.save(); ctx.globalAlpha = 0.8; ctx.fillStyle = '#1a252f'; 
     for(let x = -tileW*2 + offset; x < W + tileW; x += tileW){ drawMountainPeak(x + tileW*0.3, baseY, tileW*0.72, 160, true); }
     ctx.restore();
   }
   function drawMountainPeak(cx, baseY, w, h, withSnow){
     ctx.beginPath(); ctx.moveTo(cx - w/2, baseY); ctx.lineTo(cx - w*0.1, baseY - h); ctx.lineTo(cx + w*0.06, baseY - h*0.8); ctx.lineTo(cx + w/2, baseY); ctx.closePath(); ctx.fill();
-    if(withSnow){ ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.moveTo(cx - w*0.1, baseY - h); ctx.lineTo(cx - w*0.02, baseY - h*0.86); ctx.lineTo(cx + w*0.06, baseY - h*0.8); ctx.lineTo(cx - w*0.01, baseY - h*0.82); ctx.closePath(); ctx.fill(); ctx.restore(); }
   }
   function drawPipes(){
     for(const p of pipes){
@@ -667,14 +686,64 @@
       drawPipeSegment(drawX, 0, PIPE_W, topH, true); drawPipeSegment(drawX, botY, PIPE_W, botH, false);
     }
   }
+  
   function drawPipeSegment(x, y, w, h, isTop){
-    if (h < 0) return; const capH = 26; ctx.fillStyle = '#2b6b41'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#3f8a5b'; ctx.fillRect(x+6, y, w-16, h); ctx.fillStyle = '#5fc084'; ctx.fillRect(x+6, y, 6, h);
-    const capY = isTop ? y+h-capH : y; ctx.fillStyle = '#2b6b41'; ctx.fillRect(x-5, capY, w+10, capH); ctx.fillStyle = '#4fae72'; ctx.fillRect(x-5, capY, w+10, 6);
+    if (h < 0) return; 
+    const capH = 26;
+
+    if(isTop) {
+        const capY = y + h - capH;
+        ctx.fillStyle = 'rgba(200, 230, 255, 0.25)';
+        ctx.fillRect(x + 4, y, w - 8, h - capH);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i = 0; i <= w - 8; i += 8) { ctx.moveTo(x + 4 + i, y); ctx.lineTo(x + 4 + i, y + h - capH); }
+        for(let j = 0; j <= h - capH; j += 8) { ctx.moveTo(x + 4, y + j); ctx.lineTo(x + w - 4, y + j); }
+        ctx.stroke();
+
+        ctx.fillStyle = '#4a2e1f'; ctx.fillRect(x - 5, capY, w + 10, capH);
+        ctx.fillStyle = '#6b4229'; ctx.fillRect(x - 5, capY, w + 10, 6);
+        ctx.fillStyle = '#e8d5b7'; ctx.fillRect(x + 10, capY, 4, capH); ctx.fillRect(x + w - 14, capY, 4, capH);
+    } else {
+        const capY = y;
+        ctx.fillStyle = '#5e3a23'; ctx.fillRect(x, y + capH, w, h - capH);
+        ctx.fillStyle = '#3d2414';
+        ctx.fillRect(x + 12, y + capH, 5, h - capH); ctx.fillRect(x + 30, y + capH, 8, h - capH); ctx.fillRect(x + 50, y + capH, 4, h - capH);
+
+        ctx.fillStyle = '#4a2e1f'; ctx.fillRect(x - 5, capY, w + 10, capH);
+        ctx.fillStyle = '#7a4e32'; ctx.fillRect(x - 5, capY, w + 10, 6);
+        
+        ctx.fillStyle = '#222';
+        ctx.beginPath(); ctx.arc(x + 8, capY + 14, 3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + w - 8, capY + 14, 3, 0, Math.PI*2); ctx.fill();
+    }
   }
+
+  function drawEnemies() {
+      // Skin untuk burung musuh yang terbang (mirip zombie/gagak)
+      const enemySkin = { id: 'enemy', type: 'normal', acc: 'zombie', colors: { body: '#1a1a1a', belly: '#333333', wing: '#000000', beak: '#e53935' } };
+      for(const e of enemies) {
+          ctx.save();
+          ctx.translate(e.x, e.y);
+          ctx.scale(-0.7, 0.7); // Di-scale negatif X agar menghadap ke kiri
+          
+          let eRot = Math.sin(e.x * 0.05) * 0.3; // Ayunan rotasi sayap
+          if(window.drawBirdSkin) {
+              window.drawBirdSkin(ctx, {x:0, y:0, rot:eRot}, enemySkin, false);
+          }
+          ctx.restore();
+      }
+  }
+  
   function drawGround(){
-    const y = H - dynamicGroundH; ctx.fillStyle = '#4a2e1f'; ctx.fillRect(0, y, W, dynamicGroundH); ctx.fillStyle = '#6b4229'; ctx.fillRect(0, y, W, 10); ctx.fillStyle = '#5a3722';
+    const y = H - dynamicGroundH; 
+    ctx.fillStyle = '#2c1e16'; ctx.fillRect(0, y, W, dynamicGroundH); 
+    ctx.fillStyle = '#4a3324'; ctx.fillRect(0, y, W, 10); 
+    ctx.fillStyle = '#1c120c';
     for(let x = groundOffset; x < W; x += 40){ ctx.fillRect(x, y+10, 20, 6); }
   }
+  
   function drawParticles(){
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     for(const p of particles){ const a = 1 - p.age/p.life; ctx.globalAlpha = Math.max(a,0); ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, Math.PI*2); ctx.fill(); }
@@ -682,7 +751,7 @@
   }
   
   function draw(){
-    drawSky(); drawPipes(); drawParticles(); 
+    drawSky(); drawPipes(); drawEnemies(); drawParticles(); 
     
     if(isVSMode && ghostBird.active && (state === 'playing' || state === 'spectating')) {
         ghostBird.x = bird.x;
