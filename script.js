@@ -113,9 +113,10 @@
   const loginUsernameInput = document.getElementById('loginUsername'); const loginPasswordInput = document.getElementById('loginPassword'); const loginSubmitBtn = document.getElementById('loginSubmitBtn');
   const loginError = document.getElementById('loginError'); const overTitle = document.getElementById('overTitle');
   
-  // VS UI
+  // VS UI BARU
   const vsMenuBtn = document.getElementById('vsMenuBtn'); const vsWaitingScreen = document.getElementById('vsWaitingScreen');
   const vsStatusText = document.getElementById('vsStatusText'); const cancelVsBtn = document.getElementById('cancelVsBtn');
+  const vsStatusHUD = document.getElementById('vsStatusHUD'); const spectateEndBtn = document.getElementById('spectateEndBtn');
 
   function updateAuthUI(){
     if(currentUser){ loginBtn.classList.add('hidden'); startUserInfo.classList.remove('hidden'); startUsername.textContent = currentUser; startUserBest.textContent = 'Terbaik: ' + best; }
@@ -199,9 +200,10 @@
   let isHost = false;
   let syncTimer = 0;
   
-  // ID UNIK PER BROWSER: Mencegah bug tab sendiri menerima pesan matinya sendiri
-  const myPlayerId = Math.random().toString(36).substring(2, 10);
+  let opponentDead = false;
+  let opponentScore = 0;
   
+  const myPlayerId = Math.random().toString(36).substring(2, 10);
   let currentSeed = 1;
   function prng() {
       if(!isVSMode) return Math.random(); 
@@ -211,117 +213,74 @@
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
   }
 
-  // Objek burung lawan
   let ghostBird = { active: false, x: 0, yRatio: 0, rot: 0, skinId: 'default' };
 
   async function startVSMatchmaking() {
-      if (!currentUser) {
-          alert("Silakan Login terlebih dahulu untuk bermain VS Mode!");
-          return;
-      }
+      if (!currentUser) { alert("Silakan Login terlebih dahulu untuk bermain VS Mode!"); return; }
       isVSMode = true;
       startScreen.classList.add('hidden');
       vsWaitingScreen.classList.remove('hidden');
-      vsStatusText.style.fontSize = "12px";
-      vsStatusText.style.color = "var(--cream)";
-      vsStatusText.textContent = "Mencari ruangan kosong...";
+      vsStatusText.style.fontSize = "12px"; vsStatusText.style.color = "var(--cream)"; vsStatusText.textContent = "Mencari ruangan kosong...";
 
       try {
           const { data, error } = await supabase.from('rooms').select('*').eq('status', 'waiting').limit(1);
           if (data && data.length > 0) {
-              vsRoomId = data[0].id;
-              isHost = false;
-              currentSeed = data[0].pipe_seed; 
+              vsRoomId = data[0].id; isHost = false; currentSeed = data[0].pipe_seed; 
               vsStatusText.textContent = `Menghubungkan ke ${data[0].player1_username}...`;
               await supabase.from('rooms').update({ player2_username: currentUser, status: 'playing' }).eq('id', vsRoomId);
               setupRealtime();
           } else {
-              isHost = true;
-              currentSeed = Math.floor(Math.random() * 999999);
-              const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{
-                  player1_username: currentUser, pipe_seed: currentSeed
-              }]).select();
-              
+              isHost = true; currentSeed = Math.floor(Math.random() * 999999);
+              const { data: newRoom, error: insErr } = await supabase.from('rooms').insert([{ player1_username: currentUser, pipe_seed: currentSeed }]).select();
               if(newRoom && newRoom.length > 0) {
-                  vsRoomId = newRoom[0].id;
-                  vsStatusText.textContent = "Room dibuat! Menunggu lawan masuk...";
-                  setupRealtime();
+                  vsRoomId = newRoom[0].id; vsStatusText.textContent = "Room dibuat! Menunggu lawan masuk..."; setupRealtime();
               } else { throw new Error("Gagal membuat room"); }
           }
       } catch (err) {
-          vsStatusText.textContent = "Terjadi kesalahan koneksi.";
-          setTimeout(() => { goHome(); }, 2000);
+          vsStatusText.textContent = "Terjadi kesalahan koneksi."; setTimeout(() => { goHome(); }, 2000);
       }
   }
 
   function startVSCountdown() {
       let count = 3;
-      vsStatusText.style.fontSize = "28px";
-      vsStatusText.style.fontWeight = "bold";
-      vsStatusText.style.color = "#ffd27a";
-      vsStatusText.textContent = count;
+      vsStatusText.style.fontSize = "28px"; vsStatusText.style.fontWeight = "bold"; vsStatusText.style.color = "#ffd27a"; vsStatusText.textContent = count;
       playSound('score'); 
-      
       let iv = setInterval(() => {
           count--;
-          if(count > 0) {
-              vsStatusText.textContent = count;
-              playSound('score');
-          } else {
-              clearInterval(iv);
-              vsStatusText.textContent = "GO!";
-              playSound('flap');
-              setTimeout(() => startGameVS(), 400);
-          }
+          if(count > 0) { vsStatusText.textContent = count; playSound('score'); } 
+          else { clearInterval(iv); vsStatusText.textContent = "GO!"; playSound('flap'); setTimeout(() => startGameVS(), 400); }
       }, 1000);
   }
 
   function setupRealtime() {
-      vsChannel = supabase.channel('room_' + vsRoomId, {
-          config: { broadcast: { self: false } }
-      });
-
+      vsChannel = supabase.channel('room_' + vsRoomId, { config: { broadcast: { self: false } } });
       vsChannel.on('broadcast', { event: 'sync' }, (payload) => {
           const data = payload.payload || {};
           if(data.id === myPlayerId) return; 
-          ghostBird.active = true;
-          ghostBird.yRatio = data.yRatio;
-          ghostBird.rot = data.rot;
-          ghostBird.skinId = data.skinId;
+          ghostBird.active = true; ghostBird.yRatio = data.yRatio; ghostBird.rot = data.rot; ghostBird.skinId = data.skinId;
+          opponentScore = data.score || opponentScore;
+          
+          if(state === 'spectating') {
+              vsStatusHUD.textContent = "MENONTON LAWAN... (Skor Dia: " + opponentScore + ")";
+          }
       });
-
       vsChannel.on('broadcast', { event: 'dead' }, (payload) => {
           const data = payload.payload || {};
           if(data.id === myPlayerId) return; 
           
+          opponentDead = true;
+          opponentScore = data.score || opponentScore;
+          
           if (state === 'playing') {
-              winVS(); 
-          } else if (state === 'over') {
-              // Jika kita juga mati, cek skor. Jika sama, artinya SERI!
-              if (score === data.score) {
-                  drawVS();
-              } else if (score > data.score) {
-                  winVS(); 
-              }
+              vsStatusHUD.textContent = "Lawan Gugur! (Skor: " + opponentScore + ")";
+              vsStatusHUD.style.color = "#ff6b6b";
+          } else if (state === 'spectating') {
+              resolveVSMatch(score, opponentScore);
           }
       });
-
-      vsChannel.on('broadcast', { event: 'start' }, () => {
-          if(!isHost) startVSCountdown();
-      });
-
-      vsChannel.subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-              if (!isHost) { vsChannel.send({ type: 'broadcast', event: 'ready', payload: {} }); }
-          }
-      });
-
-      if (isHost) {
-          vsChannel.on('broadcast', { event: 'ready' }, () => {
-              vsChannel.send({ type: 'broadcast', event: 'start', payload: {} });
-              startVSCountdown();
-          });
-      }
+      vsChannel.on('broadcast', { event: 'start' }, () => { if(!isHost) startVSCountdown(); });
+      vsChannel.subscribe((status) => { if (status === 'SUBSCRIBED') { if (!isHost) { vsChannel.send({ type: 'broadcast', event: 'ready', payload: {} }); } } });
+      if (isHost) { vsChannel.on('broadcast', { event: 'ready' }, () => { vsChannel.send({ type: 'broadcast', event: 'start', payload: {} }); startVSCountdown(); }); }
   }
 
   function startGameVS() {
@@ -330,46 +289,69 @@
       ghostBird = { active: false, x: W*0.32, yRatio: 0.42, rot: 0, skinId: 'default' };
       vsWaitingScreen.classList.add('hidden');
       hud.classList.remove('hidden'); authBar.classList.add('hidden');
+      
+      vsStatusHUD.textContent = "Lawan Aktif";
+      vsStatusHUD.style.color = "#ffd27a";
+      vsStatusHUD.classList.remove('hidden');
   }
 
-  function winVS() {
-      state = 'over'; playSound('score');
-      overTitle.innerHTML = "LAWAN MATI!<br>KAMU MENANG!";
-      overTitle.style.color = "#5fc084"; // Hijau
+  // --- LOGIKA GAME OVER & SPECTATOR ---
+  function resolveVSMatch(myScore, oppScore) {
+      state = 'over';
+      spectateEndBtn.classList.add('hidden');
+      vsStatusHUD.classList.add('hidden');
       
-      let reward = 100; 
-      flappyCoins += reward;
-      updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
+      if (myScore > oppScore) {
+          overTitle.innerHTML = "LAWAN MATI!<br>KAMU MENANG!";
+          overTitle.style.color = "#5fc084"; 
+          finalizeMatch(100); 
+      } else if (myScore < oppScore) {
+          overTitle.innerHTML = "KAMU KALAH :(";
+          overTitle.style.color = "#ff6b6b";
+          finalizeMatch(0);
+      } else {
+          overTitle.innerHTML = "SERI / DRAW!";
+          overTitle.style.color = "#ffd27a"; 
+          finalizeMatch(50); // Hiburan
+      }
+  }
+
+  function finalizeMatch(reward) {
+      if (reward > 0) {
+          flappyCoins += reward;
+          updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
+          coinsGainedEl.textContent = `+${reward} Koin`;
+          coinsGainedEl.classList.remove('hidden');
+      } else {
+          coinsGainedEl.classList.add('hidden');
+      }
       
-      coinsGainedEl.textContent = `+${reward} Koin Hadiah VS!`;
-      coinsGainedEl.classList.remove('hidden');
-      scoreLine.textContent = 'Skor Akhir VS: ' + score;
+      if(score > best){ best = score; localStorage.setItem('flappy_best', String(best)); }
+      scoreLine.textContent = (isVSMode ? 'Skor Akhir VS: ' : 'Skor: ') + score; 
+      bestLine.textContent = 'Terbaik: ' + best;
       
       overScreen.classList.remove('hidden'); hud.classList.add('hidden'); authBar.classList.remove('hidden');
-      if(currentUser) saveScoreAndCoinsToServer(currentUser, score, reward);
+      
+      if(currentUser){ 
+          saveScoreAndCoinsToServer(currentUser, score, reward); 
+      } else {
+          saveStatus.textContent = 'Login untuk simpan permanen';
+      }
       setTimeout(() => cleanUpVS(), 1000);
-  }
-
-  function drawVS() {
-      overTitle.innerHTML = "SERI / DRAW!";
-      overTitle.style.color = "#ffd27a"; // Kuning
-      
-      let reward = 50; // Hadiah hiburan seri
-      flappyCoins += reward;
-      updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
-      
-      coinsGainedEl.textContent = `+${reward} Koin Hiburan`;
-      coinsGainedEl.classList.remove('hidden');
-      
-      if(currentUser) saveScoreAndCoinsToServer(currentUser, score, reward);
   }
 
   function cleanUpVS() {
       if (vsChannel) { vsChannel.unsubscribe(); vsChannel = null; }
       isVSMode = false; ghostBird.active = false;
-      vsStatusText.style.fontSize = "12px";
-      vsStatusText.style.color = "var(--cream)";
+      vsStatusText.style.fontSize = "12px"; vsStatusText.style.color = "var(--cream)";
+      vsStatusHUD.classList.add('hidden'); spectateEndBtn.classList.add('hidden');
   }
+
+  spectateEndBtn.addEventListener('click', () => {
+      if(state === 'spectating') {
+          resolveVSMatch(score, 999999); // Anggap lawan menang karena kita menyerah
+      }
+  });
 
   cancelVsBtn.addEventListener('click', () => {
       cleanUpVS();
@@ -397,51 +379,39 @@
     buildSkyGradient();
 
     const hRatio = Math.max(0.6, Math.min(H / 650, 1.4)); 
-    dynamicGravity = 1500 * hRatio;
-    dynamicFlap = -430 * Math.sqrt(hRatio); 
-    dynamicGap = Math.max(140, 190 * hRatio);
-    dynamicGroundH = Math.max(60, H * 0.1); 
+    dynamicGravity = 1500 * hRatio; dynamicFlap = -430 * Math.sqrt(hRatio); 
+    dynamicGap = Math.max(140, 190 * hRatio); dynamicGroundH = Math.max(60, H * 0.1); 
   }
-  window.addEventListener('resize', resize);
-  resize();
+  window.addEventListener('resize', resize); resize();
 
-  const PIPE_W = 68;
-  const BIRD_R = 15;
-
+  const PIPE_W = 68; const BIRD_R = 15;
   let state = 'start'; 
   let bird, pipes, score, best, elapsed, pipeTimer, groundOffset, bgOffset, particles, pipeSpeed, gapSize, lastGapRatio;
 
-  best = Number(localStorage.getItem('flappy_best') || 0);
-  bestLine.textContent = 'Terbaik: ' + best;
-  updateAuthUI();
-  if(currentUser){ syncDataFromServer(currentUser); }
+  best = Number(localStorage.getItem('flappy_best') || 0); bestLine.textContent = 'Terbaik: ' + best;
+  updateAuthUI(); if(currentUser){ syncDataFromServer(currentUser); }
 
   function reset(){
-    bird = { x: W*0.32, y: H*0.42, vy: 0, rot: 0 };
-    pipes = []; particles = [];
+    bird = { x: W*0.32, y: H*0.42, vy: 0, rot: 0 }; pipes = []; particles = [];
     score = 0; elapsed = 0; pipeTimer = 0; groundOffset = 0; bgOffset = 0;
     pipeSpeed = 165; gapSize = dynamicGap; lastGapRatio = null;
+    opponentDead = false; opponentScore = 0;
     hud.textContent = '0';
+    vsStatusHUD.classList.add('hidden'); spectateEndBtn.classList.add('hidden');
   }
   reset();
 
   function spawnPipe(){
     let centerRatio;
-    if(lastGapRatio === null){ 
-        centerRatio = 0.2 + prng() * 0.5; // 20% hingga 70% dari tinggi layar
-    } else {
-        const maxDeltaRatio = 0.25;
-        const lo = Math.max(0.15, lastGapRatio - maxDeltaRatio);
-        const hi = Math.min(0.75, lastGapRatio + maxDeltaRatio);
+    if(lastGapRatio === null){ centerRatio = 0.2 + prng() * 0.5; } 
+    else {
+        const lo = Math.max(0.15, lastGapRatio - 0.25); const hi = Math.min(0.75, lastGapRatio + 0.25);
         centerRatio = lo + prng() * (hi - lo);
     }
-    lastGapRatio = centerRatio;
-    let centerY = centerRatio * H; // Convert rasio ke Piksel
+    lastGapRatio = centerRatio; let centerY = centerRatio * H; 
 
-    const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55);
-    const moving = score >= 150 && prng() < moveChance;
-    const hMoveChance = Math.min(0.12 + Math.floor(score / 200) * 0.07, 0.45);
-    const hMoving = score >= 250 && prng() < hMoveChance;
+    const moveChance = Math.min(0.15 + Math.floor(score / 150) * 0.08, 0.55); const moving = score >= 150 && prng() < moveChance;
+    const hMoveChance = Math.min(0.12 + Math.floor(score / 200) * 0.07, 0.45); const hMoving = score >= 250 && prng() < hMoveChance;
 
     pipes.push({
       x: W + PIPE_W, gapY: centerY, baseGapY: centerY, passed: false,
@@ -453,73 +423,50 @@
 
   function flap(){
     if(state === 'start'){ startGameSolo(); return; }
-    if(state === 'over') return;
+    if(state !== 'playing') return; // Matikan flap jika sudah mati atau sedang spectating
     bird.vy = dynamicFlap; playSound('flap');
-    for(let i=0;i<5;i++){
-      particles.push({
-        x: bird.x - 10, y: bird.y + 6,
-        vx: -80 - Math.random()*60, vy: (Math.random()-0.5)*60,
-        life: 0.4, age:0
-      });
-    }
+    for(let i=0;i<5;i++){ particles.push({ x: bird.x - 10, y: bird.y + 6, vx: -80 - Math.random()*60, vy: (Math.random()-0.5)*60, life: 0.4, age:0 }); }
   }
 
   function startGameSolo(){
-    isVSMode = false;
-    currentSeed = Math.random() * 999999; 
+    isVSMode = false; currentSeed = Math.random() * 999999; 
     resize(); reset(); state = 'playing';
     startScreen.classList.add('hidden'); overScreen.classList.add('hidden');
     hud.classList.remove('hidden'); authBar.classList.add('hidden');
   }
 
   async function saveScoreAndCoinsToServer(name, finalScore, finalCoins){
-    if(!currentPasswordHash){ saveStatus.textContent = 'Login untuk menyimpan data'; return; }
+    if(!currentPasswordHash) return;
     saveStatus.textContent = 'Menyimpan...';
     try{
-      const { data: scoreData, error: scoreError } = await supabase.rpc('submit_score', { p_username: name, p_password_hash: currentPasswordHash, p_score: finalScore });
-      if (finalCoins > 0) {
-        await supabase.rpc('add_coins', { p_username: name, p_password_hash: currentPasswordHash, p_added_coins: finalCoins });
-      }
-      saveStatus.textContent = 'Data tersimpan';
-      loadLeaderboard();
+      await supabase.rpc('submit_score', { p_username: name, p_password_hash: currentPasswordHash, p_score: finalScore });
+      if (finalCoins > 0) { await supabase.rpc('add_coins', { p_username: name, p_password_hash: currentPasswordHash, p_added_coins: finalCoins }); }
+      saveStatus.textContent = 'Data tersimpan'; loadLeaderboard();
     }catch(err){ saveStatus.textContent = 'Gagal menyimpan'; }
   }
 
   function endGame(){
-    state = 'over'; playSound('hit');
-    overTitle.innerHTML = "KAMU KALAH :(";
-    overTitle.style.color = "#ff6b6b"; 
+    if(state === 'spectating' || state === 'over') return;
+    playSound('hit');
     
-    // JIKA VS MODE, KIRIM SINYAL KALAH KE LAWAN DENGAN ID & SKOR
     if (isVSMode && vsChannel) {
         vsChannel.send({ type: 'broadcast', event: 'dead', payload: { id: myPlayerId, score: score } });
-        coinsGainedEl.classList.add('hidden'); // Sembunyikan koin dulu, tunggu konfirmasi seri
         
-        setTimeout(() => {
-            // Jika tulisan masih "KALAH" (Bukan SERI), berarti kalah murni. Simpan data 0 koin.
-            if(overTitle.innerHTML.includes("KALAH")) {
-                if(currentUser) saveScoreAndCoinsToServer(currentUser, score, 0); 
-                cleanUpVS();
-            }
-        }, 1500); 
-    } else {
-        // Mode SOLO Biasa
-        if(score > 0){
-          flappyCoins += score;
-          updateLocalState(flappyCoins, JSON.stringify(unlockedSkins), activeSkinId);
-          coinsGainedEl.textContent = `+${score} Koin`;
-          coinsGainedEl.classList.remove('hidden');
+        if (opponentDead) {
+            resolveVSMatch(score, opponentScore);
         } else {
-          coinsGainedEl.classList.add('hidden');
+            state = 'spectating';
+            vsStatusHUD.textContent = "MENONTON LAWAN... (Skor Dia: " + opponentScore + ")";
+            vsStatusHUD.style.color = "#7ad2ff"; 
+            spectateEndBtn.classList.remove('hidden');
         }
-        if(currentUser) saveScoreAndCoinsToServer(currentUser, score, score);
+    } else {
+        // Solo Mode
+        state = 'over';
+        overTitle.innerHTML = "GAME OVER";
+        overTitle.style.color = "#ffd27a"; 
+        finalizeMatch(score);
     }
-
-    if(score > best){ best = score; localStorage.setItem('flappy_best', String(best)); }
-    scoreLine.textContent = 'Skor: ' + score; bestLine.textContent = 'Terbaik: ' + best;
-    overScreen.classList.remove('hidden'); hud.classList.add('hidden'); authBar.classList.remove('hidden');
-
-    if(!currentUser){ saveStatus.textContent = 'Login untuk simpan permanen'; }
   }
 
   canvas.addEventListener('pointerdown', (e)=>{ e.preventDefault(); flap(); }, {passive: false});
@@ -527,11 +474,9 @@
   window.addEventListener('keydown', (e)=>{ if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); flap(); } });
   
   function goHome(){
-    cleanUpVS();
-    reset(); state = 'start';
+    cleanUpVS(); reset(); state = 'start';
     overScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); vsWaitingScreen.classList.add('hidden');
-    hud.classList.add('hidden'); authBar.classList.remove('hidden');
-    loadLeaderboard();
+    hud.classList.add('hidden'); authBar.classList.remove('hidden'); loadLeaderboard();
   }
 
   startBtn.addEventListener('click', startGameSolo);
@@ -551,7 +496,10 @@
   }
 
   function update(dt){
-    const scrollDelta = (state === 'over' ? 0 : pipeSpeed) * dt;
+    // Update selalu jalan saat playing atau spectating
+    if(state !== 'playing' && state !== 'spectating') return;
+
+    const scrollDelta = pipeSpeed * dt;
     groundOffset -= scrollDelta; if(groundOffset < -40) groundOffset += 40;
     bgOffset -= scrollDelta; if(bgOffset < -100000) bgOffset += 100000;
 
@@ -560,16 +508,13 @@
       if(p.age > p.life) particles.splice(i,1);
     }
     
-    if(state !== 'playing') return;
-    
-    // Broadcast Posisi Burung 20 fps agar mulus
     if(isVSMode && vsChannel) {
         syncTimer -= dt;
         if(syncTimer <= 0) {
             syncTimer = 0.05; 
             vsChannel.send({
                 type: 'broadcast', event: 'sync',
-                payload: { id: myPlayerId, yRatio: bird.y / H, rot: bird.rot, skinId: activeSkinId } 
+                payload: { id: myPlayerId, yRatio: bird.y / H, rot: bird.rot, skinId: activeSkinId, score: score } 
             });
         }
     }
@@ -579,6 +524,14 @@
     const gapLevel = Math.floor(score / 50); gapSize = Math.max(dynamicGap - gapLevel * 7, 120);
 
     bird.vy += dynamicGravity * dt; bird.y += bird.vy * dt; bird.rot = Math.max(-0.5, Math.min(1.3, bird.vy/500));
+    
+    // Jika spectating, biarkan burung jatuh ke tanah dan terseret
+    if(bird.y + BIRD_R > H - dynamicGroundH){ 
+        bird.y = H - dynamicGroundH - BIRD_R; 
+        if (state === 'playing') endGame(); 
+    }
+    if(bird.y - BIRD_R < 0){ bird.y = BIRD_R; bird.vy = 0; }
+
     pipeTimer -= dt; if(pipeTimer <= 0){ spawnPipe(); pipeTimer = 239 / pipeSpeed; }
 
     for(let i=pipes.length-1;i>=0;i--){
@@ -586,14 +539,19 @@
       if(p.moving){ p.moveAge += dt; const raw = p.baseGapY + Math.sin(p.moveAge * p.moveSpeed) * p.moveAmp; p.gapY = Math.max(p.minY, Math.min(p.maxY, raw)); }
       if(p.hMoving){ p.hAge += dt; p.xOffset = Math.sin(p.hAge * p.hSpeed) * p.hAmp; }
       const drawX = p.x + p.xOffset;
-      if(!p.passed && p.x + PIPE_W < bird.x){ p.passed = true; score++; playSound('score'); hud.textContent = String(score); }
+      if(!p.passed && p.x + PIPE_W < bird.x){ 
+          p.passed = true; 
+          if(state === 'playing'){
+              score++; playSound('score'); hud.textContent = String(score); 
+          }
+      }
       
       const topH = p.gapY - gapSize/2; const botY = p.gapY + gapSize/2; const botH = H - dynamicGroundH - botY;
-      if(circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, 0, PIPE_W, topH) || circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, botY, PIPE_W, botH)){ endGame(); }
+      if(state === 'playing'){
+          if(circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, 0, PIPE_W, topH) || circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, botY, PIPE_W, botH)){ endGame(); }
+      }
       if(p.x < -PIPE_W) pipes.splice(i,1);
     }
-    if(bird.y + BIRD_R > H - dynamicGroundH){ bird.y = H - dynamicGroundH - BIRD_R; endGame(); }
-    if(bird.y - BIRD_R < 0){ bird.y = BIRD_R; bird.vy = 0; }
   }
 
   function drawSky(){
@@ -640,11 +598,15 @@
     ctx.globalAlpha = 1;
   }
   
-  function drawSingleBird(b, colorConfig, isGhost) {
+  function drawSingleBird(b, colorConfig, isGhostTransparent) {
     ctx.save(); 
     ctx.translate(b.x, b.y); 
     ctx.rotate(b.rot);
-    if(isGhost) ctx.globalAlpha = 0.4; 
+    if(isGhostTransparent) {
+        ctx.globalAlpha = 0.15; // Jika transparan
+    } else {
+        ctx.globalAlpha = 1.0;  // Jika jelas (solid)
+    }
 
     ctx.fillStyle = colorConfig.body; ctx.beginPath(); ctx.ellipse(0,0, BIRD_R, BIRD_R*0.85, 0, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = colorConfig.belly; ctx.beginPath(); ctx.ellipse(-2,3, BIRD_R*0.6, BIRD_R*0.5, 0, 0, Math.PI*2); ctx.fill();
@@ -658,12 +620,16 @@
   function draw(){
     drawSky(); drawPipes(); drawParticles(); 
     
-    // Draw Ghost walau kita mati (selama mode VS dan ghost active)
-    if(isVSMode && ghostBird.active) {
+    if(isVSMode && ghostBird.active && (state === 'playing' || state === 'spectating')) {
         ghostBird.x = bird.x;
         ghostBird.y = ghostBird.yRatio * H; 
         const ghostSkin = skinsData.find(s => s.id === ghostBird.skinId) || skinsData[0];
-        drawSingleBird(ghostBird, ghostSkin.colors, true);
+        
+        // Cerdas: Jika kita sedang spectating, burung lawan terlihat 100% JELAS. 
+        // Jika kita masih main, burung lawan hanya terlihat 15% TRANSPARAN.
+        const isGhostTransparent = state === 'playing'; 
+        
+        drawSingleBird(ghostBird, ghostSkin.colors, isGhostTransparent);
     }
     
     drawSingleBird(bird, activeSkin.colors, false);
