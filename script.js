@@ -474,7 +474,7 @@
   }
   reset();
 
-  // ALGORTIMA PIPA DINAMIS (NAIK TURUN, MAJU MUNDUR, MENYEMPIT) ACAK TOTAL
+  // ALGORTIMA PIPA DINAMIS LEBIH BERSAHABAT (70% Normal)
   function spawnPipe(){
     let centerRatio;
     if(lastGapRatio === null){ centerRatio = 0.2 + prng() * 0.5; } 
@@ -490,10 +490,10 @@
     let pType = 'normal';
     let roll = prng();
     
-    // Rintangan diacak sepenuhnya sejak awal permainan (25% peluang masing-masing)
-    if (roll < 0.25) pType = 'chomping'; 
-    else if (roll < 0.50) pType = 'moving_x';
-    else if (roll < 0.75) pType = 'moving_y'; 
+    // Probabilitas rintangan diperkecil: 70% Normal, 10% Menyempit, 10% Maju-Mundur, 10% Naik-Turun
+    if (roll < 0.10) pType = 'chomping'; 
+    else if (roll < 0.20) pType = 'moving_x';
+    else if (roll < 0.30) pType = 'moving_y'; 
     else pType = 'normal';
 
     pipes.push({
@@ -505,8 +505,8 @@
       minY: 70, maxY: H - dynamicGroundH - 70
     });
     
-    // Musuh terbang juga acak dari awal (25% peluang muncul)
-    const enemyChance = 0.25;
+    // Probabilitas musuh diperkecil jadi 10% saja
+    const enemyChance = 0.10;
     if (prng() < enemyChance) {
         enemies.push({
             x: W + PIPE_W + 150 + prng() * 200,
@@ -633,11 +633,13 @@
     for(let i=pipes.length-1;i>=0;i--){
       const p = pipes[i]; p.x -= pipeSpeed*dt;
       
+      // LOGIKA PIPA BERGERAK (NAIK TURUN, MAJU MUNDUR, MENYEMPIT)
       if(p.type === 'moving_y') {
-          p.gapY = p.baseGapY + Math.sin(elapsed * p.speed + p.phaseOffset) * (H * 0.15);
+          p.gapY = p.baseGapY + Math.sin(elapsed * p.speed + p.phaseOffset) * (H * 0.15); // Naik turun 15% dari tinggi layar
       } else if(p.type === 'moving_x') {
-          p.xOffset = Math.sin(elapsed * p.speed + p.phaseOffset) * 45;
+          p.xOffset = Math.sin(elapsed * p.speed + p.phaseOffset) * 45; // Maju mundur
       } else if(p.type === 'chomping') {
+          // Menyempit hingga tersisa 45% dari celah asli
           p.gapSize = p.baseGapSize - Math.abs(Math.sin(elapsed * p.speed + p.phaseOffset)) * (p.baseGapSize * 0.55);
       }
 
@@ -654,6 +656,7 @@
           if(circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, 0, PIPE_W, topH) || circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, botY, PIPE_W, botH)){ endGame(); }
       }
       
+      // Hapus pipa yang sudah lewat jauh (diperlebar sedikit batasnya karena xOffset)
       if(p.x < -PIPE_W * 2) pipes.splice(i,1);
     }
     
