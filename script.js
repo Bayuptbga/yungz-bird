@@ -40,14 +40,8 @@
     }catch(err){}
   }
 
-  // --- SISTEM TOKO & LOKAL ---
-  const skinsData = [
-    { id: 'default', name: 'Si Kuning', price: 0, colors: { body: '#ff9f3f', belly: '#ffd27a', wing: '#e8823a', beak: '#ff6b3f' } },
-    { id: 'blue', name: 'Si Biru', price: 150, colors: { body: '#3fa3ff', belly: '#7ad2ff', wing: '#3a8ee8', beak: '#ffc13f' } },
-    { id: 'red', name: 'Si Merah', price: 300, colors: { body: '#ff3f3f', belly: '#ff7a7a', wing: '#e83a3a', beak: '#ffc13f' } },
-    { id: 'garuda', name: 'Garuda (Merah Putih)', price: 500, colors: { body: '#ffffff', belly: '#ffffff', wing: '#ff0000', beak: '#ffc13f' } },
-    { id: 'dark', name: 'Si Gelap', price: 1000, colors: { body: '#444444', belly: '#777777', wing: '#222222', beak: '#ff4444' } }
-  ];
+  // --- SISTEM TOKO (MENGGUNAKAN DATA DARI skin.js) ---
+  const skinsData = window.SKINS_DATA || [];
 
   let flappyCoins = 0; let unlockedSkins = ['default']; let activeSkinId = 'default'; let activeSkin = skinsData[0];
   let currentUser = localStorage.getItem('flappy_username') || null;
@@ -113,13 +107,12 @@
   const loginUsernameInput = document.getElementById('loginUsername'); const loginPasswordInput = document.getElementById('loginPassword'); const loginSubmitBtn = document.getElementById('loginSubmitBtn');
   const loginError = document.getElementById('loginError'); const overTitle = document.getElementById('overTitle');
   
-  // VS UI BARU
+  // VS UI 
   const vsMenuBtn = document.getElementById('vsMenuBtn'); const vsWaitingScreen = document.getElementById('vsWaitingScreen');
   const vsStatusText = document.getElementById('vsStatusText'); const cancelVsBtn = document.getElementById('cancelVsBtn');
   const vsStatusHUD = document.getElementById('vsStatusHUD'); const spectateEndBtn = document.getElementById('spectateEndBtn');
   const vsLoaderPulse = document.getElementById('vsLoaderPulse');
   
-  // MENU VS BARU
   const vsMenuScreen = document.getElementById('vsMenuScreen');
   const vsJoinScreen = document.getElementById('vsJoinScreen');
   const inputRoomCode = document.getElementById('inputRoomCode');
@@ -667,41 +660,24 @@
     ctx.globalAlpha = 1;
   }
   
-  function drawSingleBird(b, colorConfig, isGhostTransparent) {
-    ctx.save(); 
-    ctx.translate(b.x, b.y); 
-    ctx.rotate(b.rot);
-    if(isGhostTransparent) {
-        ctx.globalAlpha = 0.15; // Jika transparan
-    } else {
-        ctx.globalAlpha = 1.0;  // Jika jelas (solid)
-    }
-
-    ctx.fillStyle = colorConfig.body; ctx.beginPath(); ctx.ellipse(0,0, BIRD_R, BIRD_R*0.85, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = colorConfig.belly; ctx.beginPath(); ctx.ellipse(-2,3, BIRD_R*0.6, BIRD_R*0.5, 0, 0, Math.PI*2); ctx.fill();
-    const wingFlap = Math.sin(performance.now()/80) * 6;
-    ctx.fillStyle = colorConfig.wing; ctx.beginPath(); ctx.ellipse(-4, 2+wingFlap*0.3, BIRD_R*0.55, BIRD_R*0.35, -0.3, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = colorConfig.beak; ctx.beginPath(); ctx.moveTo(BIRD_R-2, -2); ctx.lineTo(BIRD_R+10, 2); ctx.lineTo(BIRD_R-2, 6); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#1a1023'; ctx.beginPath(); ctx.arc(6, -4, 2.4, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-
+  // LOGIKA GAMBAR BURUNG DIGANTI KE skin.js
+  
   function draw(){
     drawSky(); drawPipes(); drawParticles(); 
     
     if(isVSMode && ghostBird.active && (state === 'playing' || state === 'spectating')) {
         ghostBird.x = bird.x;
         ghostBird.y = ghostBird.yRatio * H; 
-        const ghostSkin = skinsData.find(s => s.id === ghostBird.skinId) || skinsData[0];
+        const ghostSkin = window.SKINS_DATA.find(s => s.id === ghostBird.skinId) || window.SKINS_DATA[0];
         
-        // Cerdas: Jika kita sedang spectating, burung lawan terlihat 100% JELAS. 
-        // Jika kita masih main, burung lawan hanya terlihat 15% TRANSPARAN.
         const isGhostTransparent = state === 'playing'; 
-        
-        drawSingleBird(ghostBird, ghostSkin.colors, isGhostTransparent);
+        // Panggil fungsi dari skin.js
+        if(window.drawBirdSkin) window.drawBirdSkin(ctx, ghostBird, ghostSkin, isGhostTransparent);
     }
     
-    drawSingleBird(bird, activeSkin.colors, false);
+    // Panggil fungsi dari skin.js
+    if(window.drawBirdSkin) window.drawBirdSkin(ctx, bird, activeSkin, false);
+    
     drawGround();
   }
 
