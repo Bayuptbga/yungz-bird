@@ -474,7 +474,7 @@
   }
   reset();
 
-  // ALGORTIMA PIPA DINAMIS (NAIK TURUN, MAJU MUNDUR, MENYEMPIT)
+  // ALGORTIMA PIPA DINAMIS (NAIK TURUN, MAJU MUNDUR, MENYEMPIT) ACAK TOTAL
   function spawnPipe(){
     let centerRatio;
     if(lastGapRatio === null){ centerRatio = 0.2 + prng() * 0.5; } 
@@ -490,10 +490,11 @@
     let pType = 'normal';
     let roll = prng();
     
-    // Semakin tinggi skor, rintangan semakin "menggila"
-    if (score >= 15 && roll < 0.25) pType = 'chomping'; // Pipa Menyempit (Mangap)
-    else if (score >= 10 && roll < 0.55) pType = 'moving_x'; // Pipa Maju Mundur (Berjalan)
-    else if (score >= 5 && roll < 0.85) pType = 'moving_y'; // Pipa Naik Turun
+    // Rintangan diacak sepenuhnya sejak awal permainan (25% peluang masing-masing)
+    if (roll < 0.25) pType = 'chomping'; 
+    else if (roll < 0.50) pType = 'moving_x';
+    else if (roll < 0.75) pType = 'moving_y'; 
+    else pType = 'normal';
 
     pipes.push({
       x: W + PIPE_W, 
@@ -504,8 +505,9 @@
       minY: 70, maxY: H - dynamicGroundH - 70
     });
     
-    const enemyChance = Math.min(0.15 + Math.floor(score / 30) * 0.1, 0.6);
-    if (score >= 5 && prng() < enemyChance) {
+    // Musuh terbang juga acak dari awal (25% peluang muncul)
+    const enemyChance = 0.25;
+    if (prng() < enemyChance) {
         enemies.push({
             x: W + PIPE_W + 150 + prng() * 200,
             yBase: 100 + prng() * (H - dynamicGroundH - 200),
@@ -631,13 +633,11 @@
     for(let i=pipes.length-1;i>=0;i--){
       const p = pipes[i]; p.x -= pipeSpeed*dt;
       
-      // LOGIKA PIPA BERGERAK (NAIK TURUN, MAJU MUNDUR, MENYEMPIT)
       if(p.type === 'moving_y') {
-          p.gapY = p.baseGapY + Math.sin(elapsed * p.speed + p.phaseOffset) * (H * 0.15); // Naik turun 15% dari tinggi layar
+          p.gapY = p.baseGapY + Math.sin(elapsed * p.speed + p.phaseOffset) * (H * 0.15);
       } else if(p.type === 'moving_x') {
-          p.xOffset = Math.sin(elapsed * p.speed + p.phaseOffset) * 45; // Maju mundur
+          p.xOffset = Math.sin(elapsed * p.speed + p.phaseOffset) * 45;
       } else if(p.type === 'chomping') {
-          // Menyempit hingga tersisa 45% dari celah asli
           p.gapSize = p.baseGapSize - Math.abs(Math.sin(elapsed * p.speed + p.phaseOffset)) * (p.baseGapSize * 0.55);
       }
 
@@ -654,7 +654,6 @@
           if(circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, 0, PIPE_W, topH) || circleRectCollide(bird.x, bird.y, BIRD_R-3, drawX, botY, PIPE_W, botH)){ endGame(); }
       }
       
-      // Hapus pipa yang sudah lewat jauh (diperlebar sedikit batasnya karena xOffset)
       if(p.x < -PIPE_W * 2) pipes.splice(i,1);
     }
     
@@ -705,33 +704,30 @@
     if (h < 0) return; 
     const capH = 26;
 
-    if(isTop) {
-        const capY = y + h - capH;
-        ctx.fillStyle = 'rgba(200, 230, 255, 0.25)';
-        ctx.fillRect(x + 4, y, w - 8, h - capH);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for(let i = 0; i <= w - 8; i += 8) { ctx.moveTo(x + 4 + i, y); ctx.lineTo(x + 4 + i, y + h - capH); }
-        for(let j = 0; j <= h - capH; j += 8) { ctx.moveTo(x + 4, y + j); ctx.lineTo(x + w - 4, y + j); }
-        ctx.stroke();
+    const capY = isTop ? y + h - capH : y;
+    const bodyY = isTop ? y : y + capH;
+    const bodyH = h - capH;
 
-        ctx.fillStyle = '#4a2e1f'; ctx.fillRect(x - 5, capY, w + 10, capH);
-        ctx.fillStyle = '#6b4229'; ctx.fillRect(x - 5, capY, w + 10, 6);
-        ctx.fillStyle = '#e8d5b7'; ctx.fillRect(x + 10, capY, 4, capH); ctx.fillRect(x + w - 14, capY, 4, capH);
-    } else {
-        const capY = y;
-        ctx.fillStyle = '#5e3a23'; ctx.fillRect(x, y + capH, w, h - capH);
-        ctx.fillStyle = '#3d2414';
-        ctx.fillRect(x + 12, y + capH, 5, h - capH); ctx.fillRect(x + 30, y + capH, 8, h - capH); ctx.fillRect(x + 50, y + capH, 4, h - capH);
+    // Batang Tiang Utama (Kayu)
+    ctx.fillStyle = '#5e3a23'; 
+    ctx.fillRect(x, bodyY, w, bodyH);
+    
+    // Serat Kayu vertikal
+    ctx.fillStyle = '#3d2414';
+    ctx.fillRect(x + 12, bodyY, 5, bodyH); 
+    ctx.fillRect(x + 30, bodyY, 8, bodyH); 
+    ctx.fillRect(x + 50, bodyY, 4, bodyH);
 
-        ctx.fillStyle = '#4a2e1f'; ctx.fillRect(x - 5, capY, w + 10, capH);
-        ctx.fillStyle = '#7a4e32'; ctx.fillRect(x - 5, capY, w + 10, 6);
-        
-        ctx.fillStyle = '#222';
-        ctx.beginPath(); ctx.arc(x + 8, capY + 14, 3, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x + w - 8, capY + 14, 3, 0, Math.PI*2); ctx.fill();
-    }
+    // Kepala Tiang Kayu (Cap)
+    ctx.fillStyle = '#4a2e1f'; 
+    ctx.fillRect(x - 5, capY, w + 10, capH);
+    ctx.fillStyle = '#7a4e32'; 
+    ctx.fillRect(x - 5, isTop ? capY + capH - 6 : capY, w + 10, 6);
+    
+    // Paku Dermaga
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(x + 8, capY + 14, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + w - 8, capY + 14, 3, 0, Math.PI*2); ctx.fill();
   }
 
   function drawEnemies() {
