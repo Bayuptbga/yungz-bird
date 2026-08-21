@@ -2,144 +2,321 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Yungz Bird</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yungz Potabuga</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0a1210;
+    --bg-surface:#121c18;
+    --line:#233530;
+    --olive:#7c8b6e;
+    --olive-dim:#4d5c46;
+    --gold:#c9a467;
+    --text:#f0ece2;
+    --text-muted:#93a094;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg-deep);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-weight:300;
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+
+  /* subtle ambient texture */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 0%, rgba(124,139,110,0.10), transparent 60%),
+      radial-gradient(ellipse 50% 30% at 90% 100%, rgba(201,164,103,0.06), transparent 60%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .wrap{max-width:920px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100svh;
+    display:flex;
+    align-items:center;
+    padding:80px 0 60px;
+  }
+  .hero-grid{
+    display:grid;
+    grid-template-columns:280px 1fr;
+    gap:56px;
+    align-items:center;
+  }
+  .portrait-frame{
+    position:relative;
+    opacity:0;
+    animation:riseIn 1s cubic-bezier(.2,.8,.2,1) 0.15s forwards;
+  }
+  .portrait-frame img{
+    width:100%;
+    aspect-ratio:4/5;
+    object-fit:cover;
+    object-position:center 20%;
+    display:block;
+    border:1px solid var(--line);
+    filter:saturate(0.92) contrast(1.03);
+  }
+  .portrait-frame .tag{
+    position:absolute;
+    bottom:-14px;
+    left:-14px;
+    background:var(--bg-deep);
+    border:1px solid var(--gold);
+    color:var(--gold);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.14em;
+    padding:5px 10px;
+    text-transform:uppercase;
+  }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--olive);
+    margin-bottom:18px;
+    opacity:0;
+    animation:riseIn 0.8s ease 0.05s forwards;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:400;
+    font-size:clamp(40px,7vw,74px);
+    line-height:1.02;
+    letter-spacing:-0.01em;
+    color:var(--text);
+    opacity:0;
+    animation:riseIn 0.9s cubic-bezier(.2,.8,.2,1) 0.25s forwards;
+  }
+  h1 em{
+    font-style:italic;
+    color:var(--olive);
+    font-weight:300;
+  }
+  .role-line{
+    margin-top:22px;
+    font-family:'Inter',sans-serif;
+    font-weight:400;
+    font-size:17px;
+    color:var(--text-muted);
+    line-height:1.6;
+    max-width:460px;
+    opacity:0;
+    animation:riseIn 0.9s ease 0.4s forwards;
+  }
+
+  @keyframes riseIn{
+    from{opacity:0;transform:translateY(14px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+
+  /* ---------- HORIZON DIVIDER (signature element) ---------- */
+  .horizon{
+    position:relative;
+    height:64px;
+    margin:0 0 10px;
+  }
+  .horizon svg{width:100%;height:100%;display:block;}
+  .horizon-label{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--olive-dim);
+    padding:8px 0 40px;
+  }
+
+  /* ---------- BIO ---------- */
+  section{padding:20px 0 70px;position:relative;z-index:1;}
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:28px;
+  }
+  .section-head .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--gold);
+  }
+  .section-head h2{
+    font-family:'Fraunces',serif;
+    font-weight:400;
+    font-style:italic;
+    font-size:26px;
+    color:var(--text);
+  }
+  .bio-text{
+    font-size:19px;
+    line-height:1.85;
+    color:#d8d5c9;
+    max-width:640px;
+    font-weight:300;
+  }
+  .bio-text strong{color:var(--olive);font-weight:500;}
+
+  /* ---------- CONTACT ---------- */
+  .tide-table{
+    border-top:1px solid var(--line);
+  }
+  .tide-row{
+    display:grid;
+    grid-template-columns:130px 1fr auto;
+    gap:16px;
+    align-items:center;
+    padding:20px 0;
+    border-bottom:1px solid var(--line);
+    text-decoration:none;
+    color:var(--text);
+    transition:background 0.25s ease, padding-left 0.25s ease;
+  }
+  .tide-row:hover{
+    background:rgba(124,139,110,0.06);
+    padding-left:10px;
+  }
+  .tide-row .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--olive);
+  }
+  .tide-row .value{
+    font-size:18px;
+    font-weight:400;
+    color:var(--text);
+  }
+  .tide-row .go{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-muted);
+    opacity:0;
+    transform:translateX(-6px);
+    transition:all 0.25s ease;
+  }
+  .tide-row:hover .go{opacity:1;transform:translateX(0);color:var(--gold);}
+
+  footer{
+    padding:40px 0 60px;
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.1em;
+    color:var(--olive-dim);
+  }
+
+  @media (max-width:720px){
+    .hero-grid{grid-template-columns:1fr;gap:32px;}
+    .portrait-frame{max-width:220px;}
+    .hero{padding:60px 0 40px;min-height:auto;}
+    .tide-row{grid-template-columns:100px 1fr;}
+    .tide-row .go{display:none;}
+  }
+
+  a:focus-visible, .tide-row:focus-visible{
+    outline:2px solid var(--gold);
+    outline-offset:3px;
+  }
+</style>
 </head>
 <body>
-<div id="stage">
-  <canvas id="game"></canvas>
-  <div class="hud hidden" id="hud">0</div>
-  
-  <div id="vsStatusHUD" class="hidden" style="position:absolute; top:calc(env(safe-area-inset-top, 10px) + 70px); width:100%; text-align:center; font-size:12px; color:#ffd27a; z-index:5; text-shadow:2px 2px 0 var(--ink); pointer-events:none;">Lawan Aktif</div>
-  <button id="spectateEndBtn" class="btn btnDanger btnSmall hidden" style="position:absolute; bottom:120px; left:50%; transform:translateX(-50%); z-index:10; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">SELESAI NONTON</button>
 
-  <div class="authBar" id="authBar" style="display:flex; gap:10px;">
-    <button class="gearBtn" id="shopBtn" type="button" title="Toko" aria-label="Toko">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-      </svg>
-    </button>
-    <button class="gearBtn" id="settingsBtn" type="button" title="Pengaturan" aria-label="Pengaturan">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-      </svg>
-    </button>
-  </div>
+<div class="wrap">
 
-  <div class="overlay" id="startScreen">
-    <h1>YUNGZ<br>BIRD</h1>
-    <div class="leaderboard" id="leaderboard">
-      <p class="lbTitle">TOP SKOR</p>
-      <ol class="lbList" id="leaderboardList">
-        <li class="lbEmpty">Memuat...</li>
-      </ol>
-      <button class="lbMoreLink" id="lbMoreBtn" type="button">Lihat semua &rsaquo;</button>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="portrait-frame">
+        <img src="foto-profil.jpg" alt="Yungz Potabuga">
+        <span class="tag">01°N — Pesisir</span>
+      </div>
+      <div>
+        <p class="eyebrow">Perkenalan diri</p>
+        <h1>Yungz<br><em>Potabuga</em></h1>
+        <p class="role-line">Web Developer &amp; Game Developer — membangun sesuatu dari nol, satu baris kode dalam satu waktu.</p>
+      </div>
     </div>
-    <div style="display:flex; gap:10px; width:100%; max-width:260px;">
-      <button class="btn" id="startBtn" style="flex:1;">SOLO</button>
-      <button class="btn btnSecondary" id="vsMenuBtn" style="flex:1;">VS MODE</button>
-    </div>
-    <button class="btn btnSecondary btnSmall" id="loginBtn" type="button">LOGIN</button>
-    <div class="startUserInfo hidden" id="startUserInfo">
-      <p class="startUsername" id="startUsername"></p>
-      <p class="startUserBest" id="startUserBest">Terbaik: 0</p>
-    </div>
+  </section>
+
+  <!-- HORIZON DIVIDER -->
+  <div class="horizon">
+    <svg viewBox="0 0 920 64" preserveAspectRatio="none">
+      <line x1="0" y1="32" x2="920" y2="32" stroke="#233530" stroke-width="1"/>
+      <polygon points="40,32 70,14 100,32" fill="#4d5c46" opacity="0.6"/>
+      <polygon points="740,32 790,10 850,32" fill="#4d5c46" opacity="0.4"/>
+      <circle cx="880" cy="32" r="2.5" fill="#c9a467"/>
+    </svg>
+  </div>
+  <div class="horizon-label">
+    <span>— berlabuh di sini —</span>
+    <span>yungzxyz</span>
   </div>
 
-  <!-- MENU VS -->
-  <div class="overlay hidden" id="vsMenuScreen">
-    <h1>MODE VS</h1>
-    <div style="display:flex; flex-direction:column; gap:12px; width:100%; max-width:240px;">
-      <button class="btn" id="btnRandomVS">CARI ACAK</button>
-      <button class="btn btnSecondary" id="btnCreatePrivateVS">BUAT ROOM (MABAR)</button>
-      <button class="btn btnSecondary" id="btnJoinPrivateVS">GABUNG ROOM</button>
+  <!-- BIO -->
+  <section>
+    <div class="section-head">
+      <span class="num">01</span>
+      <h2>Sedikit cerita</h2>
     </div>
-    <button class="btn btnDanger btnSmall" id="btnBackVsMenu" style="margin-top:10px;">KEMBALI</button>
-  </div>
+    <p class="bio-text">
+      Saya seorang <strong>web developer</strong> dan <strong>game developer</strong> yang paling betah kalau sudah mengoprek sesuatu sampai jadi. Belakangan hobi baru saya adalah <strong>prompting AI</strong> — mencari tahu sejauh mana ide bisa diubah jadi karya nyata, entah itu website, game, atau eksperimen kecil lainnya.
+    </p>
+  </section>
 
-  <!-- GABUNG ROOM PRIVATE -->
-  <div class="overlay hidden" id="vsJoinScreen">
-    <h1>GABUNG MABAR</h1>
-    <p style="font-size:10px; color:var(--cream); margin-bottom:-5px;">Masukkan Kode Room Temanmu</p>
-    <input class="nameInput" id="inputRoomCode" type="text" placeholder="KODE ROOM" maxlength="6" autocomplete="off" style="text-transform:uppercase; font-size:16px;">
-    <p id="joinError" class="errorText hidden"></p>
-    <button class="btn" id="btnSubmitJoin">MASUK</button>
-    <button class="btn btnDanger btnSmall" id="btnBackJoin" style="margin-top:10px;">BATAL</button>
-  </div>
-
-  <div class="overlay hidden" id="overScreen">
-    <h1 id="overTitle">GAME OVER</h1>
-    <p id="scoreLine">Skor: 0</p>
-    <p id="bestLine" class="badge">Terbaik: 0</p>
-    <p id="coinsGained" class="badge" style="color:#ffd27a; margin-top:-5px;">+0 Koin</p>
-    <p id="saveStatus" class="badge"></p>
-    <div class="btnRow">
-      <button class="btn" id="retryBtn">COBA LAGI</button>
-      <button class="btn btnSecondary" id="homeBtn">HOME</button>
+  <!-- CONTACT -->
+  <section>
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>Ayo terhubung</h2>
     </div>
-  </div>
-
-  <div class="overlay hidden" id="vsWaitingScreen">
-    <h1>VS MODE</h1>
-    <p id="vsStatusText" style="font-size:12px; line-height:1.5;">Mencari lawan...</p>
-    <div class="loader-pulse" id="vsLoaderPulse"></div>
-    <button class="btn btnDanger btnSmall" id="cancelVsBtn" style="margin-top:20px;">BATAL</button>
-  </div>
-
-  <!-- LAYAR SHOP -->
-  <div class="overlay hidden loginOverlay" id="shopScreen">
-    <div class="loginCard shopCard">
-      <button class="loginCloseBtn" id="shopCloseBtn" type="button">&times;</button>
-      <h1>TOKO SKIN</h1>
-      <p class="badge" id="shopCoinsDisplay" style="color:#ffd27a; font-size:12px; margin-bottom:10px;">Koin: 0</p>
-      <p id="shopSaveStatus" class="badge" style="display:none; color:#5fc084; font-size:8px; margin-top:-5px; margin-bottom:10px;"></p>
-      <div class="skinList" id="skinList"></div>
+    <div class="tide-table">
+      <a class="tide-row" href="mailto:bayupotabuga@gmail.com">
+        <span class="label">Email</span>
+        <span class="value">bayupotabuga@gmail.com</span>
+        <span class="go">kirim →</span>
+      </a>
+      <a class="tide-row" href="https://wa.me/6285141593665" target="_blank" rel="noopener">
+        <span class="label">WhatsApp</span>
+        <span class="value">0851 4159 3665</span>
+        <span class="go">chat →</span>
+      </a>
+      <a class="tide-row" href="https://instagram.com/yungzxyz_" target="_blank" rel="noopener">
+        <span class="label">Instagram</span>
+        <span class="value">@yungzxyz_</span>
+        <span class="go">buka →</span>
+      </a>
+      <a class="tide-row" href="https://tiktok.com/@yungzxyz_" target="_blank" rel="noopener">
+        <span class="label">TikTok</span>
+        <span class="value">@yungzxyz_</span>
+        <span class="go">buka →</span>
+      </a>
     </div>
-  </div>
+  </section>
 
-  <div class="overlay hidden lbFullOverlay" id="lbFullScreen">
-    <div class="lbPageHead">
-      <button class="lbBackBtn" id="lbBackBtn" type="button">&lsaquo;</button>
-      <h1>TOP GLOBAL<br>SCORE</h1>
-    </div>
-    <ol class="lbFullList" id="lbFullList">
-      <li class="lbStatusText" style="width:100%;list-style:none;">Memuat...</li>
-    </ol>
-  </div>
+  <footer>
+    Yungz Potabuga — dibuat dengan tenang, dari pesisir ke layar.
+  </footer>
 
-  <div class="overlay hidden loginOverlay" id="loginScreen">
-    <div class="loginCard">
-      <button class="loginCloseBtn" id="loginCloseBtn" type="button">&times;</button>
-      <h1>LOGIN</h1>
-      <input class="nameInput" id="loginUsername" type="text" placeholder="Username" maxlength="16" autocomplete="off">
-      <input class="nameInput" id="loginPassword" type="password" placeholder="Password" maxlength="32" autocomplete="off">
-      <p id="loginError" class="errorText hidden"></p>
-      <button class="btn" id="loginSubmitBtn">MASUK</button>
-      <p class="badge">Username baru? Otomatis terdaftar saat login pertama kali.</p>
-    </div>
-  </div>
-
-  <div class="overlay hidden loginOverlay" id="profileScreen">
-    <div class="loginCard profileCard">
-      <button class="loginCloseBtn" id="profileCloseBtn" type="button">&times;</button>
-      <h1>PROFIL</h1>
-      <p class="profileUsername" id="profileUsername"></p>
-      <p class="badge" id="profileBest">Skor Terbaik: 0</p>
-      <p class="badge" id="profileCoins">Koin: 0</p>
-      <button class="btn btnDanger" id="resetScoreBtn" type="button">RESET SKOR</button>
-      <button class="btn btnSecondary" id="profileLogoutBtn">LOGOUT</button>
-    </div>
-  </div>
 </div>
 
-<script src="skin.js"></script>
-<script src="script.js"></script>
-<script src="leaderboard.js"></script>
 </body>
 </html>
