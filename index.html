@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Yungz Potabuga</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-deep:#0a1210;
-    --bg-surface:#121c18;
-    --line:#233530;
-    --olive:#7c8b6e;
-    --olive-dim:#4d5c46;
+    --bg-deep:#07100c;
+    --bg-surface:#0e1a15;
+    --line:#233029;
+    --line-soft:#1a2420;
     --gold:#c9a467;
-    --text:#f0ece2;
-    --text-muted:#93a094;
+    --gold-bright:#e8caa0;
+    --olive:#5f7055;
+    --text:#f2ede0;
+    --text-muted:#8b9388;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html{scroll-behavior:smooth;}
@@ -26,255 +27,188 @@
     font-weight:300;
     overflow-x:hidden;
   }
-  @media (prefers-reduced-motion: reduce){
-    *{animation:none !important; transition:none !important;}
-  }
+  @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
 
-  /* subtle ambient texture */
   body::before{
     content:"";
-    position:fixed;
-    inset:0;
+    position:fixed; inset:0;
     background:
-      radial-gradient(ellipse 60% 40% at 20% 0%, rgba(124,139,110,0.10), transparent 60%),
-      radial-gradient(ellipse 50% 30% at 90% 100%, rgba(201,164,103,0.06), transparent 60%);
-    pointer-events:none;
-    z-index:0;
+      radial-gradient(ellipse 55% 35% at 50% -5%, rgba(201,164,103,0.10), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(95,112,85,0.10), transparent 60%);
+    pointer-events:none; z-index:0;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 2px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 2px);
+    pointer-events:none; z-index:0;
   }
 
-  .wrap{max-width:920px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
+  .wrap{max-width:880px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
 
-  /* ---------- HERO ---------- */
   .hero{
-    min-height:100svh;
-    display:flex;
+    min-height:auto;
+    display:flex; flex-direction:column;
     align-items:center;
-    padding:80px 0 60px;
+    text-align:center;
+    padding:64px 0 70px;
   }
-  .hero-grid{
-    display:grid;
-    grid-template-columns:280px 1fr;
-    gap:56px;
-    align-items:center;
-  }
-  .portrait-frame{
+
+  .crest{
     position:relative;
+    width:180px; height:180px;
+    margin-bottom:38px;
     opacity:0;
-    animation:riseIn 1s cubic-bezier(.2,.8,.2,1) 0.15s forwards;
+    animation:fadeUp 1s cubic-bezier(.2,.8,.2,1) 0.1s forwards;
   }
-  .portrait-frame img{
-    width:100%;
-    aspect-ratio:4/5;
-    object-fit:cover;
-    object-position:center 20%;
-    display:block;
-    border:1px solid var(--line);
-    filter:saturate(0.92) contrast(1.03);
+  .crest svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .crest .ring-outer{ fill:none; stroke:var(--line); stroke-width:1; }
+  .crest .ring-inner{ fill:none; stroke:var(--gold); stroke-width:1; opacity:0.55; }
+  .crest .tick{ stroke:var(--gold); stroke-width:1; opacity:0.5; }
+  .crest-mono{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif;
+    font-style:italic; font-weight:400;
+    font-size:52px; letter-spacing:0.02em;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold) 60%, #8a713f);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 1px 8px rgba(201,164,103,0.25));
   }
-  .portrait-frame .tag{
-    position:absolute;
-    bottom:-14px;
-    left:-14px;
-    background:var(--bg-deep);
-    border:1px solid var(--gold);
-    color:var(--gold);
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10px;
-    letter-spacing:0.14em;
-    padding:5px 10px;
-    text-transform:uppercase;
+  .crest .sheen{
+    position:absolute; inset:0; border-radius:50%;
+    background:conic-gradient(from 0deg, transparent 0deg, rgba(232,202,160,0.35) 8deg, transparent 20deg, transparent 360deg);
+    animation:rotate 7s linear infinite;
+    mix-blend-mode:screen; opacity:0.7;
   }
+  @keyframes rotate{ to{ transform:rotate(360deg); } }
 
   .eyebrow{
     font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    letter-spacing:0.22em;
-    text-transform:uppercase;
-    color:var(--olive);
-    margin-bottom:18px;
-    opacity:0;
-    animation:riseIn 0.8s ease 0.05s forwards;
+    font-size:11px; letter-spacing:0.32em; text-transform:uppercase;
+    color:var(--gold); margin-bottom:22px;
+    opacity:0; animation:fadeUp 0.9s ease 0.25s forwards;
   }
   h1{
     font-family:'Fraunces',serif;
-    font-weight:400;
-    font-size:clamp(40px,7vw,74px);
-    line-height:1.02;
-    letter-spacing:-0.01em;
-    color:var(--text);
-    opacity:0;
-    animation:riseIn 0.9s cubic-bezier(.2,.8,.2,1) 0.25s forwards;
+    font-weight:400; font-size:clamp(42px,8vw,80px);
+    line-height:1.0; letter-spacing:-0.01em;
+    opacity:0; animation:fadeUp 0.9s cubic-bezier(.2,.8,.2,1) 0.4s forwards;
   }
   h1 em{
-    font-style:italic;
-    color:var(--olive);
-    font-weight:300;
+    font-style:italic; font-weight:300;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .role-line{
-    margin-top:22px;
-    font-family:'Inter',sans-serif;
-    font-weight:400;
-    font-size:17px;
-    color:var(--text-muted);
-    line-height:1.6;
-    max-width:460px;
+    margin-top:24px; font-size:17px; line-height:1.7;
+    color:var(--text-muted); max-width:460px;
+    opacity:0; animation:fadeUp 0.9s ease 0.55s forwards;
+  }
+  .role-line .divider-dot{ color:var(--gold); margin:0 10px; }
+
+  @keyframes fadeUp{
+    from{opacity:0; transform:translateY(16px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  .scroll-cue{
+    margin-top:56px; width:1px; height:44px;
+    background:linear-gradient(var(--gold), transparent);
     opacity:0;
-    animation:riseIn 0.9s ease 0.4s forwards;
+    animation:fadeUp 1s ease 0.8s forwards, pulse 2.4s ease-in-out 1.8s infinite;
   }
+  @keyframes pulse{ 0%,100%{opacity:0.3;} 50%{opacity:0.9;} }
 
-  @keyframes riseIn{
-    from{opacity:0;transform:translateY(14px);}
-    to{opacity:1;transform:translateY(0);}
-  }
+  .divider{ display:flex; align-items:center; gap:16px; margin:0 0 70px; }
+  .divider .line{ flex:1; height:1px; background:var(--line); }
+  .divider .mark{ width:6px; height:6px; border:1px solid var(--gold); transform:rotate(45deg); }
 
-  /* ---------- HORIZON DIVIDER (signature element) ---------- */
-  .horizon{
+  section{padding:0 0 90px; position:relative; z-index:1;}
+  .section-head{ display:flex; align-items:baseline; gap:16px; margin-bottom:32px; }
+  .section-head .num{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.12em; color:var(--gold); }
+  .section-head h2{ font-family:'Fraunces',serif; font-weight:400; font-style:italic; font-size:28px; }
+  .bio-text{ font-size:20px; line-height:1.9; color:#dcd8ca; max-width:620px; font-weight:300; }
+  .bio-text strong{ color:var(--gold-bright); font-weight:500; font-style:italic; }
+
+  .contact-grid{ display:flex; flex-direction:column; }
+  .contact-row{
+    display:grid; grid-template-columns:150px 1fr auto;
+    align-items:center; gap:20px; padding:26px 4px;
+    border-top:1px solid var(--line-soft);
+    text-decoration:none; color:var(--text);
     position:relative;
-    height:64px;
-    margin:0 0 10px;
+    transition:padding-left 0.35s cubic-bezier(.2,.8,.2,1);
   }
-  .horizon svg{width:100%;height:100%;display:block;}
-  .horizon-label{
-    display:flex;
-    justify-content:space-between;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10px;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--olive-dim);
-    padding:8px 0 40px;
+  .contact-grid a.contact-row:last-child{ border-bottom:1px solid var(--line-soft); }
+  .contact-row::before{
+    content:""; position:absolute; left:-32px; top:0; bottom:0; width:2px;
+    background:var(--gold); transform:scaleY(0); transform-origin:top;
+    transition:transform 0.35s ease;
   }
-
-  /* ---------- BIO ---------- */
-  section{padding:20px 0 70px;position:relative;z-index:1;}
-  .section-head{
-    display:flex;
-    align-items:baseline;
-    gap:14px;
-    margin-bottom:28px;
+  .contact-row:hover{ padding-left:22px; }
+  .contact-row:hover::before{ transform:scaleY(1); }
+  .contact-row .label{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--text-muted); transition:color 0.3s ease;
   }
-  .section-head .num{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--gold);
+  .contact-row:hover .label{ color:var(--gold); }
+  .contact-row .value{ font-family:'Fraunces',serif; font-size:21px; font-weight:400; }
+  .contact-row .go{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-muted);
+    opacity:0; transform:translateX(-8px); transition:all 0.3s ease;
   }
-  .section-head h2{
-    font-family:'Fraunces',serif;
-    font-weight:400;
-    font-style:italic;
-    font-size:26px;
-    color:var(--text);
-  }
-  .bio-text{
-    font-size:19px;
-    line-height:1.85;
-    color:#d8d5c9;
-    max-width:640px;
-    font-weight:300;
-  }
-  .bio-text strong{color:var(--olive);font-weight:500;}
-
-  /* ---------- CONTACT ---------- */
-  .tide-table{
-    border-top:1px solid var(--line);
-  }
-  .tide-row{
-    display:grid;
-    grid-template-columns:130px 1fr auto;
-    gap:16px;
-    align-items:center;
-    padding:20px 0;
-    border-bottom:1px solid var(--line);
-    text-decoration:none;
-    color:var(--text);
-    transition:background 0.25s ease, padding-left 0.25s ease;
-  }
-  .tide-row:hover{
-    background:rgba(124,139,110,0.06);
-    padding-left:10px;
-  }
-  .tide-row .label{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--olive);
-  }
-  .tide-row .value{
-    font-size:18px;
-    font-weight:400;
-    color:var(--text);
-  }
-  .tide-row .go{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--text-muted);
-    opacity:0;
-    transform:translateX(-6px);
-    transition:all 0.25s ease;
-  }
-  .tide-row:hover .go{opacity:1;transform:translateX(0);color:var(--gold);}
+  .contact-row:hover .go{ opacity:1; transform:translateX(0); color:var(--gold-bright); }
 
   footer{
-    padding:40px 0 60px;
-    text-align:center;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    letter-spacing:0.1em;
-    color:var(--olive-dim);
+    padding:50px 0 70px; text-align:center;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.18em; text-transform:uppercase;
+    color:#4a5548;
+  }
+  footer span{ color:var(--gold); }
+
+  @media (max-width:640px){
+    .contact-row{ grid-template-columns:1fr; gap:6px; }
+    .contact-row .go{ display:none; }
+    .crest{ width:140px; height:140px; }
+    .crest-mono{ font-size:40px; }
   }
 
-  @media (max-width:720px){
-    .hero-grid{grid-template-columns:1fr;gap:32px;}
-    .portrait-frame{max-width:220px;}
-    .hero{padding:60px 0 40px;min-height:auto;}
-    .tide-row{grid-template-columns:100px 1fr;}
-    .tide-row .go{display:none;}
-  }
-
-  a:focus-visible, .tide-row:focus-visible{
-    outline:2px solid var(--gold);
-    outline-offset:3px;
-  }
+  a:focus-visible{ outline:2px solid var(--gold); outline-offset:4px; }
 </style>
 </head>
 <body>
 
 <div class="wrap">
 
-  <!-- HERO -->
   <section class="hero">
-    <div class="hero-grid">
-      <div class="portrait-frame">
-        <img src="foto-profil.jpg" alt="Yungz Potabuga">
-        <span class="tag">01°N — Pesisir</span>
-      </div>
-      <div>
-        <p class="eyebrow">Perkenalan diri</p>
-        <h1>Yungz<br><em>Potabuga</em></h1>
-        <p class="role-line">Web Developer &amp; Game Developer — membangun sesuatu dari nol, satu baris kode dalam satu waktu.</p>
-      </div>
+    <div class="crest">
+      <svg viewBox="0 0 180 180">
+        <circle class="ring-outer" cx="90" cy="90" r="88"/>
+        <circle class="ring-inner" cx="90" cy="90" r="74"/>
+        <line class="tick" x1="90" y1="4" x2="90" y2="14"/>
+        <line class="tick" x1="90" y1="166" x2="90" y2="176"/>
+        <line class="tick" x1="4" y1="90" x2="14" y2="90"/>
+        <line class="tick" x1="166" y1="90" x2="176" y2="90"/>
+      </svg>
+      <div class="sheen"></div>
+      <div class="crest-mono">YP</div>
     </div>
+
+    <p class="eyebrow">Perkenalan Diri</p>
+    <h1>Yungz<br><em>Potabuga</em></h1>
+    <p class="role-line">Web Developer <span class="divider-dot">·</span> Game Developer <span class="divider-dot">·</span> AI Enthusiast</p>
+
+    <div class="scroll-cue"></div>
   </section>
 
-  <!-- HORIZON DIVIDER -->
-  <div class="horizon">
-    <svg viewBox="0 0 920 64" preserveAspectRatio="none">
-      <line x1="0" y1="32" x2="920" y2="32" stroke="#233530" stroke-width="1"/>
-      <polygon points="40,32 70,14 100,32" fill="#4d5c46" opacity="0.6"/>
-      <polygon points="740,32 790,10 850,32" fill="#4d5c46" opacity="0.4"/>
-      <circle cx="880" cy="32" r="2.5" fill="#c9a467"/>
-    </svg>
-  </div>
-  <div class="horizon-label">
-    <span>— berlabuh di sini —</span>
-    <span>yungzxyz</span>
-  </div>
+  <div class="divider"><div class="line"></div><div class="mark"></div><div class="line"></div></div>
 
-  <!-- BIO -->
   <section>
     <div class="section-head">
-      <span class="num">01</span>
+      <span class="num">I.</span>
       <h2>Sedikit cerita</h2>
     </div>
     <p class="bio-text">
@@ -282,29 +216,30 @@
     </p>
   </section>
 
-  <!-- CONTACT -->
+  <div class="divider"><div class="line"></div><div class="mark"></div><div class="line"></div></div>
+
   <section>
     <div class="section-head">
-      <span class="num">02</span>
+      <span class="num">II.</span>
       <h2>Ayo terhubung</h2>
     </div>
-    <div class="tide-table">
-      <a class="tide-row" href="mailto:bayupotabuga@gmail.com">
+    <div class="contact-grid">
+      <a class="contact-row" href="mailto:bayupotabuga@gmail.com">
         <span class="label">Email</span>
         <span class="value">bayupotabuga@gmail.com</span>
         <span class="go">kirim →</span>
       </a>
-      <a class="tide-row" href="https://wa.me/6285141593665" target="_blank" rel="noopener">
+      <a class="contact-row" href="https://wa.me/6285141593665" target="_blank" rel="noopener">
         <span class="label">WhatsApp</span>
         <span class="value">0851 4159 3665</span>
         <span class="go">chat →</span>
       </a>
-      <a class="tide-row" href="https://instagram.com/yungzxyz_" target="_blank" rel="noopener">
+      <a class="contact-row" href="https://instagram.com/yungzxyz_" target="_blank" rel="noopener">
         <span class="label">Instagram</span>
         <span class="value">@yungzxyz_</span>
         <span class="go">buka →</span>
       </a>
-      <a class="tide-row" href="https://tiktok.com/@yungzxyz_" target="_blank" rel="noopener">
+      <a class="contact-row" href="https://tiktok.com/@yungzxyz_" target="_blank" rel="noopener">
         <span class="label">TikTok</span>
         <span class="value">@yungzxyz_</span>
         <span class="go">buka →</span>
@@ -312,9 +247,7 @@
     </div>
   </section>
 
-  <footer>
-    Yungz Potabuga — dibuat dengan tenang, dari pesisir ke layar.
-  </footer>
+  <footer>Yungz Potabuga <span>·</span> dibangun dengan presisi</footer>
 
 </div>
 
