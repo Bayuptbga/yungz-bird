@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Yungz Potabuga</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg-deep:#07100c;
@@ -26,9 +24,7 @@
     font-family:'Inter',sans-serif;
     font-weight:300;
     overflow-x:hidden;
-    cursor:none;
   }
-  @media (hover:none), (pointer:coarse){ body{ cursor:auto; } }
   @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
 
   /* cursor-reactive spotlight */
@@ -37,14 +33,6 @@
     background:radial-gradient(600px circle at var(--mx,50%) var(--my,20%), rgba(201,164,103,0.08), transparent 60%);
     transition:background 0.05s linear;
   }
-  #dot{
-    position:fixed; top:0; left:0; width:8px; height:8px; border-radius:50%;
-    background:var(--gold-bright); pointer-events:none; z-index:999;
-    transform:translate(-50%,-50%); transition:width .2s,height .2s,background .2s;
-    box-shadow:0 0 12px rgba(232,202,160,0.6);
-  }
-  #dot.big{ width:34px; height:34px; background:transparent; border:1px solid var(--gold); box-shadow:none; }
-  @media (hover:none), (pointer:coarse){ #dot{ display:none; } }
 
   body::before{
     content:"";
@@ -250,7 +238,6 @@
 
 <div id="progress"></div>
 <div id="spotlight"></div>
-<div id="dot"></div>
 
 <div class="topbar">
   <div class="status"><span class="led"></span><span>Terbuka untuk proyek baru</span></div>
@@ -351,16 +338,12 @@
   }
   tick(); setInterval(tick, 1000);
 
-  // custom cursor + spotlight, mouse-reactive crest tilt
-  const dot = document.getElementById('dot');
-  const spotlight = document.getElementById('spotlight');
+  // spotlight + mouse-reactive crest tilt (desktop only)
   const crest = document.getElementById('crest');
   const isFine = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
 
   if (isFine){
     window.addEventListener('mousemove', (e) => {
-      dot.style.left = e.clientX + 'px';
-      dot.style.top = e.clientY + 'px';
       document.documentElement.style.setProperty('--mx', e.clientX + 'px');
       document.documentElement.style.setProperty('--my', e.clientY + 'px');
 
@@ -373,11 +356,6 @@
       } else {
         crest.style.transform = 'rotateY(0deg) rotateX(0deg)';
       }
-    });
-
-    document.querySelectorAll('a, button').forEach(el => {
-      el.addEventListener('mouseenter', () => dot.classList.add('big'));
-      el.addEventListener('mouseleave', () => dot.classList.remove('big'));
     });
   }
 
@@ -425,31 +403,24 @@
     const goEl = btn.querySelector('.go');
     const originalGo = goEl.textContent;
     btn.addEventListener('click', async () => {
-      try{
-        await navigator.clipboard.writeText(btn.dataset.copy);
+      let copied = false;
+      if (navigator.clipboard && window.isSecureContext){
+        try{
+          await navigator.clipboard.writeText(btn.dataset.copy);
+          copied = true;
+        }catch(err){ copied = false; }
+      }
+      if (copied){
         goEl.textContent = 'tersalin ✓';
         goEl.style.opacity = '1';
         goEl.style.color = 'var(--gold-bright)';
-        setTimeout(() => {
-          goEl.textContent = originalGo;
-        }, 1400);
-      }catch(err){
-        window.open(btn.dataset.href, '_blank');
+        setTimeout(() => { goEl.textContent = originalGo; }, 1400);
+      } else {
+        window.location.href = btn.dataset.href;
       }
     });
   });
 
-  // reveal-on-scroll for sections
-  const revealTargets = document.querySelectorAll('section, .divider');
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(en => {
-      if (en.isIntersecting){
-        en.target.style.animation = 'fadeUp 0.8s cubic-bezier(.2,.8,.2,1) forwards';
-        io.unobserve(en.target);
-      }
-    });
-  }, { threshold: 0.15 });
-  revealTargets.forEach(t => { t.style.opacity = '0'; io.observe(t); });
 </script>
 
 </body>
