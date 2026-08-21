@@ -26,8 +26,25 @@
     font-family:'Inter',sans-serif;
     font-weight:300;
     overflow-x:hidden;
+    cursor:none;
   }
+  @media (hover:none), (pointer:coarse){ body{ cursor:auto; } }
   @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+
+  /* cursor-reactive spotlight */
+  #spotlight{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:radial-gradient(600px circle at var(--mx,50%) var(--my,20%), rgba(201,164,103,0.08), transparent 60%);
+    transition:background 0.05s linear;
+  }
+  #dot{
+    position:fixed; top:0; left:0; width:8px; height:8px; border-radius:50%;
+    background:var(--gold-bright); pointer-events:none; z-index:999;
+    transform:translate(-50%,-50%); transition:width .2s,height .2s,background .2s;
+    box-shadow:0 0 12px rgba(232,202,160,0.6);
+  }
+  #dot.big{ width:34px; height:34px; background:transparent; border:1px solid var(--gold); box-shadow:none; }
+  @media (hover:none), (pointer:coarse){ #dot{ display:none; } }
 
   body::before{
     content:"";
@@ -46,6 +63,30 @@
     pointer-events:none; z-index:0;
   }
 
+  /* scroll progress */
+  #progress{
+    position:fixed; top:0; left:0; height:2px; width:0%;
+    background:linear-gradient(90deg, var(--olive), var(--gold-bright));
+    z-index:1000; transition:width 0.08s linear;
+  }
+
+  /* top status bar — fills the space above the hero */
+  .topbar{
+    position:relative; z-index:2;
+    max-width:880px; margin:0 auto; padding:26px 32px 0;
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--text-muted);
+    opacity:0; animation:fadeUp 0.8s ease 0s forwards;
+  }
+  .topbar .status{ display:flex; align-items:center; gap:8px; }
+  .topbar .status .led{
+    width:6px; height:6px; border-radius:50%; background:#7fae6c;
+    box-shadow:0 0 8px #7fae6c; animation:blink 2.4s ease-in-out infinite;
+  }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  .topbar .clock{ font-variant-numeric:tabular-nums; color:var(--gold); }
+
   .wrap{max-width:880px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
 
   .hero{
@@ -53,7 +94,7 @@
     display:flex; flex-direction:column;
     align-items:center;
     text-align:center;
-    padding:64px 0 70px;
+    padding:36px 0 70px;
   }
 
   .crest{
@@ -62,6 +103,9 @@
     margin-bottom:38px;
     opacity:0;
     animation:fadeUp 1s cubic-bezier(.2,.8,.2,1) 0.1s forwards;
+    transform-style:preserve-3d;
+    transition:transform 0.15s ease-out;
+    will-change:transform;
   }
   .crest svg{ position:absolute; inset:0; width:100%; height:100%; }
   .crest .ring-outer{ fill:none; stroke:var(--line); stroke-width:1; }
@@ -76,6 +120,8 @@
     background:linear-gradient(180deg, var(--gold-bright), var(--gold) 60%, #8a713f);
     -webkit-background-clip:text; background-clip:text; color:transparent;
     filter:drop-shadow(0 1px 8px rgba(201,164,103,0.25));
+    cursor:pointer;
+    user-select:none;
   }
   .crest .sheen{
     position:absolute; inset:0; border-radius:50%;
@@ -106,8 +152,12 @@
     margin-top:24px; font-size:17px; line-height:1.7;
     color:var(--text-muted); max-width:460px;
     opacity:0; animation:fadeUp 0.9s ease 0.55s forwards;
+    min-height:1.7em;
   }
-  .role-line .divider-dot{ color:var(--gold); margin:0 10px; }
+  .role-line #roleWord{ color:var(--gold-bright); font-style:italic; font-family:'Fraunces',serif; }
+  .role-line #roleWord::after{
+    content:"|"; margin-left:2px; color:var(--gold); animation:blink 1s step-end infinite;
+  }
 
   @keyframes fadeUp{
     from{opacity:0; transform:translateY(16px);}
@@ -124,7 +174,8 @@
 
   .divider{ display:flex; align-items:center; gap:16px; margin:0 0 70px; }
   .divider .line{ flex:1; height:1px; background:var(--line); }
-  .divider .mark{ width:6px; height:6px; border:1px solid var(--gold); transform:rotate(45deg); }
+  .divider .mark{ width:6px; height:6px; border:1px solid var(--gold); transform:rotate(45deg); transition:transform 0.4s ease, background 0.4s ease; }
+  .divider:hover .mark{ transform:rotate(225deg); background:var(--gold); }
 
   section{padding:0 0 90px; position:relative; z-index:1;}
   .section-head{ display:flex; align-items:baseline; gap:16px; margin-bottom:32px; }
@@ -133,16 +184,30 @@
   .bio-text{ font-size:20px; line-height:1.9; color:#dcd8ca; max-width:620px; font-weight:300; }
   .bio-text strong{ color:var(--gold-bright); font-weight:500; font-style:italic; }
 
+  /* interactive skill chips */
+  .chips{ display:flex; flex-wrap:wrap; gap:10px; margin-top:28px; }
+  .chip{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em;
+    color:var(--text-muted); border:1px solid var(--line-soft); padding:9px 14px;
+    border-radius:100px; cursor:default; user-select:none;
+    transition:all 0.3s cubic-bezier(.2,.8,.2,1);
+  }
+  .chip:hover{
+    color:var(--bg-deep); background:var(--gold-bright); border-color:var(--gold-bright);
+    transform:translateY(-3px);
+  }
+
   .contact-grid{ display:flex; flex-direction:column; }
   .contact-row{
     display:grid; grid-template-columns:150px 1fr auto;
     align-items:center; gap:20px; padding:26px 4px;
     border-top:1px solid var(--line-soft);
     text-decoration:none; color:var(--text);
-    position:relative;
+    position:relative; background:none; border-left:none; border-right:none; border-bottom:none;
+    font:inherit; text-align:left; width:100%; cursor:pointer;
     transition:padding-left 0.35s cubic-bezier(.2,.8,.2,1);
   }
-  .contact-grid a.contact-row:last-child{ border-bottom:1px solid var(--line-soft); }
+  .contact-grid a.contact-row:last-child, .contact-grid button.contact-row:last-of-type{ border-bottom:1px solid var(--line-soft); }
   .contact-row::before{
     content:""; position:absolute; left:-32px; top:0; bottom:0; width:2px;
     background:var(--gold); transform:scaleY(0); transform-origin:top;
@@ -159,6 +224,7 @@
   .contact-row .go{
     font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-muted);
     opacity:0; transform:translateX(-8px); transition:all 0.3s ease;
+    white-space:nowrap;
   }
   .contact-row:hover .go{ opacity:1; transform:translateX(0); color:var(--gold-bright); }
 
@@ -174,17 +240,27 @@
     .contact-row .go{ display:none; }
     .crest{ width:140px; height:140px; }
     .crest-mono{ font-size:40px; }
+    .topbar{ padding:20px 24px 0; font-size:9px; }
   }
 
-  a:focus-visible{ outline:2px solid var(--gold); outline-offset:4px; }
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--gold); outline-offset:4px; }
 </style>
 </head>
 <body>
 
+<div id="progress"></div>
+<div id="spotlight"></div>
+<div id="dot"></div>
+
+<div class="topbar">
+  <div class="status"><span class="led"></span><span>Terbuka untuk proyek baru</span></div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
 <div class="wrap">
 
   <section class="hero">
-    <div class="crest">
+    <div class="crest" id="crest">
       <svg viewBox="0 0 180 180">
         <circle class="ring-outer" cx="90" cy="90" r="88"/>
         <circle class="ring-inner" cx="90" cy="90" r="74"/>
@@ -194,12 +270,12 @@
         <line class="tick" x1="166" y1="90" x2="176" y2="90"/>
       </svg>
       <div class="sheen"></div>
-      <div class="crest-mono">YP</div>
+      <div class="crest-mono" id="crestMono" title="Klik untuk kejutan">YP</div>
     </div>
 
     <p class="eyebrow">Perkenalan Diri</p>
     <h1>Yungz<br><em>Potabuga</em></h1>
-    <p class="role-line">Web Developer <span class="divider-dot">·</span> Game Developer <span class="divider-dot">·</span> AI Enthusiast</p>
+    <p class="role-line">Saat ini sedang jadi <span id="roleWord">Web Developer</span></p>
 
     <div class="scroll-cue"></div>
   </section>
@@ -214,6 +290,13 @@
     <p class="bio-text">
       Saya seorang <strong>web developer</strong> dan <strong>game developer</strong> yang paling betah kalau sudah mengoprek sesuatu sampai jadi. Belakangan hobi baru saya adalah <strong>prompting AI</strong> — mencari tahu sejauh mana ide bisa diubah jadi karya nyata, entah itu website, game, atau eksperimen kecil lainnya.
     </p>
+    <div class="chips">
+      <span class="chip">Web Dev</span>
+      <span class="chip">Game Dev</span>
+      <span class="chip">Prompt Engineering</span>
+      <span class="chip">UI Eksperimental</span>
+      <span class="chip">Belajar Terus</span>
+    </div>
   </section>
 
   <div class="divider"><div class="line"></div><div class="mark"></div><div class="line"></div></div>
@@ -224,16 +307,16 @@
       <h2>Ayo terhubung</h2>
     </div>
     <div class="contact-grid">
-      <a class="contact-row" href="mailto:bayupotabuga@gmail.com">
+      <button class="contact-row" data-copy="bayupotabuga@gmail.com" data-href="mailto:bayupotabuga@gmail.com">
         <span class="label">Email</span>
         <span class="value">bayupotabuga@gmail.com</span>
-        <span class="go">kirim →</span>
-      </a>
-      <a class="contact-row" href="https://wa.me/6285141593665" target="_blank" rel="noopener">
+        <span class="go">salin / kirim →</span>
+      </button>
+      <button class="contact-row" data-copy="0851 4159 3665" data-href="https://wa.me/6285141593665">
         <span class="label">WhatsApp</span>
         <span class="value">0851 4159 3665</span>
-        <span class="go">chat →</span>
-      </a>
+        <span class="go">salin / chat →</span>
+      </button>
       <a class="contact-row" href="https://instagram.com/yungzxyz_" target="_blank" rel="noopener">
         <span class="label">Instagram</span>
         <span class="value">@yungzxyz_</span>
@@ -250,6 +333,124 @@
   <footer>Yungz Potabuga <span>·</span> dibangun dengan presisi</footer>
 
 </div>
+
+<script>
+  // scroll progress
+  const progress = document.getElementById('progress');
+  window.addEventListener('scroll', () => {
+    const h = document.documentElement;
+    const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+    progress.style.width = pct + '%';
+  });
+
+  // live clock
+  const clock = document.getElementById('clock');
+  function tick(){
+    const d = new Date();
+    clock.textContent = d.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+  tick(); setInterval(tick, 1000);
+
+  // custom cursor + spotlight, mouse-reactive crest tilt
+  const dot = document.getElementById('dot');
+  const spotlight = document.getElementById('spotlight');
+  const crest = document.getElementById('crest');
+  const isFine = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+
+  if (isFine){
+    window.addEventListener('mousemove', (e) => {
+      dot.style.left = e.clientX + 'px';
+      dot.style.top = e.clientY + 'px';
+      document.documentElement.style.setProperty('--mx', e.clientX + 'px');
+      document.documentElement.style.setProperty('--my', e.clientY + 'px');
+
+      const r = crest.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const dx = (e.clientX - cx)/r.width, dy = (e.clientY - cy)/r.height;
+      const dist = Math.hypot(e.clientX-cx, e.clientY-cy);
+      if (dist < 420){
+        crest.style.transform = `rotateY(${dx*16}deg) rotateX(${-dy*16}deg)`;
+      } else {
+        crest.style.transform = 'rotateY(0deg) rotateX(0deg)';
+      }
+    });
+
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => dot.classList.add('big'));
+      el.addEventListener('mouseleave', () => dot.classList.remove('big'));
+    });
+  }
+
+  // typing role rotator
+  const roles = ['Web Developer', 'Game Developer', 'AI Enthusiast', 'Prompt Tinkerer'];
+  const roleEl = document.getElementById('roleWord');
+  let ri = 0;
+  function typeRole(word, cb){
+    roleEl.textContent = '';
+    let i = 0;
+    const iv = setInterval(() => {
+      roleEl.textContent = word.slice(0, ++i);
+      if (i === word.length){ clearInterval(iv); cb(); }
+    }, 55);
+  }
+  function eraseRole(cb){
+    let str = roleEl.textContent;
+    const iv = setInterval(() => {
+      str = str.slice(0, -1);
+      roleEl.textContent = str;
+      if (str.length === 0){ clearInterval(iv); cb(); }
+    }, 30);
+  }
+  function cycleRoles(){
+    setTimeout(() => {
+      eraseRole(() => {
+        ri = (ri + 1) % roles.length;
+        typeRole(roles[ri], cycleRoles);
+      });
+    }, 1900);
+  }
+  setTimeout(() => cycleRoles(), 1600);
+
+  // click-to-surprise crest: subtle spin burst
+  const crestMono = document.getElementById('crestMono');
+  crestMono.addEventListener('click', () => {
+    crest.animate([
+      { transform: crest.style.transform + ' rotate(0deg)' },
+      { transform: crest.style.transform + ' rotate(360deg)' }
+    ], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  });
+
+  // copy-to-clipboard contact rows with inline feedback
+  document.querySelectorAll('.contact-row[data-copy]').forEach(btn => {
+    const goEl = btn.querySelector('.go');
+    const originalGo = goEl.textContent;
+    btn.addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        goEl.textContent = 'tersalin ✓';
+        goEl.style.opacity = '1';
+        goEl.style.color = 'var(--gold-bright)';
+        setTimeout(() => {
+          goEl.textContent = originalGo;
+        }, 1400);
+      }catch(err){
+        window.open(btn.dataset.href, '_blank');
+      }
+    });
+  });
+
+  // reveal-on-scroll for sections
+  const revealTargets = document.querySelectorAll('section, .divider');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (en.isIntersecting){
+        en.target.style.animation = 'fadeUp 0.8s cubic-bezier(.2,.8,.2,1) forwards';
+        io.unobserve(en.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealTargets.forEach(t => { t.style.opacity = '0'; io.observe(t); });
+</script>
 
 </body>
 </html>
