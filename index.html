@@ -3,424 +3,424 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yungz Potabuga</title>
+<title>Yungz Potabuga — Prompter · Web Developer · Game Dev</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-deep:#07100c;
-    --bg-surface:#0e1a15;
-    --line:#233029;
-    --line-soft:#1a2420;
-    --gold:#c9a467;
-    --gold-bright:#e8caa0;
-    --olive:#5f7055;
-    --text:#f2ede0;
-    --text-muted:#8b9388;
+    --bg:#090b10;
+    --surface:#12151c;
+    --surface-2:#171b24;
+    --border:#242a38;
+    --text:#e7e9ee;
+    --muted:#8b93a7;
+    --teal:#5eead4;
+    --pink:#f472b6;
+    --mono:'Space Mono', monospace;
+    --sans:'Plus Jakarta Sans', sans-serif;
   }
-  *{margin:0;padding:0;box-sizing:border-box;}
+  *{box-sizing:border-box; margin:0; padding:0;}
   html{scroll-behavior:smooth;}
   body{
-    background:var(--bg-deep);
-    color:var(--text);
-    font-family:'Inter',sans-serif;
-    font-weight:300;
-    overflow-x:hidden;
-  }
-  @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
-
-  /* cursor-reactive spotlight */
-  #spotlight{
-    position:fixed; inset:0; z-index:0; pointer-events:none;
-    background:radial-gradient(600px circle at var(--mx,50%) var(--my,20%), rgba(201,164,103,0.08), transparent 60%);
-    transition:background 0.05s linear;
-  }
-
-  body::before{
-    content:"";
-    position:fixed; inset:0;
     background:
-      radial-gradient(ellipse 55% 35% at 50% -5%, rgba(201,164,103,0.10), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(95,112,85,0.10), transparent 60%);
-    pointer-events:none; z-index:0;
+      radial-gradient(circle at 15% 0%, rgba(94,234,212,0.07), transparent 45%),
+      radial-gradient(circle at 90% 20%, rgba(244,114,182,0.06), transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.6;
+    min-height:100vh;
   }
-  body::after{
-    content:"";
-    position:fixed; inset:0;
-    background-image:
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 2px),
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 2px);
-    pointer-events:none; z-index:0;
-  }
+  a{color:inherit;}
+  .wrap{max-width:920px; margin:0 auto; padding:0 24px;}
 
-  /* scroll progress */
-  #progress{
-    position:fixed; top:0; left:0; height:2px; width:0%;
-    background:linear-gradient(90deg, var(--olive), var(--gold-bright));
-    z-index:1000; transition:width 0.08s linear;
+  /* NAV */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(9,11,16,0.85);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
   }
-
-  /* top status bar — fills the space above the hero */
-  .topbar{
-    position:relative; z-index:2;
-    max-width:880px; margin:0 auto; padding:26px 32px 0;
+  nav .wrap{
     display:flex; align-items:center; justify-content:space-between;
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
-    color:var(--text-muted);
-    opacity:0; animation:fadeUp 0.8s ease 0s forwards;
+    height:60px;
   }
-  .topbar .status{ display:flex; align-items:center; gap:8px; }
-  .topbar .status .led{
-    width:6px; height:6px; border-radius:50%; background:#7fae6c;
-    box-shadow:0 0 8px #7fae6c; animation:blink 2.4s ease-in-out infinite;
+  .logo{
+    font-family:var(--mono); font-weight:700; font-size:15px;
+    letter-spacing:0.02em;
   }
-  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
-  .topbar .clock{ font-variant-numeric:tabular-nums; color:var(--gold); }
+  .logo span{color:var(--teal);}
+  .navlinks{display:flex; gap:22px; font-size:13px; font-family:var(--mono);}
+  .navlinks a{color:var(--muted); text-decoration:none; transition:color .2s;}
+  .navlinks a:hover{color:var(--text);}
 
-  .wrap{max-width:880px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
-
-  .hero{
-    min-height:auto;
-    display:flex; flex-direction:column;
-    align-items:center;
-    text-align:center;
-    padding:36px 0 70px;
-  }
-
-  .crest{
-    position:relative;
-    width:180px; height:180px;
-    margin-bottom:38px;
-    opacity:0;
-    animation:fadeUp 1s cubic-bezier(.2,.8,.2,1) 0.1s forwards;
-    transform-style:preserve-3d;
-    transition:transform 0.15s ease-out;
-    will-change:transform;
-  }
-  .crest svg{ position:absolute; inset:0; width:100%; height:100%; }
-  .crest .ring-outer{ fill:none; stroke:var(--line); stroke-width:1; }
-  .crest .ring-inner{ fill:none; stroke:var(--gold); stroke-width:1; opacity:0.55; }
-  .crest .tick{ stroke:var(--gold); stroke-width:1; opacity:0.5; }
-  .crest-mono{
-    position:absolute; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    font-family:'Fraunces',serif;
-    font-style:italic; font-weight:400;
-    font-size:52px; letter-spacing:0.02em;
-    background:linear-gradient(180deg, var(--gold-bright), var(--gold) 60%, #8a713f);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    filter:drop-shadow(0 1px 8px rgba(201,164,103,0.25));
-    cursor:pointer;
-    user-select:none;
-  }
-  .crest .sheen{
-    position:absolute; inset:0; border-radius:50%;
-    background:conic-gradient(from 0deg, transparent 0deg, rgba(232,202,160,0.35) 8deg, transparent 20deg, transparent 360deg);
-    animation:rotate 7s linear infinite;
-    mix-blend-mode:screen; opacity:0.7;
-  }
-  @keyframes rotate{ to{ transform:rotate(360deg); } }
-
+  /* HERO / TERMINAL */
+  .hero{padding:72px 0 56px;}
   .eyebrow{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px; letter-spacing:0.32em; text-transform:uppercase;
-    color:var(--gold); margin-bottom:22px;
-    opacity:0; animation:fadeUp 0.9s ease 0.25s forwards;
+    font-family:var(--mono); font-size:12px; color:var(--teal);
+    letter-spacing:0.15em; text-transform:uppercase; margin-bottom:18px;
+    display:flex; align-items:center; gap:10px;
   }
-  h1{
-    font-family:'Fraunces',serif;
-    font-weight:400; font-size:clamp(42px,8vw,80px);
-    line-height:1.0; letter-spacing:-0.01em;
-    opacity:0; animation:fadeUp 0.9s cubic-bezier(.2,.8,.2,1) 0.4s forwards;
-  }
-  h1 em{
-    font-style:italic; font-weight:300;
-    background:linear-gradient(180deg, var(--gold-bright), var(--gold));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  .role-line{
-    margin-top:24px; font-size:17px; line-height:1.7;
-    color:var(--text-muted); max-width:460px;
-    opacity:0; animation:fadeUp 0.9s ease 0.55s forwards;
-    min-height:1.7em;
-  }
-  .role-line #roleWord{ color:var(--gold-bright); font-style:italic; font-family:'Fraunces',serif; }
-  .role-line #roleWord::after{
-    content:"|"; margin-left:2px; color:var(--gold); animation:blink 1s step-end infinite;
+  .eyebrow::before{
+    content:''; width:7px; height:7px; border-radius:50%;
+    background:var(--teal); box-shadow:0 0 8px var(--teal);
   }
 
-  @keyframes fadeUp{
-    from{opacity:0; transform:translateY(16px);}
-    to{opacity:1; transform:translateY(0);}
+  .terminal{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
+  }
+  .term-bar{
+    display:flex; align-items:center; gap:8px;
+    padding:12px 16px;
+    background:var(--surface-2);
+    border-bottom:1px solid var(--border);
+  }
+  .dot{width:10px; height:10px; border-radius:50%;}
+  .dot.r{background:#ff5f56;} .dot.y{background:#ffbd2e;} .dot.g{background:#27c93f;}
+  .term-title{
+    margin-left:8px; font-family:var(--mono); font-size:12px; color:var(--muted);
+  }
+  .term-body{
+    padding:26px 24px 30px;
+    font-family:var(--mono);
+    font-size:14.5px;
+    min-height:230px;
+  }
+  .term-body .line{margin-bottom:10px; white-space:pre-wrap;}
+  .prompt{color:var(--teal);}
+  .out{color:var(--text);}
+  .out-name{color:var(--pink); font-weight:700; font-size:1.15em;}
+  .out-muted{color:var(--muted);}
+  .cursor{
+    display:inline-block; width:8px; height:1.1em; background:var(--teal);
+    vertical-align:text-bottom; margin-left:2px;
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  .hero-sub{
+    margin-top:22px; color:var(--muted); font-size:15px; max-width:60ch;
   }
 
-  .scroll-cue{
-    margin-top:56px; width:1px; height:44px;
-    background:linear-gradient(var(--gold), transparent);
-    opacity:0;
-    animation:fadeUp 1s ease 0.8s forwards, pulse 2.4s ease-in-out 1.8s infinite;
+  /* SECTION HEADINGS */
+  section{padding:56px 0;}
+  .sec-head{
+    display:flex; align-items:baseline; gap:12px; margin-bottom:28px;
   }
-  @keyframes pulse{ 0%,100%{opacity:0.3;} 50%{opacity:0.9;} }
-
-  .divider{ display:flex; align-items:center; gap:16px; margin:0 0 70px; }
-  .divider .line{ flex:1; height:1px; background:var(--line); }
-  .divider .mark{ width:6px; height:6px; border:1px solid var(--gold); transform:rotate(45deg); transition:transform 0.4s ease, background 0.4s ease; }
-  .divider:hover .mark{ transform:rotate(225deg); background:var(--gold); }
-
-  section{padding:0 0 90px; position:relative; z-index:1;}
-  .section-head{ display:flex; align-items:baseline; gap:16px; margin-bottom:32px; }
-  .section-head .num{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.12em; color:var(--gold); }
-  .section-head h2{ font-family:'Fraunces',serif; font-weight:400; font-style:italic; font-size:28px; }
-  .bio-text{ font-size:20px; line-height:1.9; color:#dcd8ca; max-width:620px; font-weight:300; }
-  .bio-text strong{ color:var(--gold-bright); font-weight:500; font-style:italic; }
-
-  /* interactive skill chips */
-  .chips{ display:flex; flex-wrap:wrap; gap:10px; margin-top:28px; }
-  .chip{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em;
-    color:var(--text-muted); border:1px solid var(--line-soft); padding:9px 14px;
-    border-radius:100px; cursor:default; user-select:none;
-    transition:all 0.3s cubic-bezier(.2,.8,.2,1);
+  .sec-num{
+    font-family:var(--mono); color:var(--pink); font-size:13px;
   }
-  .chip:hover{
-    color:var(--bg-deep); background:var(--gold-bright); border-color:var(--gold-bright);
-    transform:translateY(-3px);
+  .sec-title{
+    font-family:var(--mono); font-size:20px; font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .sec-line{flex:1; height:1px; background:var(--border);}
+
+  /* FOCUS CARDS (game-menu style) */
+  .focus-grid{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
+  }
+  .focus-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:22px 18px;
+    position:relative;
+    overflow:hidden;
+    transition:transform .25s ease, border-color .25s ease;
+  }
+  .focus-card::before{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(135deg, rgba(94,234,212,0.10), transparent 60%);
+    opacity:0; transition:opacity .25s ease;
+  }
+  .focus-card:hover{transform:translateY(-4px); border-color:var(--teal);}
+  .focus-card:hover::before{opacity:1;}
+  .focus-icon{font-size:26px; margin-bottom:14px; display:block;}
+  .focus-name{font-weight:700; font-size:15px; margin-bottom:6px;}
+  .focus-desc{font-size:13px; color:var(--muted); line-height:1.5;}
+  .badge{
+    position:absolute; top:14px; right:14px;
+    font-family:var(--mono); font-size:10px; color:var(--muted);
+    border:1px solid var(--border); border-radius:4px; padding:2px 6px;
   }
 
-  .contact-grid{ display:flex; flex-direction:column; }
-  .contact-row{
-    display:grid; grid-template-columns:150px 1fr auto;
-    align-items:center; gap:20px; padding:26px 4px;
-    border-top:1px solid var(--line-soft);
+  /* SKILLS */
+  .skills-row{display:flex; flex-wrap:wrap; gap:10px;}
+  .skill-pill{
+    font-family:var(--mono); font-size:13px;
+    background:var(--surface); border:1px solid var(--border);
+    padding:9px 16px; border-radius:100px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .skill-pill .lvl{color:var(--teal);}
+
+  /* CONTACT */
+  .contact-grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;
+  }
+  .contact-card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:16px 18px;
+    display:flex; align-items:center; gap:14px;
     text-decoration:none; color:var(--text);
-    position:relative; background:none; border-left:none; border-right:none; border-bottom:none;
-    font:inherit; text-align:left; width:100%; cursor:pointer;
-    transition:padding-left 0.35s cubic-bezier(.2,.8,.2,1);
+    transition:border-color .2s ease, transform .2s ease;
   }
-  .contact-grid a.contact-row:last-child, .contact-grid button.contact-row:last-of-type{ border-bottom:1px solid var(--line-soft); }
-  .contact-row::before{
-    content:""; position:absolute; left:-32px; top:0; bottom:0; width:2px;
-    background:var(--gold); transform:scaleY(0); transform-origin:top;
-    transition:transform 0.35s ease;
+  .contact-card:hover{border-color:var(--pink); transform:translateY(-2px);}
+  .c-icon{
+    width:38px; height:38px; border-radius:8px;
+    background:var(--surface-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
   }
-  .contact-row:hover{ padding-left:22px; }
-  .contact-row:hover::before{ transform:scaleY(1); }
-  .contact-row .label{
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
-    color:var(--text-muted); transition:color 0.3s ease;
-  }
-  .contact-row:hover .label{ color:var(--gold); }
-  .contact-row .value{ font-family:'Fraunces',serif; font-size:21px; font-weight:400; }
-  .contact-row .go{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-muted);
-    opacity:0; transform:translateX(-8px); transition:all 0.3s ease;
-    white-space:nowrap;
-  }
-  .contact-row:hover .go{ opacity:1; transform:translateX(0); color:var(--gold-bright); }
+  .c-icon svg{width:18px; height:18px;}
+  .c-label{font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:.05em;}
+  .c-value{font-size:14px; font-weight:600; word-break:break-word;}
 
   footer{
-    padding:50px 0 70px; text-align:center;
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.18em; text-transform:uppercase;
-    color:#4a5548;
-  }
-  footer span{ color:var(--gold); }
-
-  @media (max-width:640px){
-    .contact-row{ grid-template-columns:1fr; gap:6px; }
-    .contact-row .go{ display:none; }
-    .crest{ width:140px; height:140px; }
-    .crest-mono{ font-size:40px; }
-    .topbar{ padding:20px 24px 0; font-size:9px; }
+    border-top:1px solid var(--border);
+    padding:28px 0 40px;
+    font-family:var(--mono); font-size:12px; color:var(--muted);
+    text-align:center;
   }
 
-  a:focus-visible, button:focus-visible{ outline:2px solid var(--gold); outline-offset:4px; }
+  @media (max-width:720px){
+    .focus-grid{grid-template-columns:1fr;}
+    .contact-grid{grid-template-columns:1fr;}
+    .navlinks{gap:14px; font-size:12px;}
+    .hero{padding:48px 0 40px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .cursor{animation:none;}
+    .focus-card, .contact-card{transition:none;}
+  }
+
+  :focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
 </style>
 </head>
 <body>
 
-<div id="progress"></div>
-<div id="spotlight"></div>
-
-<div class="topbar">
-  <div class="status"><span class="led"></span><span>Terbuka untuk proyek baru</span></div>
-  <div class="clock" id="clock">--:--:--</div>
-</div>
-
-<div class="wrap">
-
-  <section class="hero">
-    <div class="crest" id="crest">
-      <svg viewBox="0 0 180 180">
-        <circle class="ring-outer" cx="90" cy="90" r="88"/>
-        <circle class="ring-inner" cx="90" cy="90" r="74"/>
-        <line class="tick" x1="90" y1="4" x2="90" y2="14"/>
-        <line class="tick" x1="90" y1="166" x2="90" y2="176"/>
-        <line class="tick" x1="4" y1="90" x2="14" y2="90"/>
-        <line class="tick" x1="166" y1="90" x2="176" y2="90"/>
-      </svg>
-      <div class="sheen"></div>
-      <div class="crest-mono" id="crestMono" title="Klik untuk kejutan">YP</div>
+<nav>
+  <div class="wrap">
+    <div class="logo">yungz<span>.</span>dev</div>
+    <div class="navlinks">
+      <a href="#focus">focus</a>
+      <a href="#skills">skills</a>
+      <a href="#contact">contact</a>
     </div>
+  </div>
+</nav>
 
-    <p class="eyebrow">Perkenalan Diri</p>
-    <h1>Yungz<br><em>Potabuga</em></h1>
-    <p class="role-line">Saat ini sedang jadi <span id="roleWord">Web Developer</span></p>
-
-    <div class="scroll-cue"></div>
-  </section>
-
-  <div class="divider"><div class="line"></div><div class="mark"></div><div class="line"></div></div>
-
-  <section>
-    <div class="section-head">
-      <span class="num">I.</span>
-      <h2>Sedikit cerita</h2>
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">status: online</div>
+    <div class="terminal">
+      <div class="term-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="term-title">guest@yungz — zsh</span>
+      </div>
+      <div class="term-body" id="termBody"></div>
     </div>
-    <p class="bio-text">
-      Saya seorang <strong>web developer</strong> dan <strong>game developer</strong> yang paling betah kalau sudah mengoprek sesuatu sampai jadi. Belakangan hobi baru saya adalah <strong>prompting AI</strong> — mencari tahu sejauh mana ide bisa diubah jadi karya nyata, entah itu website, game, atau eksperimen kecil lainnya.
-    </p>
-    <div class="chips">
-      <span class="chip">Web Dev</span>
-      <span class="chip">Game Dev</span>
-      <span class="chip">Prompt Engineering</span>
-      <span class="chip">UI Eksperimental</span>
-      <span class="chip">Belajar Terus</span>
+    <p class="hero-sub">Halo, saya Yungz — bikin promp, ngoprek web, dan ngerakit game kecil-kecilan. Scroll buat lihat fokus, skill, dan cara ngobrol sama saya.</p>
+  </div>
+</header>
+
+<section id="focus">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <span class="sec-title">Fokus</span>
+      <span class="sec-line"></span>
     </div>
-  </section>
+    <div class="focus-grid">
+      <div class="focus-card">
+        <span class="badge">01</span>
+        <span class="focus-icon">💬</span>
+        <div class="focus-name">Prompter</div>
+        <div class="focus-desc">Merancang & mengasah prompt AI supaya hasilnya tepat sasaran.</div>
+      </div>
+      <div class="focus-card">
+        <span class="badge">02</span>
+        <span class="focus-icon">🖥️</span>
+        <div class="focus-name">Web Developer</div>
+        <div class="focus-desc">Membangun halaman & aplikasi web dari ide sampai jadi.</div>
+      </div>
+      <div class="focus-card">
+        <span class="badge">03</span>
+        <span class="focus-icon">🎮</span>
+        <div class="focus-name">Game Dev</div>
+        <div class="focus-desc">Merakit game kecil, dari konsep sampai bisa dimainkan.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <div class="divider"><div class="line"></div><div class="mark"></div><div class="line"></div></div>
+<section id="skills">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <span class="sec-title">Skill</span>
+      <span class="sec-line"></span>
+    </div>
+    <div class="skills-row">
+      <div class="skill-pill"><span class="lvl">&gt;</span> Microsoft Office</div>
+    </div>
+  </div>
+</section>
 
-  <section>
-    <div class="section-head">
-      <span class="num">II.</span>
-      <h2>Ayo terhubung</h2>
+<section id="contact">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <span class="sec-title">Kontak</span>
+      <span class="sec-line"></span>
     </div>
     <div class="contact-grid">
-      <button class="contact-row" data-copy="bayupotabuga@gmail.com" data-href="mailto:bayupotabuga@gmail.com">
-        <span class="label">Email</span>
-        <span class="value">bayupotabuga@gmail.com</span>
-        <span class="go">salin / kirim →</span>
-      </button>
-      <button class="contact-row" data-copy="0851 4159 3665" data-href="https://wa.me/6285141593665">
-        <span class="label">WhatsApp</span>
-        <span class="value">0851 4159 3665</span>
-        <span class="go">salin / chat →</span>
-      </button>
-      <a class="contact-row" href="https://instagram.com/yungzxyz_" target="_blank" rel="noopener">
-        <span class="label">Instagram</span>
-        <span class="value">@yungzxyz_</span>
-        <span class="go">buka →</span>
+
+      <a class="contact-card" href="tel:+6285141593665">
+        <div class="c-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <div class="c-label">Telepon / WA</div>
+          <div class="c-value">0851-4159-3665</div>
+        </div>
       </a>
-      <a class="contact-row" href="https://tiktok.com/@yungzxyz_" target="_blank" rel="noopener">
-        <span class="label">TikTok</span>
-        <span class="value">@yungzxyz_</span>
-        <span class="go">buka →</span>
+
+      <a class="contact-card" href="mailto:bayupotabuga@gmail.com">
+        <div class="c-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6c0-1.1-.9-2-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6z"/><path d="M22 6l-10 7L2 6"/></svg>
+        </div>
+        <div>
+          <div class="c-label">Email</div>
+          <div class="c-value">bayupotabuga@gmail.com</div>
+        </div>
       </a>
+
+      <a class="contact-card" href="https://instagram.com/yungzxyz_" target="_blank" rel="noopener">
+        <div class="c-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        </div>
+        <div>
+          <div class="c-label">Instagram</div>
+          <div class="c-value">@yungzxyz_</div>
+        </div>
+      </a>
+
+      <a class="contact-card" href="https://tiktok.com/@yungzxyz_" target="_blank" rel="noopener">
+        <div class="c-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+        </div>
+        <div>
+          <div class="c-label">TikTok</div>
+          <div class="c-value">@yungzxyz_</div>
+        </div>
+      </a>
+
+      <a class="contact-card" href="https://facebook.com/Yungz" target="_blank" rel="noopener">
+        <div class="c-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+        </div>
+        <div>
+          <div class="c-label">Facebook</div>
+          <div class="c-value">Yungz</div>
+        </div>
+      </a>
+
     </div>
-  </section>
+  </div>
+</section>
 
-  <footer>Yungz Potabuga <span>·</span> dibangun dengan presisi</footer>
-
-</div>
+<footer>
+  © 2026 Yungz Potabuga — dibuat dengan <span style="color:var(--pink)">♥</span> dan secangkir kopi
+</footer>
 
 <script>
-  // scroll progress
-  const progress = document.getElementById('progress');
-  window.addEventListener('scroll', () => {
-    const h = document.documentElement;
-    const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
-    progress.style.width = pct + '%';
-  });
+  const termBody = document.getElementById('termBody');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // live clock
-  const clock = document.getElementById('clock');
-  function tick(){
-    const d = new Date();
-    clock.textContent = d.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const script = [
+    {type:'prompt', text:'guest@yungz:~$ '},
+    {type:'cmd', text:'whoami'},
+    {type:'out-name', text:'Yungz Potabuga'},
+    {type:'prompt', text:'guest@yungz:~$ '},
+    {type:'cmd', text:'cat roles.txt'},
+    {type:'out', text:'> Prompter'},
+    {type:'out', text:'> Web Developer'},
+    {type:'out', text:'> Game Dev'},
+    {type:'prompt', text:'guest@yungz:~$ '},
+    {type:'cmd', text:''}
+  ];
+
+  function renderStatic(){
+    termBody.innerHTML = `
+      <div class="line"><span class="prompt">guest@yungz:~$</span> whoami</div>
+      <div class="line out-name">Yungz Potabuga</div>
+      <div class="line"><span class="prompt">guest@yungz:~$</span> cat roles.txt</div>
+      <div class="line out-muted">&gt; Prompter</div>
+      <div class="line out-muted">&gt; Web Developer</div>
+      <div class="line out-muted">&gt; Game Dev</div>
+      <div class="line"><span class="prompt">guest@yungz:~$</span> <span class="cursor"></span></div>
+    `;
   }
-  tick(); setInterval(tick, 1000);
 
-  // spotlight + mouse-reactive crest tilt (desktop only)
-  const crest = document.getElementById('crest');
-  const isFine = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if(reduce){
+    renderStatic();
+  } else {
+    let li = 0;
+    function typeLine(){
+      if(li >= script.length){
+        const last = document.createElement('div');
+        last.className = 'line';
+        last.innerHTML = '<span class="cursor"></span>';
+        termBody.appendChild(last);
+        return;
+      }
+      const item = script[li];
+      const div = document.createElement('div');
+      div.className = 'line';
 
-  if (isFine){
-    window.addEventListener('mousemove', (e) => {
-      document.documentElement.style.setProperty('--mx', e.clientX + 'px');
-      document.documentElement.style.setProperty('--my', e.clientY + 'px');
-
-      const r = crest.getBoundingClientRect();
-      const cx = r.left + r.width/2, cy = r.top + r.height/2;
-      const dx = (e.clientX - cx)/r.width, dy = (e.clientY - cy)/r.height;
-      const dist = Math.hypot(e.clientX-cx, e.clientY-cy);
-      if (dist < 420){
-        crest.style.transform = `rotateY(${dx*16}deg) rotateX(${-dy*16}deg)`;
+      if(item.type === 'prompt'){
+        div.innerHTML = `<span class="prompt">${item.text}</span>`;
+        termBody.appendChild(div);
+        const nextCmd = script[li+1];
+        if(nextCmd && nextCmd.type === 'cmd'){
+          let ci = 0;
+          const cmdSpan = document.createElement('span');
+          div.appendChild(cmdSpan);
+          const typeCmd = setInterval(()=>{
+            cmdSpan.textContent += nextCmd.text[ci];
+            ci++;
+            if(ci >= nextCmd.text.length){
+              clearInterval(typeCmd);
+              li += 2;
+              setTimeout(typeLine, 220);
+            }
+          }, 38);
+          return;
+        }
+        li++;
+        setTimeout(typeLine, 150);
+      } else if(item.type === 'out-name'){
+        div.classList.add('out-name');
+        div.textContent = item.text;
+        termBody.appendChild(div);
+        li++;
+        setTimeout(typeLine, 260);
       } else {
-        crest.style.transform = 'rotateY(0deg) rotateX(0deg)';
+        div.classList.add('out-muted');
+        div.textContent = item.text;
+        termBody.appendChild(div);
+        li++;
+        setTimeout(typeLine, 140);
       }
-    });
+    }
+    typeLine();
   }
-
-  // typing role rotator
-  const roles = ['Web Developer', 'Game Developer', 'AI Enthusiast', 'Prompt Tinkerer'];
-  const roleEl = document.getElementById('roleWord');
-  let ri = 0;
-  function typeRole(word, cb){
-    roleEl.textContent = '';
-    let i = 0;
-    const iv = setInterval(() => {
-      roleEl.textContent = word.slice(0, ++i);
-      if (i === word.length){ clearInterval(iv); cb(); }
-    }, 55);
-  }
-  function eraseRole(cb){
-    let str = roleEl.textContent;
-    const iv = setInterval(() => {
-      str = str.slice(0, -1);
-      roleEl.textContent = str;
-      if (str.length === 0){ clearInterval(iv); cb(); }
-    }, 30);
-  }
-  function cycleRoles(){
-    setTimeout(() => {
-      eraseRole(() => {
-        ri = (ri + 1) % roles.length;
-        typeRole(roles[ri], cycleRoles);
-      });
-    }, 1900);
-  }
-  setTimeout(() => cycleRoles(), 1600);
-
-  // click-to-surprise crest: subtle spin burst
-  const crestMono = document.getElementById('crestMono');
-  crestMono.addEventListener('click', () => {
-    crest.animate([
-      { transform: crest.style.transform + ' rotate(0deg)' },
-      { transform: crest.style.transform + ' rotate(360deg)' }
-    ], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
-  });
-
-  // copy-to-clipboard contact rows with inline feedback
-  document.querySelectorAll('.contact-row[data-copy]').forEach(btn => {
-    const goEl = btn.querySelector('.go');
-    const originalGo = goEl.textContent;
-    btn.addEventListener('click', async () => {
-      let copied = false;
-      if (navigator.clipboard && window.isSecureContext){
-        try{
-          await navigator.clipboard.writeText(btn.dataset.copy);
-          copied = true;
-        }catch(err){ copied = false; }
-      }
-      if (copied){
-        goEl.textContent = 'tersalin ✓';
-        goEl.style.opacity = '1';
-        goEl.style.color = 'var(--gold-bright)';
-        setTimeout(() => { goEl.textContent = originalGo; }, 1400);
-      } else {
-        window.location.href = btn.dataset.href;
-      }
-    });
-  });
-
 </script>
 
 </body>
