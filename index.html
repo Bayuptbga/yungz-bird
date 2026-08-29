@@ -146,7 +146,9 @@ const CONFIG = {
     width:130px; height:130px; border-radius:50%;
     margin:0 auto; background:#e3ddca; border:1px solid var(--gold-soft);
     display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:12px;
+    overflow:hidden;
   }
+  .couple-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
   .couple-amp{ font-family:'Cormorant Garamond', serif; font-style:italic; font-size:34px; color:var(--gold); }
 
   /* Countdown */
@@ -208,6 +210,21 @@ const CONFIG = {
   }
   #rsvp-note{ margin-top:14px; font-size:13px; color:var(--rose); display:none; }
 
+  /* Music toggle */
+  #musicToggle{
+    position:fixed; bottom:24px; right:24px; z-index:60;
+    width:48px; height:48px; border-radius:50%;
+    background:var(--moss); color:var(--paper);
+    border:1px solid var(--gold-soft);
+    font-size:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    transition:transform 0.3s ease;
+  }
+  #musicToggle:hover{ transform:scale(1.08); }
+  #musicToggle.spinning #musicIcon{ display:inline-block; animation:spin 3.5s linear infinite; }
+  @keyframes spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
   footer{ text-align:center; padding:60px 24px 50px; color:#7a7f6b; font-size:12px; letter-spacing:0.1em; }
   footer .amp{ font-family:'Cormorant Garamond', serif; font-style:italic; font-size:20px; color:var(--gold); display:block; margin-bottom:8px;}
 
@@ -251,13 +268,13 @@ const CONFIG = {
   <div class="eyebrow center">Mempelai</div>
   <div class="couple-grid">
     <div class="couple-card center">
-      <div class="couple-photo">Foto</div>
+      <div class="couple-photo" id="priaPhotoBox">Foto</div>
       <h3 id="priaName"></h3>
       <p>Putra dari<br>Bapak & Ibu Keluarga Pria</p>
     </div>
     <div class="couple-amp">&</div>
     <div class="couple-card center">
-      <div class="couple-photo">Foto</div>
+      <div class="couple-photo" id="wanitaPhotoBox">Foto</div>
       <h3 id="wanitaName"></h3>
       <p>Putri dari<br>Bapak & Ibu Keluarga Wanita</p>
     </div>
@@ -323,6 +340,14 @@ const CONFIG = {
   <div id="footerNames"></div>
 </footer>
 
+<!-- ============ MUSIK ============ -->
+<audio id="bgMusic" loop preload="none">
+  <source src="musik.mp3" type="audio/mpeg">
+</audio>
+<button id="musicToggle" aria-label="Putar/Jeda Musik">
+  <span id="musicIcon">♪</span>
+</button>
+
 <!-- ============ LIGHTBOX ============ -->
 <div id="lightbox">
   <button id="lightbox-close">&times;</button>
@@ -353,12 +378,33 @@ const CONFIG = {
   document.getElementById('guestName').textContent = guest;
   document.getElementById('f-nama').value = (guest !== CONFIG.namaTamuDefault) ? guest : '';
 
-  /* ---------- Buka undangan ---------- */
+  /* ---------- Buka undangan + mulai musik ---------- */
+  const bgMusic = document.getElementById('bgMusic');
+  const musicToggle = document.getElementById('musicToggle');
+  const musicIcon = document.getElementById('musicIcon');
+
   document.getElementById('openBtn').addEventListener('click', () => {
     document.getElementById('cover').classList.add('hide');
     document.body.style.overflow = 'auto';
+    bgMusic.play().then(() => {
+      musicToggle.classList.add('spinning');
+      musicIcon.textContent = '♪';
+    }).catch(() => {
+      // Browser menahan autoplay atau file musik.mp3 belum ada — tombol tetap bisa ditekan manual
+      musicIcon.textContent = '♪';
+    });
   });
   document.body.style.overflow = 'hidden';
+
+  musicToggle.addEventListener('click', () => {
+    if(bgMusic.paused){
+      bgMusic.play().catch(() => {});
+      musicToggle.classList.add('spinning');
+    } else {
+      bgMusic.pause();
+      musicToggle.classList.remove('spinning');
+    }
+  });
 
   /* ---------- Countdown ---------- */
   const target = new Date(CONFIG.tanggalISO).getTime();
@@ -378,12 +424,14 @@ const CONFIG = {
   tickCountdown();
   setInterval(tickCountdown, 1000);
 
-  /* ---------- Galeri dari Google Drive ---------- */
+  /* ---------- Galeri + Foto Profil dari Google Drive ---------- */
   async function loadGallery(){
     const statusEl = document.getElementById('galleryStatus');
     const grid = document.getElementById('gallery-grid');
+    const priaBox = document.getElementById('priaPhotoBox');
+    const wanitaBox = document.getElementById('wanitaPhotoBox');
     try{
-      const url = `https://www.googleapis.com/drive/v3/files?q='${CONFIG.folderId}'+in+parents+and+mimeType+contains+'image/'+and+trashed=false&key=${CONFIG.apiKey}&fields=files(id,name)&pageSize=100`;
+      const url = `https://www.googleapis.com/drive/v3/files?q='${CONFIG.folderId}'+in+parents+and+mimeType+contains+'image/'+and+trashed=false&key=${CONFIG.apiKey}&fields=files(id,name)&orderBy=name&pageSize=100`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -399,8 +447,28 @@ const CONFIG = {
         return;
       }
 
+      // Foto pertama & kedua (urut nama file) dipakai sebagai foto profil pria & wanita
+      const setProfilePhoto = (box, file) => {
+        if(!file) return;
+        const img = document.createElement('img');
+        img.src = `https://lh3.googleusercontent.com/d/${file.id}=w400`;
+        img.alt = file.name;
+        img.addEventListener('error', () => { box.textContent = 'Foto'; });
+        box.innerHTML = '';
+        box.appendChild(img);
+      };
+      setProfilePhoto(priaBox, files[0]);
+      setProfilePhoto(wanitaBox, files[1]);
+
+      // Sisanya masuk ke galeri
+      const galleryFiles = files.slice(2);
+      if(galleryFiles.length === 0){
+        statusEl.textContent = 'Belum ada foto tambahan untuk galeri.';
+        return;
+      }
+
       statusEl.style.display = 'none';
-      files.forEach(file => {
+      galleryFiles.forEach(file => {
         const img = document.createElement('img');
         img.src = `https://lh3.googleusercontent.com/d/${file.id}=w600`;
         img.alt = file.name;
