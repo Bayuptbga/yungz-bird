@@ -3,424 +3,437 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yungz Potabuga — Prompter · Web Developer · Game Dev</title>
+<title>Undangan Pernikahan — Ayu & Bima</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#090b10;
-    --surface:#12151c;
-    --surface-2:#171b24;
-    --border:#242a38;
-    --text:#e7e9ee;
-    --muted:#8b93a7;
-    --teal:#5eead4;
-    --pink:#f472b6;
-    --mono:'Space Mono', monospace;
-    --sans:'Plus Jakarta Sans', sans-serif;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html{scroll-behavior:smooth;}
-  body{
-    background:
-      radial-gradient(circle at 15% 0%, rgba(94,234,212,0.07), transparent 45%),
-      radial-gradient(circle at 90% 20%, rgba(244,114,182,0.06), transparent 40%),
-      var(--bg);
-    color:var(--text);
-    font-family:var(--sans);
-    line-height:1.6;
-    min-height:100vh;
-  }
-  a{color:inherit;}
-  .wrap{max-width:920px; margin:0 auto; padding:0 24px;}
-
-  /* NAV */
-  nav{
-    position:sticky; top:0; z-index:50;
-    background:rgba(9,11,16,0.85);
-    backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--border);
-  }
-  nav .wrap{
-    display:flex; align-items:center; justify-content:space-between;
-    height:60px;
-  }
-  .logo{
-    font-family:var(--mono); font-weight:700; font-size:15px;
-    letter-spacing:0.02em;
-  }
-  .logo span{color:var(--teal);}
-  .navlinks{display:flex; gap:22px; font-size:13px; font-family:var(--mono);}
-  .navlinks a{color:var(--muted); text-decoration:none; transition:color .2s;}
-  .navlinks a:hover{color:var(--text);}
-
-  /* HERO / TERMINAL */
-  .hero{padding:72px 0 56px;}
-  .eyebrow{
-    font-family:var(--mono); font-size:12px; color:var(--teal);
-    letter-spacing:0.15em; text-transform:uppercase; margin-bottom:18px;
-    display:flex; align-items:center; gap:10px;
-  }
-  .eyebrow::before{
-    content:''; width:7px; height:7px; border-radius:50%;
-    background:var(--teal); box-shadow:0 0 8px var(--teal);
-  }
-
-  .terminal{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:10px;
-    overflow:hidden;
-    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
-  }
-  .term-bar{
-    display:flex; align-items:center; gap:8px;
-    padding:12px 16px;
-    background:var(--surface-2);
-    border-bottom:1px solid var(--border);
-  }
-  .dot{width:10px; height:10px; border-radius:50%;}
-  .dot.r{background:#ff5f56;} .dot.y{background:#ffbd2e;} .dot.g{background:#27c93f;}
-  .term-title{
-    margin-left:8px; font-family:var(--mono); font-size:12px; color:var(--muted);
-  }
-  .term-body{
-    padding:26px 24px 30px;
-    font-family:var(--mono);
-    font-size:14.5px;
-    min-height:230px;
-  }
-  .term-body .line{margin-bottom:10px; white-space:pre-wrap;}
-  .prompt{color:var(--teal);}
-  .out{color:var(--text);}
-  .out-name{color:var(--pink); font-weight:700; font-size:1.15em;}
-  .out-muted{color:var(--muted);}
-  .cursor{
-    display:inline-block; width:8px; height:1.1em; background:var(--teal);
-    vertical-align:text-bottom; margin-left:2px;
-    animation:blink 1s steps(1) infinite;
-  }
-  @keyframes blink{50%{opacity:0;}}
-
-  .hero-sub{
-    margin-top:22px; color:var(--muted); font-size:15px; max-width:60ch;
-  }
-
-  /* SECTION HEADINGS */
-  section{padding:56px 0;}
-  .sec-head{
-    display:flex; align-items:baseline; gap:12px; margin-bottom:28px;
-  }
-  .sec-num{
-    font-family:var(--mono); color:var(--pink); font-size:13px;
-  }
-  .sec-title{
-    font-family:var(--mono); font-size:20px; font-weight:700;
-    letter-spacing:-0.01em;
-  }
-  .sec-line{flex:1; height:1px; background:var(--border);}
-
-  /* FOCUS CARDS (game-menu style) */
-  .focus-grid{
-    display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
-  }
-  .focus-card{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:22px 18px;
-    position:relative;
-    overflow:hidden;
-    transition:transform .25s ease, border-color .25s ease;
-  }
-  .focus-card::before{
-    content:''; position:absolute; inset:0;
-    background:linear-gradient(135deg, rgba(94,234,212,0.10), transparent 60%);
-    opacity:0; transition:opacity .25s ease;
-  }
-  .focus-card:hover{transform:translateY(-4px); border-color:var(--teal);}
-  .focus-card:hover::before{opacity:1;}
-  .focus-icon{font-size:26px; margin-bottom:14px; display:block;}
-  .focus-name{font-weight:700; font-size:15px; margin-bottom:6px;}
-  .focus-desc{font-size:13px; color:var(--muted); line-height:1.5;}
-  .badge{
-    position:absolute; top:14px; right:14px;
-    font-family:var(--mono); font-size:10px; color:var(--muted);
-    border:1px solid var(--border); border-radius:4px; padding:2px 6px;
-  }
-
-  /* SKILLS */
-  .skills-row{display:flex; flex-wrap:wrap; gap:10px;}
-  .skill-pill{
-    font-family:var(--mono); font-size:13px;
-    background:var(--surface); border:1px solid var(--border);
-    padding:9px 16px; border-radius:100px;
-    display:flex; align-items:center; gap:8px;
-  }
-  .skill-pill .lvl{color:var(--teal);}
-
-  /* CONTACT */
-  .contact-grid{
-    display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;
-  }
-  .contact-card{
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:10px; padding:16px 18px;
-    display:flex; align-items:center; gap:14px;
-    text-decoration:none; color:var(--text);
-    transition:border-color .2s ease, transform .2s ease;
-  }
-  .contact-card:hover{border-color:var(--pink); transform:translateY(-2px);}
-  .c-icon{
-    width:38px; height:38px; border-radius:8px;
-    background:var(--surface-2); border:1px solid var(--border);
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-  }
-  .c-icon svg{width:18px; height:18px;}
-  .c-label{font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:.05em;}
-  .c-value{font-size:14px; font-weight:600; word-break:break-word;}
-
-  footer{
-    border-top:1px solid var(--border);
-    padding:28px 0 40px;
-    font-family:var(--mono); font-size:12px; color:var(--muted);
-    text-align:center;
-  }
-
-  @media (max-width:720px){
-    .focus-grid{grid-template-columns:1fr;}
-    .contact-grid{grid-template-columns:1fr;}
-    .navlinks{gap:14px; font-size:12px;}
-    .hero{padding:48px 0 40px;}
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .cursor{animation:none;}
-    .focus-card, .contact-card{transition:none;}
-  }
-
-  :focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+  /* ============================================================
+     KONFIGURASI — GANTI BAGIAN INI SESUAI KEBUTUHANMU
+     ============================================================ */
 </style>
 </head>
 <body>
 
-<nav>
-  <div class="wrap">
-    <div class="logo">yungz<span>.</span>dev</div>
-    <div class="navlinks">
-      <a href="#focus">focus</a>
-      <a href="#skills">skills</a>
-      <a href="#contact">contact</a>
-    </div>
-  </div>
-</nav>
+<script>
+/* ================= KONFIGURASI UTAMA ================= */
+const CONFIG = {
+  apiKey: "AIzaSyBxmHrrGOA_TseA3OtthWtXkjsda_vVtfQ",
+  folderId: "1-6KPOyzTQP6_8HDxJKSrYU7Mwy6rslcm",
 
-<header class="hero">
-  <div class="wrap">
-    <div class="eyebrow">status: online</div>
-    <div class="terminal">
-      <div class="term-bar">
-        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-        <span class="term-title">guest@yungz — zsh</span>
-      </div>
-      <div class="term-body" id="termBody"></div>
-    </div>
-    <p class="hero-sub">Halo, saya Yungz — bikin promp, ngoprek web, dan ngerakit game kecil-kecilan. Scroll buat lihat fokus, skill, dan cara ngobrol sama saya.</p>
-  </div>
-</header>
+  mempelaiPria: "Bayu",
+  mempelaiWanita: "Syahida",
+  panggilanPria: "Bayu",
+  panggilanWanita: "Syahida",
 
-<section id="focus">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="sec-num">01</span>
-      <span class="sec-title">Fokus</span>
-      <span class="sec-line"></span>
+  tanggalISO: "2026-11-14T09:00:00", // ganti tanggal & jam acara (format YYYY-MM-DDTHH:MM:SS)
+  tanggalTampil: "Sabtu, 14 November 2026",
+  jamAkad: "09.00 WIB — Akad Nikah",
+  jamResepsi: "11.00 – 14.00 WIB — Resepsi",
+  lokasiNama: "Hotel Sutan Raja Kotamobagu",
+  lokasiAlamat: "Hotel Sutan Raja, Kotamobagu, Sulawesi Utara",
+  mapsLink: "https://maps.google.com/?q=Hotel+Sutan+Raja+Kotamobagu",
+
+  kutipan: "“Dan di antara tanda-tanda kekuasaan-Nya ialah Dia menciptakan untukmu pasangan agar kamu merasa tenteram kepadanya.”",
+  kutipanSumber: "QS. Ar-Rum: 21",
+
+  namaTamuDefault: "Tamu Undangan"
+};
+</script>
+
+<style>
+  :root{
+    --ink:#1f2a20;
+    --paper:#f6f2e8;
+    --moss:#2f3d2c;
+    --gold:#a9843f;
+    --gold-soft:#cdb27a;
+    --rose:#c98f7a;
+    --line: rgba(47,61,44,0.25);
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Jost', sans-serif;
+    font-weight:300;
+    overflow-x:hidden;
+  }
+  h1,h2,h3, .display{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:500;
+    letter-spacing:0.02em;
+  }
+  .eyebrow{
+    font-family:'Jost', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.35em;
+    font-size:11px;
+    color:var(--gold);
+    font-weight:500;
+  }
+
+  /* ---------- Cover / Gate ---------- */
+  #cover{
+    position:fixed; inset:0; z-index:50;
+    background:
+      radial-gradient(1200px 800px at 50% -10%, rgba(169,132,63,0.12), transparent 60%),
+      var(--moss);
+    color:var(--paper);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    padding:32px;
+    transition:transform 0.9s cubic-bezier(.7,0,.2,1), opacity 0.9s ease;
+  }
+  #cover.hide{ transform:translateY(-100%); opacity:0.4; pointer-events:none; }
+  .cover-frame{
+    border:1px solid rgba(246,242,232,0.35);
+    padding:48px 36px;
+    max-width:420px;
+    position:relative;
+  }
+  .cover-frame::before, .cover-frame::after{
+    content:"";
+    position:absolute; width:22px; height:22px;
+    border:1px solid var(--gold-soft);
+  }
+  .cover-frame::before{ top:-8px; left:-8px; border-right:none; border-bottom:none; }
+  .cover-frame::after{ bottom:-8px; right:-8px; border-left:none; border-top:none; }
+  .cover-eyebrow{ color:var(--gold-soft); font-size:11px; letter-spacing:0.4em; text-transform:uppercase; }
+  .cover-names{ font-size:44px; margin:18px 0 6px; }
+  .cover-date{ font-size:14px; letter-spacing:0.1em; color:var(--gold-soft); margin-bottom:26px; }
+  .guest-label{ font-size:12px; letter-spacing:0.15em; color:rgba(246,242,232,0.65); margin-bottom:6px; text-transform:uppercase;}
+  .guest-name{ font-family:'Cormorant Garamond', serif; font-size:22px; margin-bottom:22px; font-style:italic; }
+  #openBtn{
+    background:transparent;
+    border:1px solid var(--gold-soft);
+    color:var(--paper);
+    padding:14px 34px;
+    font-family:'Jost', sans-serif;
+    letter-spacing:0.2em;
+    text-transform:uppercase;
+    font-size:12px;
+    cursor:pointer;
+    transition:background 0.3s ease, color 0.3s ease;
+  }
+  #openBtn:hover{ background:var(--gold-soft); color:var(--moss); }
+
+  /* ---------- Sections ---------- */
+  section{ padding:96px 24px; max-width:760px; margin:0 auto; position:relative; }
+  .center{ text-align:center; }
+  .divider{
+    width:1px; height:56px; background:var(--line); margin:0 auto 28px;
+  }
+  .divider-flower{ text-align:center; color:var(--gold); font-size:20px; margin:8px 0 32px; letter-spacing:0.5em;}
+
+  /* Hero */
+  #hero{ text-align:center; padding-top:120px; }
+  #hero .eyebrow{ margin-bottom:18px; }
+  #hero h1{ font-size:56px; line-height:1.1; margin:0 0 10px; }
+  #hero .amp{ color:var(--gold); font-style:italic; display:block; font-size:32px; margin:6px 0; }
+  #hero p.sub{ color:#5a5f4f; font-size:15px; letter-spacing:0.05em; margin-top:14px;}
+
+  /* Quote */
+  #quote p{ font-family:'Cormorant Garamond', serif; font-style:italic; font-size:22px; line-height:1.6; color:var(--moss); }
+  #quote span{ display:block; margin-top:14px; font-family:'Jost'; font-size:12px; letter-spacing:0.15em; color:var(--gold); text-transform:uppercase; }
+
+  /* Couple */
+  .couple-grid{ display:grid; grid-template-columns:1fr auto 1fr; gap:24px; align-items:center; margin-top:40px; }
+  .couple-card h3{ font-size:30px; margin:14px 0 4px; }
+  .couple-card p{ font-size:13px; color:#5a5f4f; line-height:1.7; }
+  .couple-photo{
+    width:130px; height:130px; border-radius:50%;
+    margin:0 auto; background:#e3ddca; border:1px solid var(--gold-soft);
+    display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:12px;
+  }
+  .couple-amp{ font-family:'Cormorant Garamond', serif; font-style:italic; font-size:34px; color:var(--gold); }
+
+  /* Countdown */
+  #countdown-row{ display:flex; justify-content:center; gap:18px; margin-top:36px; flex-wrap:wrap; }
+  .cd-box{ min-width:76px; text-align:center; }
+  .cd-num{ font-family:'Cormorant Garamond', serif; font-size:38px; color:var(--moss); }
+  .cd-label{ font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); margin-top:4px; }
+
+  /* Event details */
+  .event-card{
+    border:1px solid var(--line);
+    padding:32px 28px;
+    margin-top:32px;
+    background:rgba(255,255,255,0.35);
+  }
+  .event-card h3{ font-size:26px; margin:0 0 4px; }
+  .event-card .time{ color:var(--rose); font-size:14px; letter-spacing:0.05em; margin-bottom:14px; }
+  .event-card p{ font-size:13px; color:#5a5f4f; line-height:1.7; margin:4px 0; }
+  .map-link{
+    display:inline-block; margin-top:16px; font-size:12px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--moss); border-bottom:1px solid var(--gold); padding-bottom:2px; text-decoration:none;
+  }
+
+  /* Gallery */
+  #gallery-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:36px;
+  }
+  #gallery-grid img{
+    width:100%; height:100%; aspect-ratio:1/1; object-fit:cover; display:block;
+    background:#e3ddca; cursor:pointer;
+    transition:transform 0.4s ease, filter 0.4s ease;
+  }
+  #gallery-grid img:hover{ transform:scale(1.03); }
+  .gallery-status{ text-align:center; font-size:13px; color:#5a5f4f; margin-top:20px; }
+
+  /* Lightbox */
+  #lightbox{
+    position:fixed; inset:0; background:rgba(20,24,17,0.94); z-index:80;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  #lightbox.show{ display:flex; }
+  #lightbox img{ max-width:100%; max-height:88vh; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+  #lightbox-close{
+    position:absolute; top:24px; right:28px; color:var(--paper); font-size:28px;
+    background:none; border:none; cursor:pointer; font-family:'Jost';
+  }
+
+  /* RSVP */
+  #rsvp-form{ margin-top:36px; display:flex; flex-direction:column; gap:16px; text-align:left; }
+  #rsvp-form label{ font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; display:block; }
+  #rsvp-form input, #rsvp-form select, #rsvp-form textarea{
+    width:100%; padding:12px 14px; border:1px solid var(--line); background:rgba(255,255,255,0.5);
+    font-family:'Jost'; font-size:14px; color:var(--ink); border-radius:0;
+  }
+  #rsvp-form textarea{ min-height:90px; resize:vertical; }
+  #rsvp-submit{
+    background:var(--moss); color:var(--paper); border:none; padding:14px;
+    letter-spacing:0.2em; text-transform:uppercase; font-size:12px; cursor:pointer;
+  }
+  #rsvp-note{ margin-top:14px; font-size:13px; color:var(--rose); display:none; }
+
+  footer{ text-align:center; padding:60px 24px 50px; color:#7a7f6b; font-size:12px; letter-spacing:0.1em; }
+  footer .amp{ font-family:'Cormorant Garamond', serif; font-style:italic; font-size:20px; color:var(--gold); display:block; margin-bottom:8px;}
+
+  @media (max-width:560px){
+    #hero h1{ font-size:38px; }
+    .couple-grid{ grid-template-columns:1fr; }
+    .couple-amp{ display:none; }
+    #gallery-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+
+<!-- ============ COVER ============ -->
+<div id="cover">
+  <div class="cover-frame">
+    <div class="cover-eyebrow">Undangan Pernikahan</div>
+    <div class="cover-names" id="coverNames"></div>
+    <div class="cover-date" id="coverDate"></div>
+    <div class="guest-label">Kepada Yth.</div>
+    <div class="guest-name" id="guestName"></div>
+    <button id="openBtn">Buka Undangan</button>
+  </div>
+</div>
+
+<!-- ============ HERO ============ -->
+<section id="hero">
+  <div class="eyebrow">The Wedding Of</div>
+  <h1 id="heroNames"></h1>
+  <p class="sub" id="heroDate"></p>
+</section>
+
+<div class="divider-flower">✦</div>
+
+<!-- ============ QUOTE ============ -->
+<section id="quote" class="center">
+  <p id="quoteText"></p>
+  <span id="quoteSource"></span>
+</section>
+
+<!-- ============ COUPLE ============ -->
+<section id="couple">
+  <div class="eyebrow center">Mempelai</div>
+  <div class="couple-grid">
+    <div class="couple-card center">
+      <div class="couple-photo">Foto</div>
+      <h3 id="priaName"></h3>
+      <p>Putra dari<br>Bapak & Ibu Keluarga Pria</p>
     </div>
-    <div class="focus-grid">
-      <div class="focus-card">
-        <span class="badge">01</span>
-        <span class="focus-icon">💬</span>
-        <div class="focus-name">Prompter</div>
-        <div class="focus-desc">Merancang & mengasah prompt AI supaya hasilnya tepat sasaran.</div>
-      </div>
-      <div class="focus-card">
-        <span class="badge">02</span>
-        <span class="focus-icon">🖥️</span>
-        <div class="focus-name">Web Developer</div>
-        <div class="focus-desc">Membangun halaman & aplikasi web dari ide sampai jadi.</div>
-      </div>
-      <div class="focus-card">
-        <span class="badge">03</span>
-        <span class="focus-icon">🎮</span>
-        <div class="focus-name">Game Dev</div>
-        <div class="focus-desc">Merakit game kecil, dari konsep sampai bisa dimainkan.</div>
-      </div>
+    <div class="couple-amp">&</div>
+    <div class="couple-card center">
+      <div class="couple-photo">Foto</div>
+      <h3 id="wanitaName"></h3>
+      <p>Putri dari<br>Bapak & Ibu Keluarga Wanita</p>
     </div>
   </div>
 </section>
 
-<section id="skills">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="sec-num">02</span>
-      <span class="sec-title">Skill</span>
-      <span class="sec-line"></span>
-    </div>
-    <div class="skills-row">
-      <div class="skill-pill"><span class="lvl">&gt;</span> Microsoft Office</div>
-    </div>
+<!-- ============ COUNTDOWN ============ -->
+<section id="countdown" class="center">
+  <div class="eyebrow">Hitung Mundur Menuju Hari Bahagia</div>
+  <div id="countdown-row">
+    <div class="cd-box"><div class="cd-num" id="cd-d">0</div><div class="cd-label">Hari</div></div>
+    <div class="cd-box"><div class="cd-num" id="cd-h">0</div><div class="cd-label">Jam</div></div>
+    <div class="cd-box"><div class="cd-num" id="cd-m">0</div><div class="cd-label">Menit</div></div>
+    <div class="cd-box"><div class="cd-num" id="cd-s">0</div><div class="cd-label">Detik</div></div>
   </div>
 </section>
 
-<section id="contact">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="sec-num">03</span>
-      <span class="sec-title">Kontak</span>
-      <span class="sec-line"></span>
-    </div>
-    <div class="contact-grid">
-
-      <a class="contact-card" href="tel:+6285141593665">
-        <div class="c-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        </div>
-        <div>
-          <div class="c-label">Telepon / WA</div>
-          <div class="c-value">0851-4159-3665</div>
-        </div>
-      </a>
-
-      <a class="contact-card" href="mailto:bayupotabuga@gmail.com">
-        <div class="c-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6c0-1.1-.9-2-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6z"/><path d="M22 6l-10 7L2 6"/></svg>
-        </div>
-        <div>
-          <div class="c-label">Email</div>
-          <div class="c-value">bayupotabuga@gmail.com</div>
-        </div>
-      </a>
-
-      <a class="contact-card" href="https://instagram.com/yungzxyz_" target="_blank" rel="noopener">
-        <div class="c-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-        </div>
-        <div>
-          <div class="c-label">Instagram</div>
-          <div class="c-value">@yungzxyz_</div>
-        </div>
-      </a>
-
-      <a class="contact-card" href="https://tiktok.com/@yungzxyz_" target="_blank" rel="noopener">
-        <div class="c-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
-        </div>
-        <div>
-          <div class="c-label">TikTok</div>
-          <div class="c-value">@yungzxyz_</div>
-        </div>
-      </a>
-
-      <a class="contact-card" href="https://facebook.com/Yungz" target="_blank" rel="noopener">
-        <div class="c-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-        </div>
-        <div>
-          <div class="c-label">Facebook</div>
-          <div class="c-value">Yungz</div>
-        </div>
-      </a>
-
-    </div>
+<!-- ============ EVENT ============ -->
+<section id="event" class="center">
+  <div class="eyebrow">Acara</div>
+  <div class="event-card">
+    <div class="time" id="jamAkadEl"></div>
+    <div class="time" id="jamResepsiEl"></div>
+    <h3 id="lokasiNamaEl"></h3>
+    <p id="lokasiAlamatEl"></p>
+    <a class="map-link" id="mapsLinkEl" href="#" target="_blank" rel="noopener">Lihat Lokasi di Google Maps</a>
   </div>
+</section>
+
+<!-- ============ GALLERY ============ -->
+<section id="gallery" class="center">
+  <div class="eyebrow">Galeri Kami</div>
+  <div id="gallery-grid"></div>
+  <div class="gallery-status" id="galleryStatus">Memuat foto…</div>
+</section>
+
+<!-- ============ RSVP ============ -->
+<section id="rsvp" class="center">
+  <div class="eyebrow">Konfirmasi Kehadiran</div>
+  <form id="rsvp-form">
+    <div>
+      <label>Nama</label>
+      <input type="text" id="f-nama" placeholder="Nama lengkap" required>
+    </div>
+    <div>
+      <label>Kehadiran</label>
+      <select id="f-hadir">
+        <option value="hadir">Insya Allah Hadir</option>
+        <option value="tidak">Mohon Maaf, Belum Bisa Hadir</option>
+      </select>
+    </div>
+    <div>
+      <label>Ucapan & Doa</label>
+      <textarea id="f-pesan" placeholder="Tuliskan ucapan dan doa untuk kedua mempelai"></textarea>
+    </div>
+    <button type="submit" id="rsvp-submit">Kirim Konfirmasi</button>
+  </form>
+  <div id="rsvp-note">Terima kasih atas ucapan dan doanya 🤍</div>
 </section>
 
 <footer>
-  © 2026 Yungz Potabuga — dibuat dengan <span style="color:var(--pink)">♥</span> dan secangkir kopi
+  <span class="amp">&</span>
+  <div id="footerNames"></div>
 </footer>
 
+<!-- ============ LIGHTBOX ============ -->
+<div id="lightbox">
+  <button id="lightbox-close">&times;</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
 <script>
-  const termBody = document.getElementById('termBody');
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* ---------- Isi teks dari CONFIG ---------- */
+  const namesShort = `${CONFIG.panggilanPria} & ${CONFIG.panggilanWanita}`;
+  document.getElementById('coverNames').textContent = namesShort;
+  document.getElementById('coverDate').textContent = CONFIG.tanggalTampil;
+  document.getElementById('heroNames').innerHTML = `${CONFIG.panggilanPria}<span class="amp">&</span>${CONFIG.panggilanWanita}`;
+  document.getElementById('heroDate').textContent = CONFIG.tanggalTampil;
+  document.getElementById('quoteText').textContent = CONFIG.kutipan;
+  document.getElementById('quoteSource').textContent = CONFIG.kutipanSumber;
+  document.getElementById('priaName').textContent = CONFIG.mempelaiPria;
+  document.getElementById('wanitaName').textContent = CONFIG.mempelaiWanita;
+  document.getElementById('jamAkadEl').textContent = CONFIG.jamAkad;
+  document.getElementById('jamResepsiEl').textContent = CONFIG.jamResepsi;
+  document.getElementById('lokasiNamaEl').textContent = CONFIG.lokasiNama;
+  document.getElementById('lokasiAlamatEl').textContent = CONFIG.lokasiAlamat;
+  document.getElementById('mapsLinkEl').href = CONFIG.mapsLink;
+  document.getElementById('footerNames').textContent = namesShort;
 
-  const script = [
-    {type:'prompt', text:'guest@yungz:~$ '},
-    {type:'cmd', text:'whoami'},
-    {type:'out-name', text:'Yungz Potabuga'},
-    {type:'prompt', text:'guest@yungz:~$ '},
-    {type:'cmd', text:'cat roles.txt'},
-    {type:'out', text:'> Prompter'},
-    {type:'out', text:'> Web Developer'},
-    {type:'out', text:'> Game Dev'},
-    {type:'prompt', text:'guest@yungz:~$ '},
-    {type:'cmd', text:''}
-  ];
+  /* ---------- Nama tamu dari URL ?to=Nama ---------- */
+  const params = new URLSearchParams(window.location.search);
+  const guest = params.get('to') ? decodeURIComponent(params.get('to')) : CONFIG.namaTamuDefault;
+  document.getElementById('guestName').textContent = guest;
+  document.getElementById('f-nama').value = (guest !== CONFIG.namaTamuDefault) ? guest : '';
 
-  function renderStatic(){
-    termBody.innerHTML = `
-      <div class="line"><span class="prompt">guest@yungz:~$</span> whoami</div>
-      <div class="line out-name">Yungz Potabuga</div>
-      <div class="line"><span class="prompt">guest@yungz:~$</span> cat roles.txt</div>
-      <div class="line out-muted">&gt; Prompter</div>
-      <div class="line out-muted">&gt; Web Developer</div>
-      <div class="line out-muted">&gt; Game Dev</div>
-      <div class="line"><span class="prompt">guest@yungz:~$</span> <span class="cursor"></span></div>
-    `;
+  /* ---------- Buka undangan ---------- */
+  document.getElementById('openBtn').addEventListener('click', () => {
+    document.getElementById('cover').classList.add('hide');
+    document.body.style.overflow = 'auto';
+  });
+  document.body.style.overflow = 'hidden';
+
+  /* ---------- Countdown ---------- */
+  const target = new Date(CONFIG.tanggalISO).getTime();
+  function tickCountdown(){
+    const now = Date.now();
+    let diff = target - now;
+    if(diff < 0) diff = 0;
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-d').textContent = d;
+    document.getElementById('cd-h').textContent = String(h).padStart(2,'0');
+    document.getElementById('cd-m').textContent = String(m).padStart(2,'0');
+    document.getElementById('cd-s').textContent = String(s).padStart(2,'0');
   }
+  tickCountdown();
+  setInterval(tickCountdown, 1000);
 
-  if(reduce){
-    renderStatic();
-  } else {
-    let li = 0;
-    function typeLine(){
-      if(li >= script.length){
-        const last = document.createElement('div');
-        last.className = 'line';
-        last.innerHTML = '<span class="cursor"></span>';
-        termBody.appendChild(last);
+  /* ---------- Galeri dari Google Drive ---------- */
+  async function loadGallery(){
+    const statusEl = document.getElementById('galleryStatus');
+    const grid = document.getElementById('gallery-grid');
+    try{
+      const url = `https://www.googleapis.com/drive/v3/files?q='${CONFIG.folderId}'+in+parents+and+mimeType+contains+'image/'+and+trashed=false&key=${CONFIG.apiKey}&fields=files(id,name)&pageSize=100`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(data.error){
+        statusEl.textContent = 'Galeri belum bisa dimuat. Pastikan folder Google Drive sudah dibagikan sebagai "Anyone with the link".';
+        console.error(data.error);
         return;
       }
-      const item = script[li];
-      const div = document.createElement('div');
-      div.className = 'line';
 
-      if(item.type === 'prompt'){
-        div.innerHTML = `<span class="prompt">${item.text}</span>`;
-        termBody.appendChild(div);
-        const nextCmd = script[li+1];
-        if(nextCmd && nextCmd.type === 'cmd'){
-          let ci = 0;
-          const cmdSpan = document.createElement('span');
-          div.appendChild(cmdSpan);
-          const typeCmd = setInterval(()=>{
-            cmdSpan.textContent += nextCmd.text[ci];
-            ci++;
-            if(ci >= nextCmd.text.length){
-              clearInterval(typeCmd);
-              li += 2;
-              setTimeout(typeLine, 220);
-            }
-          }, 38);
-          return;
-        }
-        li++;
-        setTimeout(typeLine, 150);
-      } else if(item.type === 'out-name'){
-        div.classList.add('out-name');
-        div.textContent = item.text;
-        termBody.appendChild(div);
-        li++;
-        setTimeout(typeLine, 260);
-      } else {
-        div.classList.add('out-muted');
-        div.textContent = item.text;
-        termBody.appendChild(div);
-        li++;
-        setTimeout(typeLine, 140);
+      const files = data.files || [];
+      if(files.length === 0){
+        statusEl.textContent = 'Belum ada foto di folder ini.';
+        return;
       }
+
+      statusEl.style.display = 'none';
+      files.forEach(file => {
+        const img = document.createElement('img');
+        img.src = `https://lh3.googleusercontent.com/d/${file.id}=w600`;
+        img.alt = file.name;
+        img.loading = 'lazy';
+        img.addEventListener('click', () => openLightbox(`https://lh3.googleusercontent.com/d/${file.id}=w1600`));
+        img.addEventListener('error', () => { img.remove(); });
+        grid.appendChild(img);
+      });
+    }catch(err){
+      statusEl.textContent = 'Gagal memuat galeri. Periksa koneksi atau pengaturan folder Drive.';
+      console.error(err);
     }
-    typeLine();
   }
+  loadGallery();
+
+  /* ---------- Lightbox ---------- */
+  function openLightbox(src){
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('show');
+  }
+  document.getElementById('lightbox-close').addEventListener('click', () => {
+    document.getElementById('lightbox').classList.remove('show');
+  });
+  document.getElementById('lightbox').addEventListener('click', (e) => {
+    if(e.target.id === 'lightbox') document.getElementById('lightbox').classList.remove('show');
+  });
+
+  /* ---------- RSVP (demo, tampil lokal saja) ---------- */
+  document.getElementById('rsvp-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    document.getElementById('rsvp-note').style.display = 'block';
+    document.getElementById('rsvp-form').reset();
+  });
 </script>
 
 </body>
