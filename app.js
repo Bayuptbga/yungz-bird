@@ -507,7 +507,6 @@ function renderApp() {
     root.innerHTML = `
       ${renderKamera()}
       ${state.viewerInstant ? renderViewer() : ''}
-      ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ''}
     `;
     return;
   }
@@ -543,7 +542,6 @@ function renderApp() {
     </div>
     ${state.tab === 'beranda' ? `<button class="fab-camera" data-tab="kamera" aria-label="Buat Instant baru">${ICONS.plus}</button>` : ''}
     ${state.viewerInstant ? renderViewer() : ''}
-    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ''}
   `;
 }
 
