@@ -126,7 +126,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .auth-error { color: var(--danger); font-size: 13px; font-family: var(--mono); }
 
 /* ---- Screen wrapper ---- */
-.screen { flex: 1; overflow-y: auto; padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+.screen { flex: 1; overflow-y: auto; padding-bottom: calc(98px + env(safe-area-inset-bottom, 0px)); }
 
 /* ---- Kamera (immersive, full-screen) ---- */
 .camera-immersive {
@@ -454,7 +454,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   left: 0; right: 0; bottom: 0;
   width: 100%;
   display: flex; align-items: center; justify-content: space-between;
-  height: 62px;
+  height: 82px;
   padding: 0 4px env(safe-area-inset-bottom, 0px);
   background: var(--bg-raised);
   border-top: 1px solid var(--line);
@@ -462,14 +462,14 @@ input:focus, textarea:focus { border-color: var(--flash); }
 }
 .nav-item {
   flex: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   background: none; border: none; color: var(--cream-dim); cursor: pointer;
-  font-family: var(--mono); font-size: 9.5px; font-weight: 600;
-  padding: 9px 4px;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  padding: 12px 4px;
   position: relative;
   transition: color 0.18s ease;
 }
-.nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+.nav-item svg { width: 24px; height: 24px; flex-shrink: 0; }
 .nav-item span:last-child {
   display: block; line-height: 1;
   white-space: nowrap;
@@ -477,23 +477,23 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .nav-icon-wrap {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 26px;
-  border-radius: 13px;
+  width: 48px; height: 32px;
+  border-radius: 16px;
   color: inherit;
   transition: background 0.18s ease, color 0.18s ease;
 }
 .nav-item.active { color: var(--cream); }
 .nav-item.active .nav-icon-wrap { background: var(--cream); color: var(--bg); }
 .nav-badge {
-  position: absolute; top: -4px; right: -2px;
-  min-width: 15px; height: 15px; padding: 0 3px;
+  position: absolute; top: -4px; right: -4px;
+  min-width: 17px; height: 17px; padding: 0 4px;
   border-radius: 999px; background: var(--flash); color: #1a0d05;
-  font-size: 9px; font-weight: 700; line-height: 15px; text-align: center;
+  font-size: 10px; font-weight: 700; line-height: 17px; text-align: center;
 }
 .fab-camera {
   position: fixed;
   right: 16px;
-  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(98px + env(safe-area-inset-bottom, 0px));
   width: 54px; height: 54px; padding: 0; border-radius: 50%;
   background: #FFFFFF;
   border: none;
