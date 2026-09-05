@@ -17,6 +17,7 @@ let state = {
   stream: null,
   capturedImage: null,
   caption: '',
+  postAudience: 'mutuals', // 'mutuals' | 'public'
   facing: 'user',
   flashOn: false,
   flashing: false,
@@ -328,7 +329,7 @@ function retake() {
 
 function exitCamera() {
   stopCamera();
-  setState({ tab: 'beranda', capturedImage: null, caption: '', cameraError: '' });
+  setState({ tab: 'beranda', capturedImage: null, caption: '', cameraError: '', postAudience: 'mutuals' });
   loadFeed();
 }
 
@@ -358,6 +359,7 @@ async function handlePost() {
     author_id: state.user.id,
     caption: state.caption.trim(),
     image_path: path,
+    audience: state.postAudience,
   });
   setState({ posting: false });
   if (error) {
@@ -367,7 +369,7 @@ async function handlePost() {
     showToast('Gagal mengirim: ' + error.message);
     return;
   }
-  setState({ capturedImage: null, caption: '', tab: 'beranda' });
+  setState({ capturedImage: null, caption: '', postAudience: 'mutuals', tab: 'beranda' });
   showToast('Instant terkirim! Hilang dalam 24 jam.');
   loadFeed();
   loadMyInstants();
@@ -631,7 +633,20 @@ function renderKamera() {
       ${state.capturedImage ? `
         <div class="caption-bar">
           <input id="caption-input" type="text" placeholder="Tulis caption (opsional)..." value="${esc(state.caption)}" maxlength="140" />
-          <div class="hint">Opsional &middot; tidak bisa diedit lagi setelah dikirim</div>
+          <div class="audience-toggle">
+            <button class="audience-opt ${state.postAudience === 'mutuals' ? 'active' : ''}" id="audience-mutuals-btn" type="button">
+              &#128274; Teman Mutual
+            </button>
+            <button class="audience-opt ${state.postAudience === 'public' ? 'active' : ''}" id="audience-public-btn" type="button">
+              &#127760; Publik
+            </button>
+          </div>
+          <div class="hint">
+            ${state.postAudience === 'public'
+              ? 'Bisa dilihat semua orang, termasuk yang belum berteman denganmu'
+              : 'Cuma bisa dilihat teman mutual (saling follow)'}
+            &middot; tidak bisa diedit lagi setelah dikirim
+          </div>
         </div>
       ` : ''}
       <div class="capture-controls">
@@ -945,6 +960,11 @@ function attachCameraHandlers() {
     captionInput.oninput = (e) => { state.caption = e.target.value; };
     captionInput.focus();
   }
+
+  const audienceMutualsBtn = document.getElementById('audience-mutuals-btn');
+  if (audienceMutualsBtn) audienceMutualsBtn.onclick = () => setState({ postAudience: 'mutuals' });
+  const audiencePublicBtn = document.getElementById('audience-public-btn');
+  if (audiencePublicBtn) audiencePublicBtn.onclick = () => setState({ postAudience: 'public' });
 
   const retakeBtn = document.getElementById('retake-btn');
   if (retakeBtn) retakeBtn.onclick = retake;
