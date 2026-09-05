@@ -278,14 +278,35 @@ async function handlePost() {
   if (state.posting) return;
   if (!state.capturedImage) return;
   setState({ posting: true });
+
+  // Foto disimpan sebagai file di Supabase Storage (bucket privat
+  // 'instant-photos'), bukan base64 di kolom database, biar hemat storage.
+  const instantId = crypto.randomUUID();
+  const path = `${state.user.id}/${instantId}.jpg`;
+  const blob = await (await fetch(state.capturedImage)).blob();
+
+  const { error: uploadError } = await supabase.storage
+    .from('instant-photos')
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+
+  if (uploadError) {
+    setState({ posting: false });
+    showToast('Gagal upload foto: ' + uploadError.message);
+    return;
+  }
+
   const { error } = await supabase.from('instants').insert({
+    id: instantId,
     author_id: state.user.id,
     caption: state.caption.trim(),
-    image_data: state.capturedImage,
+    image_path: path,
     audience: state.audience,
   });
   setState({ posting: false });
   if (error) {
+    // Insert row gagal: hapus lagi file yang sudah terlanjur ke-upload
+    // supaya tidak jadi sampah storage yang tak terpakai.
+    await supabase.storage.from('instant-photos').remove([path]);
     showToast('Gagal mengirim: ' + error.message);
     return;
   }
@@ -295,13 +316,26 @@ async function handlePost() {
   loadMyInstants();
 }
 
+// Ubah image_path (baris baru) jadi signed URL yang bisa dipakai di <img src>.
+// Baris lama yang masih punya image_data (base64 legacy) dibiarkan apa adanya.
+async function resolveImages(rows) {
+  const toSign = rows.filter(r => r.image_path && !r.image_data);
+  await Promise.all(toSign.map(async (r) => {
+    const { data, error } = await supabase.storage
+      .from('instant-photos')
+      .createSignedUrl(r.image_path, 3600);
+    if (!error && data) r.image_data = data.signedUrl;
+  }));
+  return rows;
+}
+
 // ---------------- FEED (Beranda) ----------------
 async function loadFeed() {
   if (!state.profile) return;
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('instants')
-    .select('id, caption, image_data, created_at, expires_at, audience, author_id, profiles!instants_author_id_fkey(username, display_name)')
+    .select('id, caption, image_data, image_path, created_at, expires_at, audience, author_id, profiles!instants_author_id_fkey(username, display_name)')
     .neq('author_id', state.user.id)
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: false });
@@ -309,6 +343,7 @@ async function loadFeed() {
   const { data: viewedRows } = await supabase.from('instant_views').select('instant_id').eq('viewer_id', state.user.id);
   const viewedSet = new Set((viewedRows || []).map(v => v.instant_id));
   const feed = (data || []).map(row => ({ ...row, viewed: viewedSet.has(row.id) }));
+  await resolveImages(feed);
   setState({ feed });
 }
 
@@ -329,7 +364,7 @@ async function loadMyInstants() {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('instants')
-    .select('id, caption, image_data, created_at, expires_at, audience')
+    .select('id, caption, image_data, image_path, created_at, expires_at, audience')
     .eq('author_id', state.user.id)
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: false });
@@ -341,6 +376,7 @@ async function loadMyInstants() {
     (views || []).forEach(v => { viewCounts[v.instant_id] = (viewCounts[v.instant_id] || 0) + 1; });
   }
   const myInstants = (data || []).map(d => ({ ...d, viewCount: viewCounts[d.id] || 0 }));
+  await resolveImages(myInstants);
   setState({ myInstants });
 }
 
