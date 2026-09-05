@@ -293,7 +293,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   position: relative; width: 100%; height: 100%; max-height: 100%;
   border-radius: 22px; overflow: hidden; background: #000; z-index: 2;
 }
-.viewer-card img { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.viewer-card img { width: 100%; height: 100%; object-fit: cover; background: #000; display: block; }
 .story-peek {
   position: absolute; inset: 0; margin: calc(var(--i) * 8px);
   border-radius: 22px; background: var(--bg-raised); border: 1px solid var(--line);
