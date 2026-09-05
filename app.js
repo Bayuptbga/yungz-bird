@@ -668,20 +668,22 @@ function renderViewer() {
         <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
       </div>
       <div class="viewer-stage">
-        ${Array.from({ length: peekCount }).map((_, i) => {
-          const depth = i + 1;
-          const peekItem = queue[idx + depth];
-          const dir = depth % 2 === 0 ? -1 : 1;
-          const rot = dir * (3 + depth * 2);
-          const bg = peekItem ? peekItem.image_data : '';
-          return `<div class="story-peek" style="--i:${depth}; --dir:${dir}; --rot:${rot}deg; background-image:url('${bg}')"></div>`;
-        }).join('')}
-        <div class="viewer-card">
-          ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `
-            <img class="viewer-card-fg" src="${it.image_data}" />
-          `}
-          <button class="story-tap story-tap-prev ${it.own ? '' : 'story-tap-disabled'}" id="story-prev" aria-label="Sebelumnya"></button>
-          <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
+        <div class="viewer-square">
+          ${Array.from({ length: peekCount }).map((_, i) => {
+            const depth = i + 1;
+            const peekItem = queue[idx + depth];
+            const dir = depth % 2 === 0 ? -1 : 1;
+            const rot = dir * (3 + depth * 2);
+            const bg = peekItem ? peekItem.image_data : '';
+            return `<div class="story-peek" style="--i:${depth}; --dir:${dir}; --rot:${rot}deg; background-image:url('${bg}')"></div>`;
+          }).join('')}
+          <div class="viewer-card">
+            ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `
+              <img class="viewer-card-fg" src="${it.image_data}" />
+            `}
+            <button class="story-tap story-tap-prev ${it.own ? '' : 'story-tap-disabled'}" id="story-prev" aria-label="Sebelumnya"></button>
+            <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
+          </div>
         </div>
       </div>
       <div class="viewer-info">

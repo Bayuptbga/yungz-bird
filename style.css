@@ -291,8 +291,9 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .story-seg.current { background: var(--cream); }
 
 .viewer-stage { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 22px; min-height: 0; perspective: 1000px; }
+.viewer-square { position: relative; width: 100%; max-height: 100%; aspect-ratio: 1 / 1; margin: auto; }
 .viewer-card {
-  position: relative; width: 100%; height: 100%; max-height: 100%;
+  position: absolute; inset: 0;
   border-radius: 22px; overflow: hidden; background: #000; z-index: 2;
   box-shadow: 0 18px 44px rgba(0,0,0,0.55);
 }
