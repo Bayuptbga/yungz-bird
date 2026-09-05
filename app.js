@@ -32,6 +32,7 @@ let state = {
   toast: '',
   shielded: false,
   cameraError: '',
+  viewerAnimating: false,
 };
 
 function setState(patch) {
@@ -407,16 +408,36 @@ async function markStoryViewed(item) {
   loadFeed();
 }
 
+function animateDiscard(direction, onDone) {
+  const card = root.querySelector('.viewer-card');
+  if (!card) { onDone(); return; }
+  state.viewerAnimating = true;
+  card.classList.add('discard-' + direction);
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    card.removeEventListener('transitionend', finish);
+    onDone();
+  };
+  card.addEventListener('transitionend', finish);
+  setTimeout(finish, 420); // jaga-jaga kalau transitionend tidak terpicu
+}
+
 function storyNext() {
+  if (state.viewerAnimating) return;
   const nextIndex = state.storyIndex + 1;
-  if (nextIndex >= state.storyQueue.length) {
-    closeViewer();
-    showToast('Semua Instant sudah kamu lihat');
-    return;
-  }
-  const item = state.storyQueue[nextIndex];
-  setState({ storyIndex: nextIndex, viewerInstant: item, shielded: false });
-  markStoryViewed(item);
+  animateDiscard('next', () => {
+    if (nextIndex >= state.storyQueue.length) {
+      setState({ viewerAnimating: false });
+      closeViewer();
+      showToast('Semua Instant sudah kamu lihat');
+      return;
+    }
+    const item = state.storyQueue[nextIndex];
+    setState({ storyIndex: nextIndex, viewerInstant: item, shielded: false, viewerAnimating: false });
+    markStoryViewed(item);
+  });
 }
 
 function storyPrev() {
@@ -424,9 +445,12 @@ function storyPrev() {
     showToast('Instant cuma bisa dilihat sekali');
     return;
   }
+  if (state.viewerAnimating) return;
   const prevIndex = state.storyIndex - 1;
   if (prevIndex < 0) return;
-  setState({ storyIndex: prevIndex, viewerInstant: state.storyQueue[prevIndex], shielded: false });
+  animateDiscard('prev', () => {
+    setState({ storyIndex: prevIndex, viewerInstant: state.storyQueue[prevIndex], shielded: false, viewerAnimating: false });
+  });
 }
 
 function closeViewer() {
@@ -601,27 +625,26 @@ function renderBeranda() {
     return `<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Profil.</div>`;
   }
   const groups = groupFeedByAuthor(state.feed);
-  return groups.map(group => {
+  return `<div class="feed-grid">${groups.map(group => {
     const items = group.items; // terbaru duluan (mengikuti urutan feed)
     const top = items[0];
     const hasUnviewed = items.some(i => !i.viewed);
-    const peekCount = Math.min(items.length - 1, 3);
     const username = top.profiles?.username || 'user';
     return `
-      <div class="instant-stack ${hasUnviewed ? '' : 'viewed'}" data-open-user="${group.authorId}">
-        <div class="mystack-deck">
-          ${Array.from({ length: peekCount }).map((_, i) => `<div class="mystack-peek" style="--i:${peekCount - i}"></div>`).join('')}
-          <img class="mystack-top" src="${top.image_data}" />
-          ${items.length > 1 ? `<span class="mystack-count">${items.length}</span>` : ''}
-        </div>
-        <div class="meta">
+      <div class="instant-card ${hasUnviewed ? 'unviewed' : 'viewed'}" data-open-user="${group.authorId}">
+        <div class="instant-card-photo"><img src="${top.image_data}" /></div>
+        <div class="instant-card-scrim"></div>
+        ${items.length > 1 ? `<span class="instant-card-count">${items.length} FOTO</span>` : ''}
+        ${hasUnviewed
+          ? `<span class="instant-card-badge">BARU</span><span class="instant-card-hint">KETUK&nbsp;UNTUK&nbsp;LIHAT</span>`
+          : ''}
+        <div class="instant-card-info">
           <div class="who">@${esc(username)}</div>
-          <div class="when">${timeAgo(top.created_at)} lalu &middot; ${timeLeft(top.expires_at)}</div>
+          <div class="when">${timeLeft(top.expires_at)}</div>
         </div>
-        ${hasUnviewed ? '<span class="badge">BARU</span>' : ''}
       </div>
     `;
-  }).join('');
+  }).join('')}</div>`;
 }
 
 function renderProfil() {
@@ -667,17 +690,20 @@ function renderMyInstantsStack() {
   const items = state.myInstants; // sudah terurut: terbaru duluan
   const top = items[0];
   const totalViews = items.reduce((sum, i) => sum + (i.viewCount || 0), 0);
-  const peekCount = Math.min(items.length - 1, 3);
+  const peekCount = Math.min(items.length - 1, 2);
   return `
-    <div class="mystack" data-open-stack>
-      <div class="mystack-deck">
-        ${Array.from({ length: peekCount }).map((_, i) => `<div class="mystack-peek" style="--i:${peekCount - i}"></div>`).join('')}
-        <img class="mystack-top" src="${top.image_data}" />
-        ${items.length > 1 ? `<span class="mystack-count">${items.length}</span>` : ''}
-      </div>
-      <div class="meta">
-        ${top.caption ? `<div class="cap">${esc(top.caption)}</div>` : ''}
-        <div class="when">${timeLeft(top.expires_at)} &middot; dilihat ${totalViews} kali total</div>
+    <div class="mystack-hero-wrap" data-open-stack>
+      <div class="mystack-hero-deck">
+        ${Array.from({ length: peekCount }).map((_, i) => `<div class="mystack-hero-peek" style="--i:${peekCount - i}"></div>`).join('')}
+        <div class="mystack-hero-frame">
+          <img src="${top.image_data}" />
+          <div class="instant-card-scrim"></div>
+          ${items.length > 1 ? `<span class="mystack-hero-count">${items.length}</span>` : ''}
+          <div class="mystack-hero-info">
+            ${top.caption ? `<div class="cap">${esc(top.caption)}</div>` : ''}
+            <div class="when">${timeLeft(top.expires_at)} &middot; dilihat ${totalViews} kali total</div>
+          </div>
+        </div>
       </div>
     </div>
   `;
