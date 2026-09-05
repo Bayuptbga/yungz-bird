@@ -24,9 +24,15 @@ let state = {
   feed: [],
   friends: [],
   pendingOut: [],
+  followers: [],
+  following: [],
+  pengikutBaru: [],
   myInstants: [],
-  addFriendInput: '',
-  friendError: '',
+  searchQuery: '',
+  searchResult: null,
+  searchError: '',
+  searching: false,
+  profilView: 'main', // main | pengikut | diikuti
   viewerInstant: null,
   storyQueue: [],
   storyIndex: 0,
@@ -139,46 +145,97 @@ async function handleSignOut() {
   if (pollHandle) clearInterval(pollHandle);
   stopCamera();
   await supabase.auth.signOut();
-  setState({ user: null, profile: null, feed: [], friends: [], tab: 'beranda' });
+  setState({ user: null, profile: null, feed: [], friends: [], followers: [], following: [], searchResult: null, searchQuery: '', profilView: 'main', tab: 'beranda' });
 }
 
 // ---------------- FRIENDS ----------------
 async function loadFriends() {
   const uid = state.user.id;
-  const { data: following } = await supabase.from('follows').select('followee_id, profiles!follows_followee_id_fkey(username, display_name)').eq('follower_id', uid);
-  const { data: followers } = await supabase.from('follows').select('follower_id').eq('followee_id', uid);
-  const followerIds = new Set((followers || []).map(f => f.follower_id));
-  const mutuals = [];
-  const pendingOut = [];
-  (following || []).forEach(f => {
-    const entry = { id: f.followee_id, username: f.profiles?.username, display_name: f.profiles?.display_name };
-    if (followerIds.has(f.followee_id)) mutuals.push(entry);
-    else pendingOut.push(entry);
-  });
-  setState({ friends: mutuals, pendingOut });
+  const [{ data: followingRows, error: followingErr }, { data: followerRows, error: followerErr }] = await Promise.all([
+    supabase.from('follows').select('followee_id, profiles!follows_followee_id_fkey(username, display_name)').eq('follower_id', uid),
+    supabase.from('follows').select('follower_id, profiles!follows_follower_id_fkey(username, display_name)').eq('followee_id', uid),
+  ]);
+  if (followingErr || followerErr) {
+    showToast((followingErr || followerErr).message);
+    return;
+  }
+  const following = (followingRows || []).map(f => ({ id: f.followee_id, username: f.profiles?.username, display_name: f.profiles?.display_name }));
+  const followers = (followerRows || []).map(f => ({ id: f.follower_id, username: f.profiles?.username, display_name: f.profiles?.display_name }));
+  const followingIds = new Set(following.map(f => f.id));
+  const followerIds = new Set(followers.map(f => f.id));
+
+  const friends = following.filter(f => followerIds.has(f.id));       // saling follow -> teman
+  const pendingOut = following.filter(f => !followerIds.has(f.id));    // saya follow, belum follow balik
+  const pengikutBaru = followers.filter(f => !followingIds.has(f.id)); // follow saya, belum saya follow balik
+
+  setState({ friends, pendingOut, followers, following, pengikutBaru });
 }
 
-async function handleAddFriend() {
-  const uname = state.addFriendInput.trim().toLowerCase();
-  if (!uname) return;
-  if (uname === state.profile.username) {
-    setState({ friendError: 'Tidak bisa menambah diri sendiri' });
-    return;
-  }
-  const { data: target, error: findErr } = await supabase.from('profiles').select('id, username').eq('username', uname).maybeSingle();
-  if (findErr || !target) {
-    setState({ friendError: 'Username tidak ditemukan' });
-    return;
-  }
-  const { error } = await supabase.from('follows').insert({ follower_id: state.user.id, followee_id: target.id });
-  if (error && !error.message.includes('duplicate')) {
-    setState({ friendError: error.message });
-    return;
-  }
-  setState({ addFriendInput: '', friendError: '' });
-  showToast('Ditambahkan. Mutual jika mereka follow balik.');
-  loadFriends();
+// Status relasi saya terhadap user lain: 'teman' | 'mengikuti' | 'pengikut' | 'none'
+function relationOf(targetId) {
+  const isFollowing = state.following.some(f => f.id === targetId);
+  const isFollower = state.followers.some(f => f.id === targetId);
+  if (isFollowing && isFollower) return 'teman';
+  if (isFollowing) return 'mengikuti';
+  if (isFollower) return 'pengikut';
+  return 'none';
 }
+
+async function handleFollow(targetId) {
+  const { error } = await supabase.from('follows').insert({ follower_id: state.user.id, followee_id: targetId });
+  if (error && !error.message.includes('duplicate')) {
+    showToast(error.message);
+    return;
+  }
+  const wasFollower = state.followers.some(f => f.id === targetId);
+  showToast(wasFollower ? 'Sekarang jadi teman mutual!' : 'Diikuti');
+  await loadFriends();
+  refreshSearchResult();
+}
+
+async function handleUnfollow(targetId) {
+  const { error } = await supabase.from('follows').delete().eq('follower_id', state.user.id).eq('followee_id', targetId);
+  if (error) {
+    showToast(error.message);
+    return;
+  }
+  showToast('Berhenti mengikuti');
+  await loadFriends();
+  refreshSearchResult();
+}
+
+async function handleRemoveFollower(targetId) {
+  const { error } = await supabase.from('follows').delete().eq('follower_id', targetId).eq('followee_id', state.user.id);
+  if (error) {
+    showToast(error.message);
+    return;
+  }
+  showToast('Pengikut dihapus');
+  await loadFriends();
+  refreshSearchResult();
+}
+
+// Sinkronkan tombol relasi di hasil pencarian setelah follow/unfollow/hapus
+function refreshSearchResult() {
+  if (state.searchResult) setState({ searchResult: { ...state.searchResult } });
+}
+
+async function handleSearchUser() {
+  const uname = state.searchQuery.trim().toLowerCase();
+  if (!uname) return;
+  if (state.profile && uname === state.profile.username) {
+    setState({ searchError: 'Itu username kamu sendiri', searchResult: null });
+    return;
+  }
+  setState({ searching: true, searchError: '', searchResult: null });
+  const { data: target, error: findErr } = await supabase.from('profiles').select('id, username, display_name').eq('username', uname).maybeSingle();
+  if (findErr || !target) {
+    setState({ searching: false, searchError: 'Username tidak ditemukan' });
+    return;
+  }
+  setState({ searching: false, searchError: '', searchResult: target });
+}
+
 
 // ---------------- CAMERA ----------------
 let cameraStarting = false;
@@ -516,7 +573,7 @@ function renderApp() {
     <div class="screen">
       ${state.tab === 'beranda' ? renderBeranda() : ''}
       ${state.tab === 'chat' ? renderChat() : ''}
-      ${state.tab === 'kontak' ? renderKontak() : ''}
+      ${state.tab === 'cari' ? renderCari() : ''}
       ${state.tab === 'profil' ? renderProfil() : ''}
     </div>
     <div class="bottom-nav">
@@ -531,9 +588,9 @@ function renderApp() {
         <span class="nav-icon-wrap">${ICONS.chat}</span>
         <span>Chat</span>
       </button>
-      <button class="nav-item ${state.tab === 'kontak' ? 'active' : ''}" data-tab="kontak">
-        <span class="nav-icon-wrap">${ICONS.contacts}</span>
-        <span>Kontak</span>
+      <button class="nav-item ${state.tab === 'cari' ? 'active' : ''}" data-tab="cari">
+        <span class="nav-icon-wrap">${ICONS.search}</span>
+        <span>Cari</span>
       </button>
       <button class="nav-item ${state.tab === 'profil' ? 'active' : ''}" data-tab="profil">
         <span class="nav-icon-wrap">${ICONS.profile}</span>
@@ -624,44 +681,85 @@ function renderBeranda() {
   }).join('')}</div>`;
 }
 
-function renderProfil() {
-  return `
-    <div class="profil-header">
-      <div class="avatar-lg">${esc((state.profile.username || '?')[0].toUpperCase())}</div>
-      <div class="profil-uname">@${esc(state.profile.username)}</div>
-      <button class="btn btn-ghost" id="signout-btn">Keluar</button>
-    </div>
-  `;
+// Tombol relasi gaya Instagram: Ikuti / Mengikuti / Teman, atau grup (Ikuti Balik + Hapus) untuk pengikut
+function renderFollowBtn(targetId) {
+  const rel = relationOf(targetId);
+  if (rel === 'teman') {
+    return `<button class="btn btn-friend btn-sm" data-unfollow="${targetId}">Teman</button>`;
+  }
+  if (rel === 'mengikuti') {
+    return `<button class="btn btn-ghost btn-sm" data-unfollow="${targetId}">Mengikuti</button>`;
+  }
+  if (rel === 'pengikut') {
+    return `
+      <div class="follow-btn-group">
+        <button class="btn btn-primary btn-sm" data-follow="${targetId}">Ikuti Balik</button>
+        <button class="btn btn-ghost btn-sm" data-remove-follower="${targetId}">Hapus</button>
+      </div>
+    `;
+  }
+  return `<button class="btn btn-primary btn-sm" data-follow="${targetId}">Ikuti</button>`;
 }
 
-function renderKontak() {
+function renderProfil() {
+  if (state.profilView === 'main') {
+    return `
+      <div class="profil-header">
+        <div class="avatar-lg">${esc((state.profile.username || '?')[0].toUpperCase())}</div>
+        <div class="profil-uname">@${esc(state.profile.username)}</div>
+        <div class="profil-stats">
+          <button class="profil-stat" data-profil-view="pengikut">
+            <span class="num">${state.followers.length}</span><span class="label">Pengikut</span>
+          </button>
+          <button class="profil-stat" data-profil-view="diikuti">
+            <span class="num">${state.following.length}</span><span class="label">Diikuti</span>
+          </button>
+        </div>
+        <button class="btn btn-ghost" id="signout-btn">Keluar</button>
+      </div>
+    `;
+  }
+
+  const isPengikut = state.profilView === 'pengikut';
+  const list = isPengikut ? state.followers : state.following;
+  const title = isPengikut ? 'Pengikut' : 'Diikuti';
+  const emptyMsg = isPengikut
+    ? 'Belum ada yang mengikuti kamu. Bagikan username kamu supaya orang lain bisa follow.'
+    : 'Kamu belum mengikuti siapa pun. Cari username di tab Cari untuk mulai follow.';
+
   return `
-    <div class="profil-hint" style="padding:14px 16px 0">
-      Bagikan username kamu ke teman supaya mereka bisa follow balik dan jadi mutual.
+    <div class="profil-list-header">
+      <button class="back-btn" data-profil-view="main">&larr;</button>
+      <span class="section-label" style="padding:0">${title.toUpperCase()} (${list.length})</span>
     </div>
-    <span class="section-label">TAMBAH TEMAN</span>
-    <div class="add-friend-bar">
-      <input id="add-friend-input" type="text" placeholder="Username teman" value="${esc(state.addFriendInput)}" />
-      <button class="btn btn-primary" id="add-friend-btn">Tambah</button>
-    </div>
-    ${state.friendError ? `<div class="auth-error" style="padding:0 16px 10px">${esc(state.friendError)}</div>` : ''}
-    <span class="section-label">TEMAN MUTUAL</span>
-    ${state.friends.length ? state.friends.map(f => `
+    ${list.length ? list.map(f => `
       <div class="friend-row">
         <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
         <div class="uname">@${esc(f.username)}</div>
-        <div class="status">MUTUAL</div>
+        ${renderFollowBtn(f.id)}
       </div>
-    `).join('') : `<div class="feed-empty" style="padding:24px"><span class="hud-label">BELUM ADA TEMAN</span>Tambahkan username teman untuk mulai berbagi Instant.</div>`}
-    ${state.pendingOut.length ? `
-      <span class="section-label">MENUNGGU FOLLOW BALIK</span>
-      ${state.pendingOut.map(f => `
-        <div class="friend-row">
-          <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
-          <div class="uname">@${esc(f.username)}</div>
-          <div class="status">PENDING</div>
-        </div>
-      `).join('')}
+    `).join('') : `<div class="feed-empty" style="padding:24px"><span class="hud-label">KOSONG</span>${emptyMsg}</div>`}
+  `;
+}
+
+function renderCari() {
+  const result = state.searchResult;
+  return `
+    <div class="profil-hint" style="padding:14px 16px 0">
+      Cari username teman untuk mulai follow.
+    </div>
+    <div class="add-friend-bar">
+      <input id="search-input" type="text" placeholder="Cari username" value="${esc(state.searchQuery)}" />
+      <button class="btn btn-primary" id="search-btn" ${state.searching ? 'disabled' : ''}>${state.searching ? '...' : 'Cari'}</button>
+    </div>
+    ${state.searchError ? `<div class="auth-error" style="padding:0 16px 10px">${esc(state.searchError)}</div>` : ''}
+    ${result ? `
+      <span class="section-label">HASIL</span>
+      <div class="friend-row">
+        <div class="avatar">${esc((result.username || '?')[0].toUpperCase())}</div>
+        <div class="uname">@${esc(result.username)}</div>
+        ${renderFollowBtn(result.id)}
+      </div>
     ` : ''}
   `;
 }
@@ -748,7 +846,8 @@ function attachAppHandlers() {
         stopCamera();
         setState({ tab });
         if (tab === 'beranda') { loadFeed(); loadMyInstants(); }
-        if (tab === 'kontak') loadFriends();
+        if (tab === 'cari') { setState({ searchQuery: '', searchResult: null, searchError: '' }); loadFriends(); }
+        if (tab === 'profil') { setState({ profilView: 'main' }); loadFriends(); }
       }
     };
   });
@@ -772,12 +871,26 @@ function attachAppHandlers() {
   const signoutBtn = document.getElementById('signout-btn');
   if (signoutBtn) signoutBtn.onclick = handleSignOut;
 
-  const addFriendInput = document.getElementById('add-friend-input');
-  if (addFriendInput) {
-    addFriendInput.oninput = (e) => { state.addFriendInput = e.target.value; };
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.oninput = (e) => { state.searchQuery = e.target.value; };
+    searchInput.onkeydown = (e) => { if (e.key === 'Enter') handleSearchUser(); };
   }
-  const addFriendBtn = document.getElementById('add-friend-btn');
-  if (addFriendBtn) addFriendBtn.onclick = handleAddFriend;
+  const searchBtn = document.getElementById('search-btn');
+  if (searchBtn) searchBtn.onclick = handleSearchUser;
+
+  root.querySelectorAll('[data-profil-view]').forEach(el => {
+    el.onclick = () => setState({ profilView: el.getAttribute('data-profil-view') });
+  });
+  root.querySelectorAll('[data-follow]').forEach(el => {
+    el.onclick = () => handleFollow(el.getAttribute('data-follow'));
+  });
+  root.querySelectorAll('[data-unfollow]').forEach(el => {
+    el.onclick = () => handleUnfollow(el.getAttribute('data-unfollow'));
+  });
+  root.querySelectorAll('[data-remove-follower]').forEach(el => {
+    el.onclick = () => handleRemoveFollower(el.getAttribute('data-remove-follower'));
+  });
 
   attachViewerHandlers();
 }
