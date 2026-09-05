@@ -249,9 +249,17 @@ input:focus, textarea:focus { border-color: var(--flash); }
   gap: 12px;
   padding: 14px 16px 6px;
 }
+.instant-card-deck { position: relative; cursor: pointer; }
+.instant-card-peek {
+  position: absolute; inset: 0;
+  border-radius: 18px; background: var(--bg-raised); border: 1px solid var(--line);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+  transform: translateY(calc(var(--i) * 5px)) rotate(calc(var(--i) * 1.6deg));
+  z-index: calc(3 - var(--i));
+}
 .instant-card {
   position: relative;
-  cursor: pointer;
+  z-index: 4;
   aspect-ratio: 3 / 4;
   border-radius: 18px;
   overflow: hidden;
@@ -260,7 +268,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   box-shadow: 0 10px 22px rgba(0,0,0,0.35);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.instant-card:active { transform: scale(0.96); }
+.instant-card-deck:active .instant-card { transform: scale(0.96); }
 .instant-card.unviewed {
   border-color: var(--hud);
   box-shadow: 0 0 0 1.5px var(--hud), 0 10px 24px rgba(0,0,0,0.45);
