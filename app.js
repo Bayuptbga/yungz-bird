@@ -649,7 +649,7 @@ function renderViewer() {
   const queue = state.storyQueue;
   const idx = state.storyIndex;
   const remaining = Math.max(0, queue.length - idx - 1);
-  const peekCount = Math.min(remaining, 2);
+  const peekCount = Math.min(remaining, 3);
 
   return `
     <div class="viewer-overlay">
@@ -661,7 +661,14 @@ function renderViewer() {
         <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
       </div>
       <div class="viewer-stage">
-        ${Array.from({ length: peekCount }).map((_, i) => `<div class="story-peek" style="--i:${i + 1}"></div>`).join('')}
+        ${Array.from({ length: peekCount }).map((_, i) => {
+          const depth = i + 1;
+          const peekItem = queue[idx + depth];
+          const dir = depth % 2 === 0 ? -1 : 1;
+          const rot = dir * (4 + depth * 3);
+          const bg = peekItem ? peekItem.image_data : '';
+          return `<div class="story-peek" style="--i:${depth}; --rot:${rot}deg; background-image:url('${bg}')"></div>`;
+        }).join('')}
         <div class="viewer-card">
           ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `
             <div class="viewer-card-bg" style="background-image:url('${it.image_data}')"></div>
