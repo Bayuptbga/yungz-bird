@@ -444,7 +444,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   transform: translateX(-50%);
   width: calc(100% - 32px);
   max-width: 380px;
-  display: flex; align-items: center; justify-content: space-around;
+  display: flex; align-items: center; justify-content: space-between;
   height: 62px;
   background: var(--bg-raised);
   border: 1px solid var(--line);
@@ -454,7 +454,8 @@ input:focus, textarea:focus { border-color: var(--flash); }
   z-index: 40;
 }
 .nav-item {
-  display: flex; flex-direction: row; align-items: center; gap: 0;
+  flex: 1;
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0;
   background: none; border: none; color: var(--cream-dim); cursor: pointer;
   font-family: var(--mono); font-size: 11px; font-weight: 600;
   padding: 11px 14px;
@@ -470,19 +471,22 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .nav-item.active { color: var(--bg); background: var(--cream); }
 .nav-item.active span { max-width: 80px; opacity: 1; margin-left: 6px; }
 .nav-item .dot {
-  position: absolute; top: 6px; right: 10px;
+  position: absolute; top: 6px; right: calc(50% - 20px);
   width: 6px; height: 6px; border-radius: 50%; background: var(--flash);
 }
 .nav-item-camera {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  margin-top: -26px;
+  flex: none;
   width: 52px; height: 52px; padding: 0; border-radius: 50%;
   background: var(--flash);
   border: 3px solid var(--bg-raised);
   color: #1a0d05;
   display: flex; align-items: center; justify-content: center;
-  margin-top: -26px;
   box-shadow: 0 6px 18px rgba(255,69,0,0.45);
   cursor: pointer;
-  flex-shrink: 0;
+  z-index: 1;
 }
 .nav-item-camera svg { width: 22px; height: 22px; }
 .nav-item-camera.active { outline: 2px solid var(--hud); outline-offset: 2px; }
