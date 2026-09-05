@@ -10,11 +10,15 @@ let state = {
   authMode: 'signin',
   authError: '',
   authLoading: false,
-  tab: 'kamera', // beranda | kamera | profil
+  tab: 'beranda', // beranda | kamera | profil
   stream: null,
   capturedImage: null,
   caption: '',
   audience: 'mutuals',
+  facing: 'user',
+  flashOn: false,
+  flashing: false,
+  audienceMenuOpen: false,
   posting: false,
   feed: [],
   friends: [],
@@ -24,6 +28,7 @@ let state = {
   viewerInstant: null,
   toast: '',
   shielded: false,
+  cameraError: '',
 };
 
 function setState(patch) {
@@ -102,18 +107,23 @@ async function handleAuthSubmit(username, email, password) {
         options: { data: { username: username.toLowerCase(), display_name: username } }
       });
       if (error) throw error;
-      state.user = data.user;
       if (!data.session) {
-        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (!signInErr) state.user = signInData.user;
+        // Proyek ini mewajibkan konfirmasi email sebelum sesi dibuat.
+        setState({
+          authLoading: false,
+          authMode: 'signin',
+          authError: 'Akun dibuat. Cek email kamu untuk konfirmasi, lalu masuk di sini.',
+        });
+        return;
       }
+      state.user = data.user;
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       state.user = data.user;
     }
     await loadProfile();
-    setState({ authLoading: false });
+    setState({ authLoading: false, tab: 'beranda' });
     startPolling();
   } catch (e) {
     setState({ authLoading: false, authError: e.message || 'Terjadi kesalahan' });
@@ -124,7 +134,7 @@ async function handleSignOut() {
   if (pollHandle) clearInterval(pollHandle);
   stopCamera();
   await supabase.auth.signOut();
-  setState({ user: null, profile: null, feed: [], friends: [], tab: 'kamera' });
+  setState({ user: null, profile: null, feed: [], friends: [], tab: 'beranda' });
 }
 
 // ---------------- FRIENDS ----------------
@@ -171,16 +181,29 @@ async function startCamera() {
   if (cameraStarting || state.stream) return;
   cameraStarting = true;
   stopCamera();
+  state.cameraError = '';
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: state.facing }, audio: false });
     state.stream = stream;
     render();
     const video = document.getElementById('camera-video');
     if (video) { video.srcObject = stream; await video.play().catch(() => {}); }
   } catch (e) {
-    showToast('Tidak bisa akses kamera: ' + e.message);
+    setState({ cameraError: e.message || 'Tidak bisa akses kamera' });
   }
   cameraStarting = false;
+}
+
+async function flipCamera() {
+  if (cameraStarting) return;
+  const nextFacing = state.facing === 'user' ? 'environment' : 'user';
+  stopCamera();
+  setState({ facing: nextFacing, cameraError: '' });
+  await startCamera();
+}
+
+function toggleFlash() {
+  setState({ flashOn: !state.flashOn });
 }
 
 function stopCamera() {
@@ -190,21 +213,27 @@ function stopCamera() {
   }
 }
 
-function captureFrame() {
+async function captureFrame() {
   const video = document.getElementById('camera-video');
   if (!video || !video.videoWidth) return;
+  if (state.flashOn) {
+    setState({ flashing: true });
+    await new Promise(r => setTimeout(r, 160));
+  }
   const canvas = document.createElement('canvas');
   const maxW = 720;
   const scale = Math.min(1, maxW / video.videoWidth);
   canvas.width = video.videoWidth * scale;
   canvas.height = video.videoHeight * scale;
   const ctx = canvas.getContext('2d');
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
+  if (state.facing === 'user') {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   const dataUrl = canvas.toDataURL('image/jpeg', 0.62);
   stopCamera();
-  setState({ capturedImage: dataUrl });
+  setState({ capturedImage: dataUrl, flashing: false });
 }
 
 function retake() {
@@ -212,7 +241,14 @@ function retake() {
   startCamera();
 }
 
+function exitCamera() {
+  stopCamera();
+  setState({ tab: 'beranda', capturedImage: null, caption: '', cameraError: '', audienceMenuOpen: false });
+  loadFeed();
+}
+
 async function handlePost() {
+  if (state.posting) return;
   if (!state.capturedImage || !state.caption.trim()) {
     showToast('Tulis caption dulu sebelum kirim');
     return;
@@ -288,7 +324,11 @@ function render() {
     return;
   }
   renderApp();
-  attachAppHandlers();
+  if (state.tab === 'kamera') {
+    attachCameraHandlers();
+  } else {
+    attachAppHandlers();
+  }
 }
 
 function renderAuth() {
@@ -333,12 +373,19 @@ function renderAuth() {
 }
 
 function renderApp() {
+  if (state.tab === 'kamera') {
+    root.innerHTML = `
+      ${renderKamera()}
+      ${state.viewerInstant ? renderViewer() : ''}
+      ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ''}
+    `;
+    return;
+  }
   const feedUnviewedCount = state.feed.filter(f => !f.viewed).length;
   root.innerHTML = `
     <div class="topbar"><div class="wordmark">instants<span>.</span></div></div>
     <div class="screen">
       ${state.tab === 'beranda' ? renderBeranda() : ''}
-      ${state.tab === 'kamera' ? renderKamera() : ''}
       ${state.tab === 'profil' ? renderProfil() : ''}
     </div>
     <div class="bottom-nav">
@@ -347,7 +394,7 @@ function renderApp() {
         ${ICONS.home}
         <span>Beranda</span>
       </button>
-      <button class="nav-item nav-item-camera ${state.tab === 'kamera' ? 'active' : ''}" data-tab="kamera">
+      <button class="nav-item nav-item-camera" data-tab="kamera">
         ${ICONS.camera}
       </button>
       <button class="nav-item ${state.tab === 'profil' ? 'active' : ''}" data-tab="profil">
@@ -361,36 +408,64 @@ function renderApp() {
 }
 
 function renderKamera() {
-  if (state.capturedImage) {
-    return `
-      <div class="camera-wrap">
-        <img class="captured" src="${state.capturedImage}" />
-        <div class="camera-hud"><span>PRATINJAU</span><span>${esc(state.audience === 'mutuals' ? 'MUTUAL' : 'TEMAN DEKAT')}</span></div>
-      </div>
-      <div class="caption-bar">
-        <input id="caption-input" type="text" placeholder="Tulis caption sebelum kirim..." value="${esc(state.caption)}" maxlength="140" />
-        <div class="hint">Wajib diisi &middot; tidak bisa diedit lagi setelah dikirim</div>
-      </div>
-      <div class="audience-toggle">
-        <button data-aud="mutuals" class="${state.audience === 'mutuals' ? 'active' : ''}">MUTUAL FOLLOWERS</button>
-        <button data-aud="close_friends" class="${state.audience === 'close_friends' ? 'active' : ''}">TEMAN DEKAT</button>
-      </div>
-      <div class="capture-row">
-        <button class="btn" id="retake-btn">Ambil ulang</button>
-        <button class="btn btn-primary" id="send-btn" ${state.posting ? 'disabled' : ''}>${state.posting ? 'Mengirim...' : 'Kirim Instant'}</button>
-      </div>
-    `;
-  }
+  const audienceLabel = state.audience === 'mutuals' ? 'Teman' : 'Teman Dekat';
+
+  const frameInner = state.capturedImage
+    ? `<img class="captured" src="${state.capturedImage}" />`
+    : state.cameraError
+      ? `<div class="camera-error">
+           <span class="hud-label" style="color:var(--danger)">KAMERA TIDAK TERSEDIA</span>
+           <span>${esc(state.cameraError)}</span>
+           <button class="btn btn-primary" id="camera-retry-btn">Coba lagi</button>
+         </div>`
+      : state.stream
+        ? `<video id="camera-video" class="${state.facing === 'user' ? 'mirror' : ''}" autoplay playsinline muted></video>`
+        : `<div class="center-loading" style="height:100%">Menyiapkan kamera&hellip;</div>`;
+
   return `
-    <div class="camera-wrap">
-      ${state.stream ? `<video id="camera-video" autoplay playsinline muted></video>` : `<div class="center-loading" style="height:100%">Menyiapkan kamera&hellip;</div>`}
-      <div class="camera-hud"><span><span class="rec-dot"></span>LIVE</span><span>${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></div>
-    </div>
-    <div class="caption-bar">
-      <div class="hint">Tanpa filter, tanpa edit &mdash; ambil apa adanya. Kamera tidak bisa upload dari galeri.</div>
-    </div>
-    <div class="capture-row">
-      <button class="shutter-btn" id="shutter-btn" ${!state.stream ? 'disabled' : ''}></button>
+    <div class="camera-immersive">
+      <div class="camera-topbar">
+        <button class="icon-btn" id="camera-close-btn">&times;</button>
+        <span class="camera-title">${state.capturedImage ? 'Pratinjau' : 'Instan baru'}</span>
+        <span style="width:36px"></span>
+      </div>
+      <div class="camera-stage">
+        <div class="camera-frame">
+          ${frameInner}
+          ${state.flashing ? '<div class="camera-flash-overlay"></div>' : ''}
+        </div>
+      </div>
+      ${state.capturedImage ? `
+        <div class="caption-bar">
+          <input id="caption-input" type="text" placeholder="Tulis caption sebelum kirim..." value="${esc(state.caption)}" maxlength="140" />
+          <div class="hint">Wajib diisi &middot; tidak bisa diedit lagi setelah dikirim</div>
+        </div>
+      ` : `
+        <div class="caption-bar">
+          <div class="hint">Tanpa filter, tanpa edit &mdash; ambil apa adanya. Kamera tidak bisa upload dari galeri.</div>
+        </div>
+      `}
+      <div class="capture-controls">
+        ${state.capturedImage ? `
+          <button class="btn" id="retake-btn">Ambil ulang</button>
+          <button class="btn btn-primary" id="send-btn" ${state.posting ? 'disabled' : ''}>${state.posting ? 'Mengirim...' : 'Kirim'}</button>
+        ` : `
+          <button class="icon-btn ${state.flashOn ? 'active' : ''}" id="flash-toggle-btn" title="Flash layar">&#9889;</button>
+          <button class="shutter-btn" id="shutter-btn" ${!state.stream ? 'disabled' : ''}></button>
+          <button class="icon-btn" id="flip-camera-btn" title="Ganti kamera">&#8635;</button>
+        `}
+      </div>
+      ${!state.capturedImage ? `
+        <div class="audience-select">
+          <button class="audience-pill" id="audience-pill"><span class="pill-dot"></span>${esc(audienceLabel)}<span class="chev">&#8964;</span></button>
+          ${state.audienceMenuOpen ? `
+            <div class="audience-menu">
+              <button data-aud="mutuals">Teman</button>
+              <button data-aud="close_friends">Teman Dekat</button>
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -472,7 +547,6 @@ function attachAppHandlers() {
       const tab = el.getAttribute('data-tab');
       if (tab === 'kamera' && !state.capturedImage) {
         setState({ tab });
-        startCamera();
       } else {
         stopCamera();
         setState({ tab });
@@ -482,41 +556,12 @@ function attachAppHandlers() {
     };
   });
 
-  if (state.tab === 'kamera' && !state.stream && !state.capturedImage) {
-    startCamera();
-  }
-
-  const shutterBtn = document.getElementById('shutter-btn');
-  if (shutterBtn) shutterBtn.onclick = captureFrame;
-
-  const captionInput = document.getElementById('caption-input');
-  if (captionInput) {
-    captionInput.oninput = (e) => { state.caption = e.target.value; };
-    captionInput.focus();
-  }
-
-  root.querySelectorAll('[data-aud]').forEach(el => {
-    el.onclick = () => setState({ audience: el.getAttribute('data-aud') });
-  });
-
-  const retakeBtn = document.getElementById('retake-btn');
-  if (retakeBtn) retakeBtn.onclick = retake;
-  const sendBtn = document.getElementById('send-btn');
-  if (sendBtn) sendBtn.onclick = handlePost;
-
   root.querySelectorAll('[data-open]').forEach(el => {
     el.onclick = () => {
       const id = el.getAttribute('data-open');
       const item = state.feed.find(f => f.id === id);
       if (item) openInstant(item);
     };
-  });
-
-  const closeBtn = document.getElementById('close-viewer');
-  if (closeBtn) closeBtn.onclick = closeViewer;
-
-  root.querySelectorAll('.emoji-btn').forEach(el => {
-    el.onclick = () => sendReaction('emoji', el.getAttribute('data-emoji'));
   });
 
   const signoutBtn = document.getElementById('signout-btn');
@@ -528,6 +573,57 @@ function attachAppHandlers() {
   }
   const addFriendBtn = document.getElementById('add-friend-btn');
   if (addFriendBtn) addFriendBtn.onclick = handleAddFriend;
+
+  attachViewerHandlers();
+}
+
+function attachCameraHandlers() {
+  if (!state.stream && !state.capturedImage && !state.cameraError) {
+    startCamera();
+  }
+
+  const closeBtn = document.getElementById('camera-close-btn');
+  if (closeBtn) closeBtn.onclick = exitCamera;
+
+  const cameraRetryBtn = document.getElementById('camera-retry-btn');
+  if (cameraRetryBtn) cameraRetryBtn.onclick = () => { setState({ cameraError: '' }); startCamera(); };
+
+  const shutterBtn = document.getElementById('shutter-btn');
+  if (shutterBtn) shutterBtn.onclick = captureFrame;
+
+  const flashBtn = document.getElementById('flash-toggle-btn');
+  if (flashBtn) flashBtn.onclick = toggleFlash;
+
+  const flipBtn = document.getElementById('flip-camera-btn');
+  if (flipBtn) flipBtn.onclick = flipCamera;
+
+  const captionInput = document.getElementById('caption-input');
+  if (captionInput) {
+    captionInput.oninput = (e) => { state.caption = e.target.value; };
+    captionInput.focus();
+  }
+
+  const retakeBtn = document.getElementById('retake-btn');
+  if (retakeBtn) retakeBtn.onclick = retake;
+  const sendBtn = document.getElementById('send-btn');
+  if (sendBtn) sendBtn.onclick = handlePost;
+
+  const audiencePill = document.getElementById('audience-pill');
+  if (audiencePill) audiencePill.onclick = () => setState({ audienceMenuOpen: !state.audienceMenuOpen });
+  root.querySelectorAll('.audience-menu [data-aud]').forEach(el => {
+    el.onclick = () => setState({ audience: el.getAttribute('data-aud'), audienceMenuOpen: false });
+  });
+
+  attachViewerHandlers();
+}
+
+function attachViewerHandlers() {
+  const closeBtn = document.getElementById('close-viewer');
+  if (closeBtn) closeBtn.onclick = closeViewer;
+
+  root.querySelectorAll('.emoji-btn').forEach(el => {
+    el.onclick = () => sendReaction('emoji', el.getAttribute('data-emoji'));
+  });
 }
 
 init();
