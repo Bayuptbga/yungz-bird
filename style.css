@@ -484,7 +484,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   cursor: pointer;
 }
 .nav-item-camera svg { width: 20px; height: 20px; }
-.nav-item-camera.active { outline: 2px solid var(--hud); outline-offset: 2px; }
+.nav-item-camera.active { outline: 2px solid var(--flash); outline-offset: 2px; filter: brightness(1.12); }
 
 .toast {
   position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
