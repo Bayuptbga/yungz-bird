@@ -459,32 +459,45 @@ input:focus, textarea:focus { border-color: var(--flash); }
   background: none; border: none; color: var(--cream-dim); cursor: pointer;
   font-family: var(--mono); font-size: 9.5px; font-weight: 600;
   padding: 9px 4px;
-  border-radius: 16px;
   position: relative;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition: color 0.18s ease;
 }
 .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
-.nav-item span {
+.nav-item span:last-child {
   display: block; line-height: 1;
   white-space: nowrap;
 }
-.nav-item.active { color: var(--bg); background: var(--cream); }
-.nav-item .dot {
-  position: absolute; top: 6px; right: calc(50% - 14px);
-  width: 6px; height: 6px; border-radius: 50%; background: var(--flash);
+.nav-icon-wrap {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 26px;
+  border-radius: 13px;
+  color: inherit;
+  transition: background 0.18s ease, color 0.18s ease;
 }
-.nav-item-camera {
-  flex: none;
-  width: 46px; height: 46px; padding: 0; border-radius: 50%;
+.nav-item.active { color: var(--cream); }
+.nav-item.active .nav-icon-wrap { background: var(--cream); color: var(--bg); }
+.nav-badge {
+  position: absolute; top: -4px; right: -2px;
+  min-width: 15px; height: 15px; padding: 0 3px;
+  border-radius: 999px; background: var(--flash); color: #1a0d05;
+  font-size: 9px; font-weight: 700; line-height: 15px; text-align: center;
+}
+.fab-camera {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: 54px; height: 54px; padding: 0; border-radius: 50%;
   background: var(--flash);
   border: none;
   color: #1a0d05;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 12px rgba(255,69,0,0.4);
+  box-shadow: 0 8px 20px rgba(255,69,0,0.45);
   cursor: pointer;
+  z-index: 41;
 }
-.nav-item-camera svg { width: 20px; height: 20px; }
-.nav-item-camera.active { outline: 2px solid var(--flash); outline-offset: 2px; filter: brightness(1.12); }
+.fab-camera svg { width: 24px; height: 24px; }
 
 .toast {
   position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);

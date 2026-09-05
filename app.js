@@ -522,26 +522,26 @@ function renderApp() {
     </div>
     <div class="bottom-nav">
       <button class="nav-item ${state.tab === 'beranda' ? 'active' : ''}" data-tab="beranda">
-        ${feedUnviewedCount ? '<span class="dot"></span>' : ''}
-        ${ICONS.home}
+        <span class="nav-icon-wrap">
+          ${ICONS.home}
+          ${feedUnviewedCount ? `<span class="nav-badge">${feedUnviewedCount}</span>` : ''}
+        </span>
         <span>Beranda</span>
       </button>
       <button class="nav-item ${state.tab === 'chat' ? 'active' : ''}" data-tab="chat">
-        ${ICONS.chat}
+        <span class="nav-icon-wrap">${ICONS.chat}</span>
         <span>Chat</span>
       </button>
-      <button class="nav-item nav-item-camera" data-tab="kamera">
-        ${ICONS.camera}
-      </button>
       <button class="nav-item ${state.tab === 'kontak' ? 'active' : ''}" data-tab="kontak">
-        ${ICONS.contacts}
+        <span class="nav-icon-wrap">${ICONS.contacts}</span>
         <span>Kontak</span>
       </button>
       <button class="nav-item ${state.tab === 'profil' ? 'active' : ''}" data-tab="profil">
-        ${ICONS.profile}
+        <span class="nav-icon-wrap">${ICONS.profile}</span>
         <span>Profil</span>
       </button>
     </div>
+    ${state.tab === 'beranda' ? `<button class="fab-camera" data-tab="kamera" aria-label="Buat Instant baru">${ICONS.plus}</button>` : ''}
     ${state.viewerInstant ? renderViewer() : ''}
     ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ''}
   `;
