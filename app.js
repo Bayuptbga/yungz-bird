@@ -32,7 +32,6 @@ let state = {
   toast: '',
   shielded: false,
   cameraError: '',
-  viewerAnimating: false,
 };
 
 function setState(patch) {
@@ -408,36 +407,16 @@ async function markStoryViewed(item) {
   loadFeed();
 }
 
-function animateDiscard(direction, onDone) {
-  const card = root.querySelector('.viewer-card');
-  if (!card) { onDone(); return; }
-  state.viewerAnimating = true;
-  card.classList.add('discard-' + direction);
-  let finished = false;
-  const finish = () => {
-    if (finished) return;
-    finished = true;
-    card.removeEventListener('transitionend', finish);
-    onDone();
-  };
-  card.addEventListener('transitionend', finish);
-  setTimeout(finish, 420); // jaga-jaga kalau transitionend tidak terpicu
-}
-
 function storyNext() {
-  if (state.viewerAnimating) return;
   const nextIndex = state.storyIndex + 1;
-  animateDiscard('next', () => {
-    if (nextIndex >= state.storyQueue.length) {
-      setState({ viewerAnimating: false });
-      closeViewer();
-      showToast('Semua Instant sudah kamu lihat');
-      return;
-    }
-    const item = state.storyQueue[nextIndex];
-    setState({ storyIndex: nextIndex, viewerInstant: item, shielded: false, viewerAnimating: false });
-    markStoryViewed(item);
-  });
+  if (nextIndex >= state.storyQueue.length) {
+    closeViewer();
+    showToast('Semua Instant sudah kamu lihat');
+    return;
+  }
+  const item = state.storyQueue[nextIndex];
+  setState({ storyIndex: nextIndex, viewerInstant: item, shielded: false });
+  markStoryViewed(item);
 }
 
 function storyPrev() {
@@ -445,12 +424,9 @@ function storyPrev() {
     showToast('Instant cuma bisa dilihat sekali');
     return;
   }
-  if (state.viewerAnimating) return;
   const prevIndex = state.storyIndex - 1;
   if (prevIndex < 0) return;
-  animateDiscard('prev', () => {
-    setState({ storyIndex: prevIndex, viewerInstant: state.storyQueue[prevIndex], shielded: false, viewerAnimating: false });
-  });
+  setState({ storyIndex: prevIndex, viewerInstant: state.storyQueue[prevIndex], shielded: false });
 }
 
 function closeViewer() {
