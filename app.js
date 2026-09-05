@@ -688,12 +688,12 @@ function renderBeranda() {
     `;
   };
 
-  const renderPublicStoryCard = (group) => {
+  const renderPublicGridCard = (group) => {
     const items = group.items;
     const top = items[0];
     const username = top.profiles?.username || 'user';
     return `
-      <div class="story-item story-item-public">
+      <div class="grid-item">
         <div class="story-card-wrap" data-open-user="${group.authorId}">
           ${items.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
           <div class="story-card story-card-unviewed">
@@ -709,14 +709,7 @@ function renderBeranda() {
     `;
   };
 
-  const publicRow = publicGroups.length ? `
-    <div class="section-label" style="padding:14px 16px 0">INSTAN PUBLIK</div>
-    <div class="stories-row">
-      ${publicGroups.map(renderPublicStoryCard).join('')}
-    </div>
-  ` : '';
-
-  const storiesRow = `
+  const combinedRow = `
     <div class="stories-row">
       <div class="story-item" ${hasMine ? 'data-open-stack' : 'data-tab="kamera"'}>
         <div class="story-card-wrap">
@@ -732,10 +725,18 @@ function renderBeranda() {
     </div>
   `;
 
-  if (!groups.length) {
-    return `${storiesRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>${publicRow}`;
-  }
-  return `${storiesRow}${publicRow}`;
+  const friendSection = groups.length
+    ? combinedRow
+    : `${combinedRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
+
+  const publicSection = publicGroups.length ? `
+    <div class="section-label" style="padding:14px 16px 0">INSTAN PUBLIK</div>
+    <div class="instants-grid">
+      ${publicGroups.map(renderPublicGridCard).join('')}
+    </div>
+  ` : '';
+
+  return `${friendSection}${publicSection}`;
 }
 
 // Tombol relasi gaya Instagram: Ikuti / Mengikuti / Teman, atau grup (Ikuti Balik + Hapus) untuk pengikut

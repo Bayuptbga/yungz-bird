@@ -295,9 +295,22 @@ input:focus, textarea:focus { border-color: var(--flash); }
   flex-shrink: 0; width: 78px; cursor: pointer;
   background: none; border: none; padding: 0;
 }
+.stories-row .story-card-wrap { width: 78px; height: 100px; }
+
+/* ---- Grid instan (Beranda: instan publik) ---- */
+.instants-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 10px 16px 16px;
+}
+.grid-item {
+  cursor: pointer;
+  background: none; border: none; padding: 0;
+}
 .story-card-wrap {
   position: relative;
-  width: 78px; height: 100px;
+  width: 100%; aspect-ratio: 3 / 4;
 }
 .story-card-shadow {
   position: absolute; inset: 0;
@@ -337,8 +350,6 @@ input:focus, textarea:focus { border-color: var(--flash); }
   background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.story-item-public { width: 96px; }
-.story-item-public .story-card-wrap { width: 96px; height: 96px; }
 .story-card-label-row {
   display: flex; align-items: center; justify-content: space-between; gap: 5px;
   white-space: normal; padding: 5px 5px 6px;
