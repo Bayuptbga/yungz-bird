@@ -248,7 +248,6 @@ input:focus, textarea:focus { border-color: var(--flash); }
   display: flex; flex-direction: column;
   max-width: 480px; margin: 0 auto;
 }
-.viewer-overlay img { flex: 1; width: 100%; object-fit: contain; background: #000; }
 .viewer-top { display: flex; justify-content: space-between; align-items: center; padding: 14px; }
 .viewer-caption { padding: 14px; font-size: 15px; }
 .viewer-reactions { display: flex; gap: 8px; padding: 10px 14px 20px; flex-wrap: wrap; }
@@ -258,6 +257,28 @@ input:focus, textarea:focus { border-color: var(--flash); }
   display: flex; align-items: center; justify-content: center;
   font-family: var(--mono); color: var(--cream-dim); font-size: 13px; text-align: center; padding: 24px;
 }
+
+/* ---- Story progress & kartu numpuk (viewer stories) ---- */
+.story-progress { display: flex; gap: 4px; padding: 12px 14px 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+.story-seg { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.22); }
+.story-seg.done { background: var(--hud); }
+.story-seg.current { background: var(--cream); }
+
+.viewer-stage { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 22px; min-height: 0; }
+.viewer-card {
+  position: relative; width: 100%; height: 100%; max-height: 100%;
+  border-radius: 22px; overflow: hidden; background: #000; z-index: 2;
+}
+.viewer-card img { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.story-peek {
+  position: absolute; inset: 0; margin: calc(var(--i) * 8px);
+  border-radius: 22px; background: var(--bg-raised); border: 1px solid var(--line);
+  transform: scale(calc(1 - var(--i) * 0.035)) translateY(calc(var(--i) * 8px));
+  z-index: calc(2 - var(--i));
+}
+.story-tap { position: absolute; top: 0; bottom: 0; width: 50%; background: none; border: none; padding: 0; margin: 0; cursor: pointer; }
+.story-tap-prev { left: 0; }
+.story-tap-next { right: 0; }
 
 /* ---- Profil (gabungan teman + akun) ---- */
 .profil-header {

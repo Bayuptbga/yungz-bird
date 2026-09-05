@@ -27,6 +27,8 @@ let state = {
   addFriendInput: '',
   friendError: '',
   viewerInstant: null,
+  storyQueue: [],
+  storyIndex: 0,
   toast: '',
   shielded: false,
   cameraError: '',
@@ -290,16 +292,15 @@ async function loadFeed() {
   setState({ feed });
 }
 
-async function openInstant(instant) {
-  if (instant.viewed) {
-    showToast('Instant ini sudah kamu lihat sebelumnya');
+async function openStory(id, own) {
+  const queue = buildStoryQueue();
+  let idx = queue.findIndex(q => q.id === id && q.own === own);
+  if (idx < 0) {
+    if (!own) showToast('Instant ini sudah kamu lihat sebelumnya');
     return;
   }
-  setState({ viewerInstant: instant });
-  if (instant.author_id && instant.author_id !== state.user.id) {
-    await supabase.from('instant_views').insert({ instant_id: instant.id, viewer_id: state.user.id });
-    loadFeed();
-  }
+  setState({ storyQueue: queue, storyIndex: idx, viewerInstant: queue[idx] });
+  markStoryViewed(queue[idx]);
 }
 
 // ---------------- INSTANT MILIK SENDIRI (Profil) ----------------
@@ -323,12 +324,39 @@ async function loadMyInstants() {
   setState({ myInstants });
 }
 
-function openMyInstant(item) {
-  setState({ viewerInstant: { ...item, own: true } });
+// ---------------- STORY QUEUE (kartu numpuk, instant saya + teman) ----------------
+function buildStoryQueue() {
+  const mine = state.myInstants.map(m => ({ ...m, own: true }));
+  const others = state.feed.filter(f => !f.viewed).map(f => ({ ...f, own: false }));
+  return [...mine, ...others];
+}
+
+async function markStoryViewed(item) {
+  if (!item || item.own) return;
+  await supabase.from('instant_views').insert({ instant_id: item.id, viewer_id: state.user.id });
+  loadFeed();
+}
+
+function storyNext() {
+  const nextIndex = state.storyIndex + 1;
+  if (nextIndex >= state.storyQueue.length) {
+    closeViewer();
+    showToast('Semua Instant sudah kamu lihat');
+    return;
+  }
+  const item = state.storyQueue[nextIndex];
+  setState({ storyIndex: nextIndex, viewerInstant: item, shielded: false });
+  markStoryViewed(item);
+}
+
+function storyPrev() {
+  const prevIndex = state.storyIndex - 1;
+  if (prevIndex < 0) return;
+  setState({ storyIndex: prevIndex, viewerInstant: state.storyQueue[prevIndex], shielded: false });
 }
 
 function closeViewer() {
-  setState({ viewerInstant: null, shielded: false });
+  setState({ viewerInstant: null, shielded: false, storyQueue: [], storyIndex: 0 });
 }
 
 async function sendReaction(kind, content) {
@@ -564,13 +592,28 @@ function renderProfil() {
 
 function renderViewer() {
   const it = state.viewerInstant;
+  const queue = state.storyQueue;
+  const idx = state.storyIndex;
+  const remaining = Math.max(0, queue.length - idx - 1);
+  const peekCount = Math.min(remaining, 2);
+
   return `
     <div class="viewer-overlay">
+      <div class="story-progress">
+        ${queue.map((_, i) => `<span class="story-seg ${i < idx ? 'done' : ''} ${i === idx ? 'current' : ''}"></span>`).join('')}
+      </div>
       <div class="viewer-top">
         <span class="hud-label">${it.own ? 'Instant kamu' : '@' + esc(it.profiles ? it.profiles.username : state.profile.username)}</span>
         <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
       </div>
-      ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `<img src="${it.image_data}" />`}
+      <div class="viewer-stage">
+        ${Array.from({ length: peekCount }).map((_, i) => `<div class="story-peek" style="--i:${i + 1}"></div>`).join('')}
+        <div class="viewer-card">
+          ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `<img src="${it.image_data}" />`}
+          <button class="story-tap story-tap-prev" id="story-prev" aria-label="Sebelumnya"></button>
+          <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
+        </div>
+      </div>
       <div class="viewer-caption">${esc(it.caption)}</div>
       ${it.own
         ? `<div class="viewer-caption" style="padding-top:0;color:var(--cream-dim);font-family:var(--mono);font-size:12px">Dilihat ${it.viewCount || 0} kali &middot; ${timeLeft(it.expires_at)}</div>`
@@ -597,19 +640,11 @@ function attachAppHandlers() {
   });
 
   root.querySelectorAll('[data-open]').forEach(el => {
-    el.onclick = () => {
-      const id = el.getAttribute('data-open');
-      const item = state.feed.find(f => f.id === id);
-      if (item) openInstant(item);
-    };
+    el.onclick = () => openStory(el.getAttribute('data-open'), false);
   });
 
   root.querySelectorAll('[data-open-mine]').forEach(el => {
-    el.onclick = () => {
-      const id = el.getAttribute('data-open-mine');
-      const item = state.myInstants.find(f => f.id === id);
-      if (item) openMyInstant(item);
-    };
+    el.onclick = () => openStory(el.getAttribute('data-open-mine'), true);
   });
 
   const signoutBtn = document.getElementById('signout-btn');
@@ -668,6 +703,11 @@ function attachCameraHandlers() {
 function attachViewerHandlers() {
   const closeBtn = document.getElementById('close-viewer');
   if (closeBtn) closeBtn.onclick = closeViewer;
+
+  const prevBtn = document.getElementById('story-prev');
+  if (prevBtn) prevBtn.onclick = storyPrev;
+  const nextBtn = document.getElementById('story-next');
+  if (nextBtn) nextBtn.onclick = storyNext;
 
   root.querySelectorAll('.emoji-btn').forEach(el => {
     el.onclick = () => sendReaction('emoji', el.getAttribute('data-emoji'));
