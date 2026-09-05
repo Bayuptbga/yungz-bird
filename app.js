@@ -392,7 +392,7 @@ async function loadFeed() {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('instants')
-    .select('id, caption, image_data, image_path, created_at, expires_at, author_id, profiles!instants_author_id_fkey(username, display_name)')
+    .select('id, caption, image_data, image_path, created_at, expires_at, author_id, audience, profiles!instants_author_id_fkey(username, display_name)')
     .neq('author_id', state.user.id)
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: false });
@@ -650,51 +650,92 @@ function renderKamera() {
 
 function renderBeranda() {
   const hasMine = state.myInstants.length > 0;
-  const groups = groupFeedByAuthor(state.feed).filter(group => group.items.some(i => !i.viewed));
+  const mutualItems = state.feed.filter(i => i.audience !== 'public');
+  const publicItems = state.feed.filter(i => i.audience === 'public');
+  const groups = groupFeedByAuthor(mutualItems).filter(group => group.items.some(i => !i.viewed));
+  const publicGroups = groupFeedByAuthor(publicItems).filter(group => group.items.some(i => !i.viewed));
+
+  const renderStoryCard = (group) => {
+    const items = group.items;
+    const top = items[0];
+    const username = top.profiles?.username || 'user';
+    return `
+      <div class="story-item" data-open-user="${group.authorId}">
+        <div class="story-card-wrap">
+          ${items.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
+          <div class="story-card story-card-unviewed">
+            <img src="${top.image_data}" />
+            <div class="story-card-label">@${esc(username)}</div>
+            ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  const renderPublicStoryCard = (group) => {
+    const items = group.items;
+    const top = items[0];
+    const username = top.profiles?.username || 'user';
+    return `
+      <div class="story-item story-item-public">
+        <div class="story-card-wrap" data-open-user="${group.authorId}">
+          ${items.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
+          <div class="story-card story-card-unviewed">
+            <img src="${top.image_data}" />
+            <div class="story-card-label">@${esc(username)}</div>
+            ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
+          </div>
+        </div>
+        ${renderFollowBtn(group.authorId, true)}
+      </div>
+    `;
+  };
+
+  const publicRow = publicGroups.length ? `
+    <div class="section-label" style="padding:14px 16px 0">INSTAN PUBLIK</div>
+    <div class="stories-row">
+      ${publicGroups.map(renderPublicStoryCard).join('')}
+    </div>
+  ` : '';
 
   const storiesRow = `
     <div class="stories-row">
       <div class="story-item" ${hasMine ? 'data-open-stack' : 'data-tab="kamera"'}>
-        <div class="story-ring ${hasMine ? 'story-ring-mine' : 'story-ring-empty'}">
-          <div class="story-thumb">
+        <div class="story-card-wrap">
+          ${hasMine && state.myInstants.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
+          <div class="story-card ${hasMine ? 'story-card-mine' : 'story-card-empty'}">
             ${hasMine ? `<img src="${state.myInstants[0].image_data}" />` : `<span class="story-plus">${ICONS.plus}</span>`}
+            <div class="story-card-label">Anda</div>
+            ${hasMine && state.myInstants.length > 1 ? `<span class="story-count">${state.myInstants.length}</span>` : ''}
           </div>
         </div>
-        <span class="story-label">Anda</span>
       </div>
-      ${groups.map(group => {
-        const items = group.items; // terbaru duluan (mengikuti urutan feed)
-        const top = items[0];
-        const username = top.profiles?.username || 'user';
-        return `
-          <div class="story-item" data-open-user="${group.authorId}">
-            <div class="story-ring story-ring-unviewed">
-              <div class="story-thumb"><img src="${top.image_data}" /></div>
-              ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
-            </div>
-            <span class="story-label">@${esc(username)}</span>
-          </div>
-        `;
-      }).join('')}
+      ${groups.map(renderStoryCard).join('')}
     </div>
   `;
 
   if (!groups.length) {
-    return `${storiesRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
+    return `${storiesRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>${publicRow}`;
   }
   return storiesRow;
 }
 
 // Tombol relasi gaya Instagram: Ikuti / Mengikuti / Teman, atau grup (Ikuti Balik + Hapus) untuk pengikut
-function renderFollowBtn(targetId) {
+// compact=true -> versi mini untuk dipakai di bawah kartu instan publik (lebar sempit)
+function renderFollowBtn(targetId, compact = false) {
   const rel = relationOf(targetId);
+  const sizeCls = compact ? 'btn-xs' : 'btn-sm';
   if (rel === 'teman') {
-    return `<button class="btn btn-friend btn-sm" data-unfollow="${targetId}">Teman</button>`;
+    return `<button class="btn btn-friend ${sizeCls}" data-unfollow="${targetId}">Teman</button>`;
   }
   if (rel === 'mengikuti') {
-    return `<button class="btn btn-ghost btn-sm" data-unfollow="${targetId}">Mengikuti</button>`;
+    return `<button class="btn btn-ghost ${sizeCls}" data-unfollow="${targetId}">Mengikuti</button>`;
   }
   if (rel === 'pengikut') {
+    if (compact) {
+      return `<button class="btn btn-primary ${sizeCls}" data-follow="${targetId}">Ikuti Balik</button>`;
+    }
     return `
       <div class="follow-btn-group">
         <button class="btn btn-primary btn-sm" data-follow="${targetId}">Ikuti Balik</button>
@@ -702,7 +743,7 @@ function renderFollowBtn(targetId) {
       </div>
     `;
   }
-  return `<button class="btn btn-primary btn-sm" data-follow="${targetId}">Ikuti</button>`;
+  return `<button class="btn btn-primary ${sizeCls}" data-follow="${targetId}">Ikuti</button>`;
 }
 
 function renderProfil() {
