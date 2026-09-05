@@ -315,10 +315,7 @@ async function loadFeed() {
 async function openStory(id, own) {
   const queue = own ? buildOwnStoryQueue() : buildFriendsStoryQueue();
   let idx = queue.findIndex(q => q.id === id);
-  if (idx < 0) {
-    if (!own) showToast('Instant ini sudah kamu lihat sebelumnya');
-    return;
-  }
+  if (idx < 0) return;
   setState({ storyQueue: queue, storyIndex: idx, viewerInstant: queue[idx] });
   markStoryViewed(queue[idx]);
 }
@@ -361,12 +358,12 @@ function buildOwnStoryQueue() {
 }
 
 function buildFriendsStoryQueue() {
-  const unviewedGroups = groupFeedByAuthor(state.feed.filter(f => !f.viewed));
-  return unviewedGroups.flatMap(g => g.items.map(f => ({ ...f, own: false })));
+  const groups = groupFeedByAuthor(state.feed);
+  return groups.flatMap(g => g.items.map(f => ({ ...f, own: false })));
 }
 
 async function markStoryViewed(item) {
-  if (!item || item.own) return;
+  if (!item || item.own || item.viewed) return;
   await supabase.from('instant_views').insert({ instant_id: item.id, viewer_id: state.user.id });
   loadFeed();
 }
@@ -705,12 +702,9 @@ function attachAppHandlers() {
     el.onclick = () => {
       const authorId = el.getAttribute('data-open-user');
       const group = state.feed.filter(f => f.author_id === authorId);
+      if (!group.length) return;
       const firstUnviewed = group.find(f => !f.viewed);
-      if (!firstUnviewed) {
-        showToast('Instant ini sudah kamu lihat sebelumnya');
-        return;
-      }
-      openStory(firstUnviewed.id, false);
+      openStory((firstUnviewed || group[0]).id, false);
     };
   });
 
