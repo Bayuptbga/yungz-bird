@@ -313,14 +313,15 @@ input:focus, textarea:focus { border-color: var(--flash); }
   background-color: var(--bg-raised);
   background-size: cover; background-position: center;
   border: 1px solid var(--line);
-  box-shadow: 0 14px 32px rgba(0,0,0,0.5);
-  transform-origin: center bottom;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.45);
+  transform-origin: center center;
   transform:
-    translateY(calc(var(--i) * 9px))
-    scale(calc(1 - var(--i) * 0.06))
+    translate(calc(var(--dir, 1) * var(--i) * 16px), calc(var(--i) * 14px))
+    scale(calc(1 - var(--i) * 0.12))
     rotate(var(--rot, 0deg));
   z-index: calc(2 - var(--i));
-  filter: brightness(0.55) saturate(0.85);
+  filter: brightness(0.4) saturate(0.75) blur(0.5px);
+  opacity: calc(1 - var(--i) * 0.14);
   transition: transform 0.2s ease;
 }
 .story-tap { position: absolute; top: 0; bottom: 0; width: 50%; background: none; border: none; padding: 0; margin: 0; cursor: pointer; z-index: 3; }
