@@ -276,10 +276,7 @@ function exitCamera() {
 
 async function handlePost() {
   if (state.posting) return;
-  if (!state.capturedImage || !state.caption.trim()) {
-    showToast('Tulis caption dulu sebelum kirim');
-    return;
-  }
+  if (!state.capturedImage) return;
   setState({ posting: true });
   const { error } = await supabase.from('instants').insert({
     author_id: state.user.id,
@@ -530,8 +527,8 @@ function renderKamera() {
       </div>
       ${state.capturedImage ? `
         <div class="caption-bar">
-          <input id="caption-input" type="text" placeholder="Tulis caption sebelum kirim..." value="${esc(state.caption)}" maxlength="140" />
-          <div class="hint">Wajib diisi &middot; tidak bisa diedit lagi setelah dikirim</div>
+          <input id="caption-input" type="text" placeholder="Tulis caption (opsional)..." value="${esc(state.caption)}" maxlength="140" />
+          <div class="hint">Opsional &middot; tidak bisa diedit lagi setelah dikirim</div>
         </div>
       ` : `
         <div class="caption-bar">
@@ -643,7 +640,7 @@ function renderMyInstantsStack() {
         ${items.length > 1 ? `<span class="mystack-count">${items.length}</span>` : ''}
       </div>
       <div class="meta">
-        <div class="cap">${esc(top.caption)}</div>
+        ${top.caption ? `<div class="cap">${esc(top.caption)}</div>` : ''}
         <div class="when">${timeLeft(top.expires_at)} &middot; dilihat ${totalViews} kali total</div>
       </div>
     </div>
@@ -667,15 +664,17 @@ function renderViewer() {
         <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
       </div>
       <div class="viewer-stage">
-        ${Array.from({ length: peekCount }).map((_, i) => `<div class="story-peek" style="--i:${i + 1}"></div>`).join('')}
-        <div class="viewer-card">
-          ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `<img src="${it.image_data}" />`}
-          <button class="story-tap story-tap-prev" id="story-prev" aria-label="Sebelumnya"></button>
-          <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
+        <div class="viewer-frame">
+          ${Array.from({ length: peekCount }).map((_, i) => `<div class="story-peek" style="--i:${i + 1}"></div>`).join('')}
+          <div class="viewer-card">
+            ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `<img src="${it.image_data}" />`}
+            <button class="story-tap story-tap-prev" id="story-prev" aria-label="Sebelumnya"></button>
+            <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
+          </div>
         </div>
       </div>
       <div class="viewer-info">
-        <div class="viewer-caption">${esc(it.caption)}</div>
+        ${it.caption ? `<div class="viewer-caption">${esc(it.caption)}</div>` : ''}
         ${it.own
           ? `<div class="viewer-stats">Dilihat ${it.viewCount || 0} kali &middot; ${timeLeft(it.expires_at)}</div>`
           : `<div class="viewer-reactions">
