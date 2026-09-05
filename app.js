@@ -649,36 +649,40 @@ function renderKamera() {
 }
 
 function renderBeranda() {
-  const myBlock = `
-    <span class="section-label">INSTAN SAYA</span>
-    ${state.myInstants.length ? renderMyInstantsStack() : `<div class="feed-empty" style="padding:16px"><span class="hud-label">BELUM ADA INSTAN AKTIF</span>Instan yang kamu kirim akan muncul di sini sampai 24 jam.</div>`}
-    <div class="feed-divider"><span>INSTAN TEMAN</span></div>
-  `;
+  const hasMine = state.myInstants.length > 0;
   const groups = groupFeedByAuthor(state.feed).filter(group => group.items.some(i => !i.viewed));
-  if (!groups.length) {
-    return `${myBlock}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Kontak.</div>`;
-  }
-  return `${myBlock}<div class="feed-grid">${groups.map(group => {
-    const items = group.items; // terbaru duluan (mengikuti urutan feed)
-    const top = items[0];
-    const username = top.profiles?.username || 'user';
-    const peekCount = Math.min(items.length - 1, 2);
-    return `
-      <div class="instant-card-deck" data-open-user="${group.authorId}">
-        ${Array.from({ length: peekCount }).map((_, i) => `<div class="instant-card-peek" style="--i:${peekCount - i}"></div>`).join('')}
-        <div class="instant-card unviewed">
-          <div class="instant-card-photo"><img src="${top.image_data}" /></div>
-          <div class="instant-card-scrim"></div>
-          ${items.length > 1 ? `<span class="instant-card-count">${items.length} FOTO</span>` : ''}
-          <span class="instant-card-badge">BARU</span><span class="instant-card-hint">KETUK&nbsp;UNTUK&nbsp;LIHAT</span>
-          <div class="instant-card-info">
-            <div class="who">@${esc(username)}</div>
-            <div class="when">${timeLeft(top.expires_at)}</div>
+
+  const storiesRow = `
+    <div class="stories-row">
+      <div class="story-item" ${hasMine ? 'data-open-stack' : 'data-tab="kamera"'}>
+        <div class="story-ring ${hasMine ? 'story-ring-mine' : 'story-ring-empty'}">
+          <div class="story-thumb">
+            ${hasMine ? `<img src="${state.myInstants[0].image_data}" />` : `<span class="story-plus">${ICONS.plus}</span>`}
           </div>
         </div>
+        <span class="story-label">Anda</span>
       </div>
-    `;
-  }).join('')}</div>`;
+      ${groups.map(group => {
+        const items = group.items; // terbaru duluan (mengikuti urutan feed)
+        const top = items[0];
+        const username = top.profiles?.username || 'user';
+        return `
+          <div class="story-item" data-open-user="${group.authorId}">
+            <div class="story-ring story-ring-unviewed">
+              <div class="story-thumb"><img src="${top.image_data}" /></div>
+              ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
+            </div>
+            <span class="story-label">@${esc(username)}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  if (!groups.length) {
+    return `${storiesRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
+  }
+  return storiesRow;
 }
 
 // Tombol relasi gaya Instagram: Ikuti / Mengikuti / Teman, atau grup (Ikuti Balik + Hapus) untuk pengikut
@@ -767,29 +771,6 @@ function renderCari() {
 // Placeholder: belum ada tabel/backend pesan di Supabase.
 function renderChat() {
   return `<div class="feed-empty" style="padding:24px"><span class="hud-label">SEGERA HADIR</span>Fitur chat sedang dikembangkan.</div>`;
-}
-
-function renderMyInstantsStack() {
-  const items = state.myInstants; // sudah terurut: terbaru duluan
-  const top = items[0];
-  const totalViews = items.reduce((sum, i) => sum + (i.viewCount || 0), 0);
-  const peekCount = Math.min(items.length - 1, 2);
-  return `
-    <div class="mystack-hero-wrap" data-open-stack>
-      <div class="mystack-hero-deck">
-        ${Array.from({ length: peekCount }).map((_, i) => `<div class="mystack-hero-peek" style="--i:${peekCount - i}"></div>`).join('')}
-        <div class="mystack-hero-frame">
-          <img src="${top.image_data}" />
-          <div class="instant-card-scrim"></div>
-          ${items.length > 1 ? `<span class="mystack-hero-count">${items.length}</span>` : ''}
-          <div class="mystack-hero-info">
-            ${top.caption ? `<div class="cap">${esc(top.caption)}</div>` : ''}
-            <div class="when">${timeLeft(top.expires_at)} &middot; dilihat ${totalViews} kali total</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
 }
 
 function renderViewer() {
