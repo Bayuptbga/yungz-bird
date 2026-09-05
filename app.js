@@ -315,7 +315,10 @@ async function loadFeed() {
 async function openStory(id, own) {
   const queue = own ? buildOwnStoryQueue() : buildFriendsStoryQueue();
   let idx = queue.findIndex(q => q.id === id);
-  if (idx < 0) return;
+  if (idx < 0) {
+    if (!own) showToast('Instant ini sudah kamu lihat sebelumnya');
+    return;
+  }
   setState({ storyQueue: queue, storyIndex: idx, viewerInstant: queue[idx] });
   markStoryViewed(queue[idx]);
 }
@@ -358,8 +361,8 @@ function buildOwnStoryQueue() {
 }
 
 function buildFriendsStoryQueue() {
-  const groups = groupFeedByAuthor(state.feed);
-  return groups.flatMap(g => g.items.map(f => ({ ...f, own: false })));
+  const unviewedGroups = groupFeedByAuthor(state.feed.filter(f => !f.viewed));
+  return unviewedGroups.flatMap(g => g.items.map(f => ({ ...f, own: false })));
 }
 
 async function markStoryViewed(item) {
@@ -381,6 +384,10 @@ function storyNext() {
 }
 
 function storyPrev() {
+  if (!state.viewerInstant.own) {
+    showToast('Instant cuma bisa dilihat sekali');
+    return;
+  }
   const prevIndex = state.storyIndex - 1;
   if (prevIndex < 0) return;
   setState({ storyIndex: prevIndex, viewerInstant: state.storyQueue[prevIndex], shielded: false });
@@ -674,7 +681,7 @@ function renderViewer() {
             <div class="viewer-card-bg" style="background-image:url('${it.image_data}')"></div>
             <img class="viewer-card-fg" src="${it.image_data}" />
           `}
-          <button class="story-tap story-tap-prev" id="story-prev" aria-label="Sebelumnya"></button>
+          <button class="story-tap story-tap-prev ${it.own ? '' : 'story-tap-disabled'}" id="story-prev" aria-label="Sebelumnya"></button>
           <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
         </div>
       </div>
@@ -709,9 +716,12 @@ function attachAppHandlers() {
     el.onclick = () => {
       const authorId = el.getAttribute('data-open-user');
       const group = state.feed.filter(f => f.author_id === authorId);
-      if (!group.length) return;
       const firstUnviewed = group.find(f => !f.viewed);
-      openStory((firstUnviewed || group[0]).id, false);
+      if (!firstUnviewed) {
+        showToast('Instant ini sudah kamu lihat sebelumnya');
+        return;
+      }
+      openStory(firstUnviewed.id, false);
     };
   });
 
