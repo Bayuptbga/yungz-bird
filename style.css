@@ -232,6 +232,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   border: 1px solid var(--line); filter: blur(8px) brightness(0.7);
 }
 .instant-row.viewed .thumb { filter: none; opacity: 0.5; }
+.instant-row.mine .thumb { filter: none; opacity: 1; }
 .instant-row .meta { flex: 1; min-width: 0; }
 .instant-row .who { font-weight: 600; font-size: 14px; }
 .instant-row .cap { font-size: 12px; color: var(--cream-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

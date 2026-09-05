@@ -23,6 +23,7 @@ let state = {
   feed: [],
   friends: [],
   pendingOut: [],
+  myInstants: [],
   addFriendInput: '',
   friendError: '',
   viewerInstant: null,
@@ -88,6 +89,7 @@ function startPolling() {
   if (pollHandle) clearInterval(pollHandle);
   loadFeed();
   loadFriends();
+  loadMyInstants();
   pollHandle = setInterval(() => loadFeed(), 15000);
 }
 
@@ -268,6 +270,7 @@ async function handlePost() {
   setState({ capturedImage: null, caption: '', tab: 'beranda' });
   showToast('Instant terkirim! Hilang dalam 24 jam.');
   loadFeed();
+  loadMyInstants();
 }
 
 // ---------------- FEED (Beranda) ----------------
@@ -297,6 +300,31 @@ async function openInstant(instant) {
     await supabase.from('instant_views').insert({ instant_id: instant.id, viewer_id: state.user.id });
     loadFeed();
   }
+}
+
+// ---------------- INSTANT MILIK SENDIRI (Profil) ----------------
+async function loadMyInstants() {
+  if (!state.user) return;
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('instants')
+    .select('id, caption, image_data, created_at, expires_at, audience')
+    .eq('author_id', state.user.id)
+    .gt('expires_at', nowIso)
+    .order('created_at', { ascending: false });
+  if (error) return;
+  const ids = (data || []).map(d => d.id);
+  let viewCounts = {};
+  if (ids.length) {
+    const { data: views } = await supabase.from('instant_views').select('instant_id').in('instant_id', ids);
+    (views || []).forEach(v => { viewCounts[v.instant_id] = (viewCounts[v.instant_id] || 0) + 1; });
+  }
+  const myInstants = (data || []).map(d => ({ ...d, viewCount: viewCounts[d.id] || 0 }));
+  setState({ myInstants });
+}
+
+function openMyInstant(item) {
+  setState({ viewerInstant: { ...item, own: true } });
 }
 
 function closeViewer() {
@@ -494,6 +522,16 @@ function renderProfil() {
       <div class="profil-uname">@${esc(state.profile.username)}</div>
       <button class="btn btn-ghost" id="signout-btn">Keluar</button>
     </div>
+    <span class="section-label">INSTANT AKTIF SAYA</span>
+    ${state.myInstants.length ? state.myInstants.map(item => `
+      <div class="instant-row mine" data-open-mine="${item.id}">
+        <img class="thumb" src="${item.image_data}" />
+        <div class="meta">
+          <div class="cap">${esc(item.caption)}</div>
+          <div class="when">${timeLeft(item.expires_at)} &middot; dilihat ${item.viewCount} kali</div>
+        </div>
+      </div>
+    `).join('') : `<div class="feed-empty" style="padding:20px"><span class="hud-label">BELUM ADA INSTANT AKTIF</span>Instant yang kamu kirim akan muncul di sini sampai 24 jam.</div>`}
     <div class="profil-hint" style="padding-top:14px">
       Bagikan username ini ke teman supaya mereka bisa follow balik dan jadi mutual.
     </div>
@@ -529,14 +567,16 @@ function renderViewer() {
   return `
     <div class="viewer-overlay">
       <div class="viewer-top">
-        <span class="hud-label">@${esc(it.profiles ? it.profiles.username : state.profile.username)}</span>
+        <span class="hud-label">${it.own ? 'Instant kamu' : '@' + esc(it.profiles ? it.profiles.username : state.profile.username)}</span>
         <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
       </div>
       ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `<img src="${it.image_data}" />`}
       <div class="viewer-caption">${esc(it.caption)}</div>
-      <div class="viewer-reactions">
-        ${['❤️', '😂', '😮', '🔥', '👀'].map(e => `<button class="emoji-btn" data-emoji="${e}">${e}</button>`).join('')}
-      </div>
+      ${it.own
+        ? `<div class="viewer-caption" style="padding-top:0;color:var(--cream-dim);font-family:var(--mono);font-size:12px">Dilihat ${it.viewCount || 0} kali &middot; ${timeLeft(it.expires_at)}</div>`
+        : `<div class="viewer-reactions">
+             ${['❤️', '😂', '😮', '🔥', '👀'].map(e => `<button class="emoji-btn" data-emoji="${e}">${e}</button>`).join('')}
+           </div>`}
     </div>
   `;
 }
@@ -551,7 +591,7 @@ function attachAppHandlers() {
         stopCamera();
         setState({ tab });
         if (tab === 'beranda') loadFeed();
-        if (tab === 'profil') loadFriends();
+        if (tab === 'profil') { loadFriends(); loadMyInstants(); }
       }
     };
   });
@@ -561,6 +601,14 @@ function attachAppHandlers() {
       const id = el.getAttribute('data-open');
       const item = state.feed.find(f => f.id === id);
       if (item) openInstant(item);
+    };
+  });
+
+  root.querySelectorAll('[data-open-mine]').forEach(el => {
+    el.onclick = () => {
+      const id = el.getAttribute('data-open-mine');
+      const item = state.myInstants.find(f => f.id === id);
+      if (item) openMyInstant(item);
     };
   });
 
