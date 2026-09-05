@@ -673,7 +673,6 @@ function renderChat() {
     return `<div class="feed-empty" style="padding:24px"><span class="hud-label">BELUM ADA TEMAN</span>Tambahkan teman mutual dulu di tab Kontak untuk mulai chat.</div>`;
   }
   return `
-    <span class="section-label">TEMAN MUTUAL</span>
     ${state.friends.map(f => `
       <div class="friend-row" data-open-chat="${esc(f.id)}">
         <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
