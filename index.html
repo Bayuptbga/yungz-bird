@@ -1,10 +1,5 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&display=swap" rel="stylesheet">
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-  window.__createSupabaseClient = createClient;
-</script>
-
 <style>
   :root {
     --bg: #121110;
@@ -273,8 +268,9 @@
 
 <div id="instants-root"></div>
 
-<script>
-(function () {
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+(function (createClient) {
   const SUPABASE_URL = 'https://kuocqeaolhinzvrrdfti.supabase.co';
   const SUPABASE_KEY = 'sb_publishable__eHAiIrB-pERNeb42dJpqg_yE6pcSyv';
 
@@ -339,18 +335,26 @@
 
   // ---------------- INIT ----------------
   async function init() {
-    supabase = window.__createSupabaseClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false }
-    });
-    const { data } = await supabase.auth.getUser();
-    if (data && data.user) {
-      state.user = data.user;
-      await loadProfile();
+    render(); // show loading state immediately
+    try {
+      supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false }
+      });
+      const { data } = await supabase.auth.getUser();
+      if (data && data.user) {
+        state.user = data.user;
+        await loadProfile();
+      }
+      state.booting = false;
+      render();
+      setupPrivacyShield();
+      if (state.user) startPolling();
+    } catch (e) {
+      root.innerHTML = `<div class="center-loading" style="flex-direction:column;gap:8px;padding:24px;text-align:center">
+        <div>Gagal memuat aplikasi</div>
+        <div style="font-size:11px;color:var(--danger)">${esc(e.message || String(e))}</div>
+      </div>`;
     }
-    state.booting = false;
-    render();
-    setupPrivacyShield();
-    if (state.user) startPolling();
   }
 
   function setupPrivacyShield() {
@@ -834,5 +838,5 @@
   }
 
   init();
-})();
+})(createClient);
 </script>
