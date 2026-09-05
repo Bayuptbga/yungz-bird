@@ -664,13 +664,14 @@ function renderViewer() {
         <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
       </div>
       <div class="viewer-stage">
-        <div class="viewer-frame">
-          ${Array.from({ length: peekCount }).map((_, i) => `<div class="story-peek" style="--i:${i + 1}"></div>`).join('')}
-          <div class="viewer-card">
-            ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `<img src="${it.image_data}" />`}
-            <button class="story-tap story-tap-prev" id="story-prev" aria-label="Sebelumnya"></button>
-            <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
-          </div>
+        ${Array.from({ length: peekCount }).map((_, i) => `<div class="story-peek" style="--i:${i + 1}"></div>`).join('')}
+        <div class="viewer-card">
+          ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `
+            <div class="viewer-card-bg" style="background-image:url('${it.image_data}')"></div>
+            <img class="viewer-card-fg" src="${it.image_data}" />
+          `}
+          <button class="story-tap story-tap-prev" id="story-prev" aria-label="Sebelumnya"></button>
+          <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
         </div>
       </div>
       <div class="viewer-info">
