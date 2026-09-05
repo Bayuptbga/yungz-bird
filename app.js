@@ -534,11 +534,7 @@ function renderKamera() {
           <input id="caption-input" type="text" placeholder="Tulis caption (opsional)..." value="${esc(state.caption)}" maxlength="140" />
           <div class="hint">Opsional &middot; tidak bisa diedit lagi setelah dikirim</div>
         </div>
-      ` : `
-        <div class="caption-bar">
-          <div class="hint">Tanpa filter, tanpa edit &mdash; ambil apa adanya. Kamera tidak bisa upload dari galeri.</div>
-        </div>
-      `}
+      ` : ''}
       <div class="capture-controls">
         ${state.capturedImage ? `
           <button class="btn" id="retake-btn">Ambil ulang</button>
