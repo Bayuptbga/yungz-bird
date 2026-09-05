@@ -217,6 +217,10 @@ function stopCamera() {
   }
 }
 
+// Rasio ini harus sama persis dengan CSS .camera-frame { aspect-ratio: 1 / 1.05 }
+// supaya apa yang terlihat di preview = apa yang benar-benar tersimpan.
+const CAPTURE_ASPECT = 1 / 1.05;
+
 async function captureFrame() {
   const video = document.getElementById('camera-video');
   if (!video || !video.videoWidth) return;
@@ -224,17 +228,36 @@ async function captureFrame() {
     setState({ flashing: true });
     await new Promise(r => setTimeout(r, 160));
   }
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const sourceAspect = vw / vh;
+
+  // Crop tengah video (meniru object-fit: cover) supaya rasio hasil
+  // capture sama persis dengan rasio yang terlihat di preview.
+  let cropW, cropH, sx, sy;
+  if (sourceAspect > CAPTURE_ASPECT) {
+    cropH = vh;
+    cropW = cropH * CAPTURE_ASPECT;
+    sx = (vw - cropW) / 2;
+    sy = 0;
+  } else {
+    cropW = vw;
+    cropH = cropW / CAPTURE_ASPECT;
+    sx = 0;
+    sy = (vh - cropH) / 2;
+  }
+
   const canvas = document.createElement('canvas');
   const maxW = 720;
-  const scale = Math.min(1, maxW / video.videoWidth);
-  canvas.width = video.videoWidth * scale;
-  canvas.height = video.videoHeight * scale;
+  const scale = Math.min(1, maxW / cropW);
+  canvas.width = cropW * scale;
+  canvas.height = cropH * scale;
   const ctx = canvas.getContext('2d');
   if (state.facing === 'user') {
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, canvas.width, canvas.height);
   const dataUrl = canvas.toDataURL('image/jpeg', 0.62);
   stopCamera();
   setState({ capturedImage: dataUrl, flashing: false });
@@ -651,12 +674,14 @@ function renderViewer() {
           <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
         </div>
       </div>
-      <div class="viewer-caption">${esc(it.caption)}</div>
-      ${it.own
-        ? `<div class="viewer-caption" style="padding-top:0;color:var(--cream-dim);font-family:var(--mono);font-size:12px">Dilihat ${it.viewCount || 0} kali &middot; ${timeLeft(it.expires_at)}</div>`
-        : `<div class="viewer-reactions">
-             ${['❤️', '😂', '😮', '🔥', '👀'].map(e => `<button class="emoji-btn" data-emoji="${e}">${e}</button>`).join('')}
-           </div>`}
+      <div class="viewer-info">
+        <div class="viewer-caption">${esc(it.caption)}</div>
+        ${it.own
+          ? `<div class="viewer-stats">Dilihat ${it.viewCount || 0} kali &middot; ${timeLeft(it.expires_at)}</div>`
+          : `<div class="viewer-reactions">
+               ${['❤️', '😂', '😮', '🔥', '👀'].map(e => `<button class="emoji-btn" data-emoji="${e}">${e}</button>`).join('')}
+             </div>`}
+      </div>
     </div>
   `;
 }
