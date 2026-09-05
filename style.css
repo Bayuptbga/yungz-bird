@@ -126,7 +126,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .auth-error { color: var(--danger); font-size: 13px; font-family: var(--mono); }
 
 /* ---- Screen wrapper ---- */
-.screen { flex: 1; overflow-y: auto; padding-bottom: 110px; }
+.screen { flex: 1; overflow-y: auto; padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
 
 /* ---- Kamera (immersive, full-screen) ---- */
 .camera-immersive {
@@ -425,6 +425,18 @@ input:focus, textarea:focus { border-color: var(--flash); }
   padding: 16px 16px 6px; display: block;
 }
 
+.feed-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 18px 16px 10px;
+}
+.feed-divider::before, .feed-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+.feed-divider span {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em;
+  color: var(--cream-dim); white-space: nowrap;
+}
+
 .friend-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
 .friend-row .avatar {
   width: 36px; height: 36px; border-radius: 50%; background: var(--bg-raised);
@@ -439,18 +451,13 @@ input:focus, textarea:focus { border-color: var(--flash); }
 /* ---- Bottom tab bar ---- */
 .bottom-nav {
   position: fixed;
-  left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 380px;
+  left: 0; right: 0; bottom: 0;
+  width: 100%;
   display: flex; align-items: center; justify-content: space-between;
-  height: 72px;
+  height: 62px;
+  padding: 0 4px env(safe-area-inset-bottom, 0px);
   background: var(--bg-raised);
-  border: 1px solid var(--line);
-  border-radius: 26px;
-  padding: 0 8px;
-  box-shadow: 0 14px 32px rgba(0,0,0,0.55);
+  border-top: 1px solid var(--line);
   z-index: 40;
 }
 .nav-item {
@@ -485,15 +492,14 @@ input:focus, textarea:focus { border-color: var(--flash); }
 }
 .fab-camera {
   position: fixed;
-  left: 50%;
-  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
+  right: 16px;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   width: 54px; height: 54px; padding: 0; border-radius: 50%;
-  background: var(--flash);
+  background: #FFFFFF;
   border: none;
-  color: #1a0d05;
+  color: #000000;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 20px rgba(255,69,0,0.45);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
   cursor: pointer;
   z-index: 41;
 }

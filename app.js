@@ -594,11 +594,16 @@ function renderKamera() {
 }
 
 function renderBeranda() {
+  const myBlock = `
+    <span class="section-label">INSTAN SAYA</span>
+    ${state.myInstants.length ? renderMyInstantsStack() : `<div class="feed-empty" style="padding:16px"><span class="hud-label">BELUM ADA INSTAN AKTIF</span>Instan yang kamu kirim akan muncul di sini sampai 24 jam.</div>`}
+    <div class="feed-divider"><span>INSTAN TEMAN</span></div>
+  `;
   const groups = groupFeedByAuthor(state.feed).filter(group => group.items.some(i => !i.viewed));
   if (!groups.length) {
-    return `<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Profil.</div>`;
+    return `${myBlock}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Kontak.</div>`;
   }
-  return `<div class="feed-grid">${groups.map(group => {
+  return `${myBlock}<div class="feed-grid">${groups.map(group => {
     const items = group.items; // terbaru duluan (mengikuti urutan feed)
     const top = items[0];
     const username = top.profiles?.username || 'user';
@@ -628,8 +633,6 @@ function renderProfil() {
       <div class="profil-uname">@${esc(state.profile.username)}</div>
       <button class="btn btn-ghost" id="signout-btn">Keluar</button>
     </div>
-    <span class="section-label">INSTANT AKTIF SAYA</span>
-    ${state.myInstants.length ? renderMyInstantsStack() : `<div class="feed-empty" style="padding:20px"><span class="hud-label">BELUM ADA INSTANT AKTIF</span>Instant yang kamu kirim akan muncul di sini sampai 24 jam.</div>`}
   `;
 }
 
@@ -665,22 +668,9 @@ function renderKontak() {
   `;
 }
 
-// Placeholder: belum ada tabel/backend pesan di Supabase, jadi tab ini baru
-// menampilkan daftar teman mutual sebagai titik mulai. Ketuk salah satu untuk
-// notifikasi bahwa fitur kirim-pesan sungguhan belum tersambung.
+// Placeholder: belum ada tabel/backend pesan di Supabase.
 function renderChat() {
-  if (!state.friends.length) {
-    return `<div class="feed-empty" style="padding:24px"><span class="hud-label">BELUM ADA TEMAN</span>Tambahkan teman mutual dulu di tab Kontak untuk mulai chat.</div>`;
-  }
-  return `
-    ${state.friends.map(f => `
-      <div class="friend-row" data-open-chat="${esc(f.id)}">
-        <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
-        <div class="uname">@${esc(f.username)}</div>
-        <div class="status">CHAT</div>
-      </div>
-    `).join('')}
-  `;
+  return `<div class="feed-empty" style="padding:24px"><span class="hud-label">SEGERA HADIR</span>Fitur chat sedang dikembangkan.</div>`;
 }
 
 function renderMyInstantsStack() {
@@ -759,10 +749,8 @@ function attachAppHandlers() {
       } else {
         stopCamera();
         setState({ tab });
-        if (tab === 'beranda') loadFeed();
-        if (tab === 'chat') loadFriends();
+        if (tab === 'beranda') { loadFeed(); loadMyInstants(); }
         if (tab === 'kontak') loadFriends();
-        if (tab === 'profil') loadMyInstants();
       }
     };
   });
@@ -782,10 +770,6 @@ function attachAppHandlers() {
 
   const stackEl = root.querySelector('[data-open-stack]');
   if (stackEl) stackEl.onclick = () => openStory(state.myInstants[0].id, true);
-
-  root.querySelectorAll('[data-open-chat]').forEach(el => {
-    el.onclick = () => showToast('Kirim pesan belum tersambung ke backend — segera hadir.');
-  });
 
   const signoutBtn = document.getElementById('signout-btn');
   if (signoutBtn) signoutBtn.onclick = handleSignOut;
