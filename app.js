@@ -1,5 +1,8 @@
 import { supabase } from './supabase-client.js';
 import { esc, timeAgo, timeLeft, ICONS } from './helpers.js';
+// Catatan: tab "Chat" saat ini tampilan saja (belum ada tabel/backend pesan di Supabase).
+// Dipakai untuk mulai obrolan dari daftar teman mutual; kirim pesan sungguhan
+// butuh tabel `messages` + realtime, belum dibuat.
 
 const root = document.getElementById('instants-root');
 
@@ -513,6 +516,8 @@ function renderApp() {
     <div class="topbar"><div class="wordmark">instants<span>.</span></div></div>
     <div class="screen">
       ${state.tab === 'beranda' ? renderBeranda() : ''}
+      ${state.tab === 'chat' ? renderChat() : ''}
+      ${state.tab === 'kontak' ? renderKontak() : ''}
       ${state.tab === 'profil' ? renderProfil() : ''}
     </div>
     <div class="bottom-nav">
@@ -521,8 +526,16 @@ function renderApp() {
         ${ICONS.home}
         <span>Beranda</span>
       </button>
+      <button class="nav-item ${state.tab === 'chat' ? 'active' : ''}" data-tab="chat">
+        ${ICONS.chat}
+        <span>Chat</span>
+      </button>
       <button class="nav-item nav-item-camera" data-tab="kamera">
         ${ICONS.camera}
+      </button>
+      <button class="nav-item ${state.tab === 'kontak' ? 'active' : ''}" data-tab="kontak">
+        ${ICONS.contacts}
+        <span>Kontak</span>
       </button>
       <button class="nav-item ${state.tab === 'profil' ? 'active' : ''}" data-tab="profil">
         ${ICONS.profile}
@@ -617,8 +630,13 @@ function renderProfil() {
     </div>
     <span class="section-label">INSTANT AKTIF SAYA</span>
     ${state.myInstants.length ? renderMyInstantsStack() : `<div class="feed-empty" style="padding:20px"><span class="hud-label">BELUM ADA INSTANT AKTIF</span>Instant yang kamu kirim akan muncul di sini sampai 24 jam.</div>`}
-    <div class="profil-hint" style="padding-top:14px">
-      Bagikan username ini ke teman supaya mereka bisa follow balik dan jadi mutual.
+  `;
+}
+
+function renderKontak() {
+  return `
+    <div class="profil-hint" style="padding:14px 16px 0">
+      Bagikan username kamu ke teman supaya mereka bisa follow balik dan jadi mutual.
     </div>
     <span class="section-label">TAMBAH TEMAN</span>
     <div class="add-friend-bar">
@@ -644,6 +662,25 @@ function renderProfil() {
         </div>
       `).join('')}
     ` : ''}
+  `;
+}
+
+// Placeholder: belum ada tabel/backend pesan di Supabase, jadi tab ini baru
+// menampilkan daftar teman mutual sebagai titik mulai. Ketuk salah satu untuk
+// notifikasi bahwa fitur kirim-pesan sungguhan belum tersambung.
+function renderChat() {
+  if (!state.friends.length) {
+    return `<div class="feed-empty" style="padding:24px"><span class="hud-label">BELUM ADA TEMAN</span>Tambahkan teman mutual dulu di tab Kontak untuk mulai chat.</div>`;
+  }
+  return `
+    <span class="section-label">TEMAN MUTUAL</span>
+    ${state.friends.map(f => `
+      <div class="friend-row" data-open-chat="${esc(f.id)}">
+        <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
+        <div class="uname">@${esc(f.username)}</div>
+        <div class="status">CHAT</div>
+      </div>
+    `).join('')}
   `;
 }
 
@@ -724,7 +761,9 @@ function attachAppHandlers() {
         stopCamera();
         setState({ tab });
         if (tab === 'beranda') loadFeed();
-        if (tab === 'profil') { loadFriends(); loadMyInstants(); }
+        if (tab === 'chat') loadFriends();
+        if (tab === 'kontak') loadFriends();
+        if (tab === 'profil') loadMyInstants();
       }
     };
   });
@@ -744,6 +783,10 @@ function attachAppHandlers() {
 
   const stackEl = root.querySelector('[data-open-stack]');
   if (stackEl) stackEl.onclick = () => openStory(state.myInstants[0].id, true);
+
+  root.querySelectorAll('[data-open-chat]').forEach(el => {
+    el.onclick = () => showToast('Kirim pesan belum tersambung ke backend — segera hadir.');
+  });
 
   const signoutBtn = document.getElementById('signout-btn');
   if (signoutBtn) signoutBtn.onclick = handleSignOut;
