@@ -581,26 +581,23 @@ function renderKamera() {
 }
 
 function renderBeranda() {
-  if (!state.feed.length) {
+  const groups = groupFeedByAuthor(state.feed).filter(group => group.items.some(i => !i.viewed));
+  if (!groups.length) {
     return `<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Profil.</div>`;
   }
-  const groups = groupFeedByAuthor(state.feed);
   return `<div class="feed-grid">${groups.map(group => {
     const items = group.items; // terbaru duluan (mengikuti urutan feed)
     const top = items[0];
-    const hasUnviewed = items.some(i => !i.viewed);
     const username = top.profiles?.username || 'user';
     const peekCount = Math.min(items.length - 1, 2);
     return `
       <div class="instant-card-deck" data-open-user="${group.authorId}">
         ${Array.from({ length: peekCount }).map((_, i) => `<div class="instant-card-peek" style="--i:${peekCount - i}"></div>`).join('')}
-        <div class="instant-card ${hasUnviewed ? 'unviewed' : 'viewed'}">
+        <div class="instant-card unviewed">
           <div class="instant-card-photo"><img src="${top.image_data}" /></div>
           <div class="instant-card-scrim"></div>
           ${items.length > 1 ? `<span class="instant-card-count">${items.length} FOTO</span>` : ''}
-          ${hasUnviewed
-            ? `<span class="instant-card-badge">BARU</span><span class="instant-card-hint">KETUK&nbsp;UNTUK&nbsp;LIHAT</span>`
-            : ''}
+          <span class="instant-card-badge">BARU</span><span class="instant-card-hint">KETUK&nbsp;UNTUK&nbsp;LIHAT</span>
           <div class="instant-card-info">
             <div class="who">@${esc(username)}</div>
             <div class="when">${timeLeft(top.expires_at)}</div>
