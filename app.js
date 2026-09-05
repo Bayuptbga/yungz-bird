@@ -14,11 +14,9 @@ let state = {
   stream: null,
   capturedImage: null,
   caption: '',
-  audience: 'mutuals',
   facing: 'user',
   flashOn: false,
   flashing: false,
-  audienceMenuOpen: false,
   posting: false,
   feed: [],
   friends: [],
@@ -270,7 +268,7 @@ function retake() {
 
 function exitCamera() {
   stopCamera();
-  setState({ tab: 'beranda', capturedImage: null, caption: '', cameraError: '', audienceMenuOpen: false });
+  setState({ tab: 'beranda', capturedImage: null, caption: '', cameraError: '' });
   loadFeed();
 }
 
@@ -300,7 +298,6 @@ async function handlePost() {
     author_id: state.user.id,
     caption: state.caption.trim(),
     image_path: path,
-    audience: state.audience,
   });
   setState({ posting: false });
   if (error) {
@@ -335,7 +332,7 @@ async function loadFeed() {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('instants')
-    .select('id, caption, image_data, image_path, created_at, expires_at, audience, author_id, profiles!instants_author_id_fkey(username, display_name)')
+    .select('id, caption, image_data, image_path, created_at, expires_at, author_id, profiles!instants_author_id_fkey(username, display_name)')
     .neq('author_id', state.user.id)
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: false });
@@ -364,7 +361,7 @@ async function loadMyInstants() {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('instants')
-    .select('id, caption, image_data, image_path, created_at, expires_at, audience')
+    .select('id, caption, image_data, image_path, created_at, expires_at')
     .eq('author_id', state.user.id)
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: false });
@@ -538,8 +535,6 @@ function renderApp() {
 }
 
 function renderKamera() {
-  const audienceLabel = state.audience === 'mutuals' ? 'Teman' : 'Teman Dekat';
-
   const frameInner = state.capturedImage
     ? `<img class="captured" src="${state.capturedImage}" />`
     : state.cameraError
@@ -581,17 +576,6 @@ function renderKamera() {
           <button class="icon-btn" id="flip-camera-btn" title="Ganti kamera">&#8635;</button>
         `}
       </div>
-      ${!state.capturedImage ? `
-        <div class="audience-select">
-          <button class="audience-pill" id="audience-pill"><span class="pill-dot"></span>${esc(audienceLabel)}<span class="chev">&#8964;</span></button>
-          ${state.audienceMenuOpen ? `
-            <div class="audience-menu">
-              <button data-aud="mutuals">Teman</button>
-              <button data-aud="close_friends">Teman Dekat</button>
-            </div>
-          ` : ''}
-        </div>
-      ` : ''}
     </div>
   `;
 }
@@ -807,12 +791,6 @@ function attachCameraHandlers() {
   if (retakeBtn) retakeBtn.onclick = retake;
   const sendBtn = document.getElementById('send-btn');
   if (sendBtn) sendBtn.onclick = handlePost;
-
-  const audiencePill = document.getElementById('audience-pill');
-  if (audiencePill) audiencePill.onclick = () => setState({ audienceMenuOpen: !state.audienceMenuOpen });
-  root.querySelectorAll('.audience-menu [data-aud]').forEach(el => {
-    el.onclick = () => setState({ audience: el.getAttribute('data-aud'), audienceMenuOpen: false });
-  });
 
   attachViewerHandlers();
 }
