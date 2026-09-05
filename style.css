@@ -273,7 +273,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
 /* ---- Stories row (Beranda: instan saya + instan teman, horizontal) ---- */
 .stories-row {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   padding: 14px 16px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -281,12 +281,12 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .stories-row::-webkit-scrollbar { display: none; }
 .story-item {
   display: flex; flex-direction: column; align-items: center;
-  flex-shrink: 0; width: 68px; cursor: pointer;
+  flex-shrink: 0; width: 78px; cursor: pointer;
   background: none; border: none; padding: 0;
 }
 .story-card-wrap {
   position: relative;
-  width: 68px; height: 88px;
+  width: 78px; height: 100px;
 }
 .story-card-shadow {
   position: absolute; inset: 0;
@@ -311,22 +311,32 @@ input:focus, textarea:focus { border-color: var(--flash); }
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; display: block;
 }
-.story-plus { width: 22px; height: 22px; color: var(--cream-dim); }
+.story-plus { width: 26px; height: 26px; color: var(--cream-dim); }
 .story-plus svg { width: 100%; height: 100%; }
 .story-count {
   position: absolute; top: -5px; right: -5px; z-index: 4;
-  font-family: var(--mono); font-size: 8.5px; font-weight: 700; color: var(--bg);
-  background: var(--hud); min-width: 16px; height: 16px; line-height: 16px; text-align: center;
+  font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--bg);
+  background: var(--hud); min-width: 17px; height: 17px; line-height: 17px; text-align: center;
   border-radius: 999px; border: 2px solid var(--bg);
 }
 .story-card-label {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
-  font-family: var(--mono); font-size: 9px; color: var(--cream);
-  padding: 4px 5px 5px;
+  font-family: var(--mono); font-size: 10px; color: var(--cream);
+  padding: 5px 6px 6px;
   background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.story-item-public { gap: 6px; }
+.story-item-public { width: 96px; }
+.story-item-public .story-card-wrap { width: 96px; height: 96px; }
+.story-card-label-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 5px;
+  white-space: normal; padding: 5px 5px 6px;
+}
+.story-card-uname {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.story-card-follow-slot { flex-shrink: 0; }
+.story-card-follow-slot .btn-xs { width: auto; padding: 3px 7px; }
 
 /* ---- Viewer (view-once) ---- */
 .viewer-overlay {

@@ -683,11 +683,13 @@ function renderBeranda() {
           ${items.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
           <div class="story-card story-card-unviewed">
             <img src="${top.image_data}" />
-            <div class="story-card-label">@${esc(username)}</div>
             ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
+            <div class="story-card-label story-card-label-row">
+              <span class="story-card-uname">@${esc(username)}</span>
+              <span class="story-card-follow-slot">${renderFollowBtn(group.authorId, true)}</span>
+            </div>
           </div>
         </div>
-        ${renderFollowBtn(group.authorId, true)}
       </div>
     `;
   };
@@ -718,7 +720,7 @@ function renderBeranda() {
   if (!groups.length) {
     return `${storiesRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>${publicRow}`;
   }
-  return storiesRow;
+  return `${storiesRow}${publicRow}`;
 }
 
 // Tombol relasi gaya Instagram: Ikuti / Mengikuti / Teman, atau grup (Ikuti Balik + Hapus) untuk pengikut
@@ -875,7 +877,8 @@ function attachAppHandlers() {
   });
 
   root.querySelectorAll('[data-open-user]').forEach(el => {
-    el.onclick = () => {
+    el.onclick = (e) => {
+      if (e.target.closest('[data-follow],[data-unfollow]')) return;
       const authorId = el.getAttribute('data-open-user');
       const group = state.feed.filter(f => f.author_id === authorId);
       const firstUnviewed = group.find(f => !f.viewed);
