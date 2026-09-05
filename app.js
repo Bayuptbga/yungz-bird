@@ -293,8 +293,8 @@ async function loadFeed() {
 }
 
 async function openStory(id, own) {
-  const queue = buildStoryQueue();
-  let idx = queue.findIndex(q => q.id === id && q.own === own);
+  const queue = own ? buildOwnStoryQueue() : buildFriendsStoryQueue();
+  let idx = queue.findIndex(q => q.id === id);
   if (idx < 0) {
     if (!own) showToast('Instant ini sudah kamu lihat sebelumnya');
     return;
@@ -324,7 +324,7 @@ async function loadMyInstants() {
   setState({ myInstants });
 }
 
-// ---------------- STORY QUEUE (kartu numpuk, instant saya + teman) ----------------
+// ---------------- STORY QUEUE (instan saya dan teman terpisah, tidak digabung) ----------------
 function groupFeedByAuthor(items) {
   const map = new Map();
   const order = [];
@@ -336,11 +336,13 @@ function groupFeedByAuthor(items) {
   return order.map(key => ({ authorId: key, items: map.get(key) }));
 }
 
-function buildStoryQueue() {
-  const mine = state.myInstants.map(m => ({ ...m, own: true }));
+function buildOwnStoryQueue() {
+  return state.myInstants.map(m => ({ ...m, own: true }));
+}
+
+function buildFriendsStoryQueue() {
   const unviewedGroups = groupFeedByAuthor(state.feed.filter(f => !f.viewed));
-  const others = unviewedGroups.flatMap(g => g.items.map(f => ({ ...f, own: false })));
-  return [...mine, ...others];
+  return unviewedGroups.flatMap(g => g.items.map(f => ({ ...f, own: false })));
 }
 
 async function markStoryViewed(item) {
@@ -558,7 +560,6 @@ function renderBeranda() {
         </div>
         <div class="meta">
           <div class="who">@${esc(username)}</div>
-          <div class="cap">${esc(top.caption)}</div>
           <div class="when">${timeAgo(top.created_at)} lalu &middot; ${timeLeft(top.expires_at)}</div>
         </div>
         ${hasUnviewed ? '<span class="badge">BARU</span>' : ''}
