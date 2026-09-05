@@ -309,7 +309,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   display: flex; flex-direction: column;
   max-width: 480px; margin: 0 auto;
 }
-.viewer-top { display: flex; justify-content: space-between; align-items: center; padding: 14px; }
+.viewer-top { display: flex; justify-content: space-between; align-items: center; padding: 14px; padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
 .viewer-caption { padding: 14px; font-size: 15px; }
 .viewer-reactions { display: flex; gap: 8px; padding: 10px 14px 20px; flex-wrap: wrap; }
 .emoji-btn { font-size: 20px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: 20px; padding: 6px 12px; cursor: pointer; }
@@ -333,11 +333,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   font-family: var(--mono); color: var(--cream-dim); font-size: 13px; text-align: center; padding: 24px;
 }
 
-/* ---- Story progress & kartu numpuk (viewer stories) ---- */
-.story-progress { display: flex; gap: 4px; padding: 12px 14px 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
-.story-seg { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.22); }
-.story-seg.done { background: var(--hud); }
-.story-seg.current { background: var(--cream); }
+/* ---- Kartu numpuk (viewer stories) ---- */
 
 .viewer-stage { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 22px; min-height: 0; perspective: 1000px; }
 .viewer-square { position: relative; width: 100%; max-height: 100%; aspect-ratio: 1 / 1; margin: auto; }

@@ -718,9 +718,6 @@ function renderViewer() {
 
   return `
     <div class="viewer-overlay">
-      <div class="story-progress">
-        ${queue.map((_, i) => `<span class="story-seg ${i < idx ? 'done' : ''} ${i === idx ? 'current' : ''}"></span>`).join('')}
-      </div>
       <div class="viewer-top">
         <span class="hud-label">${it.own ? 'Instant kamu' : '@' + esc(it.profiles ? it.profiles.username : state.profile.username)}</span>
         <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
