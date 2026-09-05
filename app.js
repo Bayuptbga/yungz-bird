@@ -325,9 +325,21 @@ async function loadMyInstants() {
 }
 
 // ---------------- STORY QUEUE (kartu numpuk, instant saya + teman) ----------------
+function groupFeedByAuthor(items) {
+  const map = new Map();
+  const order = [];
+  items.forEach(item => {
+    const key = item.author_id;
+    if (!map.has(key)) { map.set(key, []); order.push(key); }
+    map.get(key).push(item);
+  });
+  return order.map(key => ({ authorId: key, items: map.get(key) }));
+}
+
 function buildStoryQueue() {
   const mine = state.myInstants.map(m => ({ ...m, own: true }));
-  const others = state.feed.filter(f => !f.viewed).map(f => ({ ...f, own: false }));
+  const unviewedGroups = groupFeedByAuthor(state.feed.filter(f => !f.viewed));
+  const others = unviewedGroups.flatMap(g => g.items.map(f => ({ ...f, own: false })));
   return [...mine, ...others];
 }
 
@@ -530,17 +542,29 @@ function renderBeranda() {
   if (!state.feed.length) {
     return `<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Profil.</div>`;
   }
-  return state.feed.map(item => `
-    <div class="instant-row ${item.viewed ? 'viewed' : ''}" data-open="${item.id}">
-      <img class="thumb" src="${item.image_data}" />
-      <div class="meta">
-        <div class="who">@${esc(item.profiles?.username || 'user')}</div>
-        <div class="cap">${esc(item.caption)}</div>
-        <div class="when">${timeAgo(item.created_at)} lalu &middot; ${timeLeft(item.expires_at)}</div>
+  const groups = groupFeedByAuthor(state.feed);
+  return groups.map(group => {
+    const items = group.items; // terbaru duluan (mengikuti urutan feed)
+    const top = items[0];
+    const hasUnviewed = items.some(i => !i.viewed);
+    const peekCount = Math.min(items.length - 1, 3);
+    const username = top.profiles?.username || 'user';
+    return `
+      <div class="instant-stack ${hasUnviewed ? '' : 'viewed'}" data-open-user="${group.authorId}">
+        <div class="mystack-deck">
+          ${Array.from({ length: peekCount }).map((_, i) => `<div class="mystack-peek" style="--i:${peekCount - i}"></div>`).join('')}
+          <img class="mystack-top" src="${top.image_data}" />
+          ${items.length > 1 ? `<span class="mystack-count">${items.length}</span>` : ''}
+        </div>
+        <div class="meta">
+          <div class="who">@${esc(username)}</div>
+          <div class="cap">${esc(top.caption)}</div>
+          <div class="when">${timeAgo(top.created_at)} lalu &middot; ${timeLeft(top.expires_at)}</div>
+        </div>
+        ${hasUnviewed ? '<span class="badge">BARU</span>' : ''}
       </div>
-      ${!item.viewed ? '<span class="badge">BARU</span>' : ''}
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderProfil() {
@@ -551,15 +575,7 @@ function renderProfil() {
       <button class="btn btn-ghost" id="signout-btn">Keluar</button>
     </div>
     <span class="section-label">INSTANT AKTIF SAYA</span>
-    ${state.myInstants.length ? state.myInstants.map(item => `
-      <div class="instant-row mine" data-open-mine="${item.id}">
-        <img class="thumb" src="${item.image_data}" />
-        <div class="meta">
-          <div class="cap">${esc(item.caption)}</div>
-          <div class="when">${timeLeft(item.expires_at)} &middot; dilihat ${item.viewCount} kali</div>
-        </div>
-      </div>
-    `).join('') : `<div class="feed-empty" style="padding:20px"><span class="hud-label">BELUM ADA INSTANT AKTIF</span>Instant yang kamu kirim akan muncul di sini sampai 24 jam.</div>`}
+    ${state.myInstants.length ? renderMyInstantsStack() : `<div class="feed-empty" style="padding:20px"><span class="hud-label">BELUM ADA INSTANT AKTIF</span>Instant yang kamu kirim akan muncul di sini sampai 24 jam.</div>`}
     <div class="profil-hint" style="padding-top:14px">
       Bagikan username ini ke teman supaya mereka bisa follow balik dan jadi mutual.
     </div>
@@ -587,6 +603,26 @@ function renderProfil() {
         </div>
       `).join('')}
     ` : ''}
+  `;
+}
+
+function renderMyInstantsStack() {
+  const items = state.myInstants; // sudah terurut: terbaru duluan
+  const top = items[0];
+  const totalViews = items.reduce((sum, i) => sum + (i.viewCount || 0), 0);
+  const peekCount = Math.min(items.length - 1, 3);
+  return `
+    <div class="mystack" data-open-stack>
+      <div class="mystack-deck">
+        ${Array.from({ length: peekCount }).map((_, i) => `<div class="mystack-peek" style="--i:${peekCount - i}"></div>`).join('')}
+        <img class="mystack-top" src="${top.image_data}" />
+        ${items.length > 1 ? `<span class="mystack-count">${items.length}</span>` : ''}
+      </div>
+      <div class="meta">
+        <div class="cap">${esc(top.caption)}</div>
+        <div class="when">${timeLeft(top.expires_at)} &middot; dilihat ${totalViews} kali total</div>
+      </div>
+    </div>
   `;
 }
 
@@ -639,13 +675,21 @@ function attachAppHandlers() {
     };
   });
 
-  root.querySelectorAll('[data-open]').forEach(el => {
-    el.onclick = () => openStory(el.getAttribute('data-open'), false);
+  root.querySelectorAll('[data-open-user]').forEach(el => {
+    el.onclick = () => {
+      const authorId = el.getAttribute('data-open-user');
+      const group = state.feed.filter(f => f.author_id === authorId);
+      const firstUnviewed = group.find(f => !f.viewed);
+      if (!firstUnviewed) {
+        showToast('Instant ini sudah kamu lihat sebelumnya');
+        return;
+      }
+      openStory(firstUnviewed.id, false);
+    };
   });
 
-  root.querySelectorAll('[data-open-mine]').forEach(el => {
-    el.onclick = () => openStory(el.getAttribute('data-open-mine'), true);
-  });
+  const stackEl = root.querySelector('[data-open-stack]');
+  if (stackEl) stackEl.onclick = () => openStory(state.myInstants[0].id, true);
 
   const signoutBtn = document.getElementById('signout-btn');
   if (signoutBtn) signoutBtn.onclick = handleSignOut;
