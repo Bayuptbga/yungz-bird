@@ -126,7 +126,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .auth-error { color: var(--danger); font-size: 13px; font-family: var(--mono); }
 
 /* ---- Screen wrapper ---- */
-.screen { flex: 1; overflow-y: auto; padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+.screen { flex: 1; overflow-y: auto; padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
 
 /* ---- Kamera (immersive, full-screen) ---- */
 .camera-immersive {
@@ -454,7 +454,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   left: 0; right: 0; bottom: 0;
   width: 100%;
   display: flex; align-items: center; justify-content: space-between;
-  height: 92px;
+  height: 68px;
   padding: 0 4px env(safe-area-inset-bottom, 0px);
   background: var(--bg-raised);
   border-top: 1px solid var(--line);
@@ -462,14 +462,14 @@ input:focus, textarea:focus { border-color: var(--flash); }
 }
 .nav-item {
   flex: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   background: none; border: none; color: var(--cream-dim); cursor: pointer;
-  font-family: var(--mono); font-size: 11px; font-weight: 600;
-  padding: 12px 4px;
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  padding: 6px 4px;
   position: relative;
   transition: color 0.18s ease;
 }
-.nav-item svg { width: 30px; height: 30px; flex-shrink: 0; }
+.nav-item svg { width: 22px; height: 22px; flex-shrink: 0; }
 .nav-item span:last-child {
   display: block; line-height: 1;
   white-space: nowrap;
@@ -477,8 +477,8 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .nav-icon-wrap {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  width: 56px; height: 38px;
-  border-radius: 19px;
+  width: 44px; height: 28px;
+  border-radius: 14px;
   color: inherit;
   transition: background 0.18s ease, color 0.18s ease;
 }
@@ -493,7 +493,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .fab-camera {
   position: fixed;
   right: 16px;
-  bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   width: 54px; height: 54px; padding: 0; border-radius: 50%;
   background: #FFFFFF;
   border: none;
@@ -506,7 +506,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .fab-camera svg { width: 24px; height: 24px; }
 
 .toast {
-  position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
   background: var(--bg-raised); border: 1px solid var(--hud); color: var(--hud);
   font-family: var(--mono); font-size: 12px; padding: 9px 16px; border-radius: 3px;
   z-index: 60;
