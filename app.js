@@ -678,7 +678,6 @@ function renderViewer() {
         }).join('')}
         <div class="viewer-card">
           ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `
-            <div class="viewer-card-bg" style="background-image:url('${it.image_data}')"></div>
             <img class="viewer-card-fg" src="${it.image_data}" />
           `}
           <button class="story-tap story-tap-prev ${it.own ? '' : 'story-tap-disabled'}" id="story-prev" aria-label="Sebelumnya"></button>
