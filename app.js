@@ -863,13 +863,11 @@ function renderViewer() {
   const idx = state.storyIndex;
   const remaining = Math.max(0, queue.length - idx - 1);
   const peekCount = Math.min(remaining, 3);
+  const username = it.own ? state.profile.username : (it.profiles ? it.profiles.username : 'user');
 
   return `
     <div class="viewer-overlay">
-      <div class="viewer-top">
-        <span class="hud-label">${it.own ? 'Instant kamu' : '@' + esc(it.profiles ? it.profiles.username : state.profile.username)}</span>
-        <button class="btn btn-ghost" id="close-viewer">Tutup &#10005;</button>
-      </div>
+      <button class="icon-btn viewer-close-btn" id="close-viewer">&times;</button>
       <div class="viewer-stage">
         <div class="viewer-square">
           ${Array.from({ length: peekCount }).map((_, i) => {
@@ -883,6 +881,14 @@ function renderViewer() {
           <div class="viewer-card">
             ${state.shielded ? `<div class="privacy-shield">KONTEN DISEMBUNYIKAN<br/>saat aplikasi tidak aktif</div>` : `
               <img class="viewer-card-fg" src="${it.image_data}" />
+              <div class="viewer-card-scrim"></div>
+              <div class="viewer-card-header">
+                <div class="viewer-avatar">${esc((username || '?')[0].toUpperCase())}</div>
+                <div class="viewer-who">
+                  <div class="name">${it.own ? 'Instan Anda' : '@' + esc(username)}</div>
+                  <div class="time">${timeLeft(it.expires_at)}</div>
+                </div>
+              </div>
             `}
             <button class="story-tap story-tap-prev ${it.own ? '' : 'story-tap-disabled'}" id="story-prev" aria-label="Sebelumnya"></button>
             <button class="story-tap story-tap-next" id="story-next" aria-label="Selanjutnya"></button>
@@ -892,7 +898,7 @@ function renderViewer() {
       <div class="viewer-info">
         ${it.caption ? `<div class="viewer-caption">${esc(it.caption)}</div>` : ''}
         ${it.own
-          ? `<div class="viewer-stats">Dilihat ${it.viewCount || 0} kali &middot; ${timeLeft(it.expires_at)}</div>`
+          ? `<div class="viewer-stats">Dilihat ${it.viewCount || 0} kali</div>`
           : `<div class="viewer-reactions">
                ${['❤️', '😂', '😮', '🔥', '👀'].map(e => `<button class="emoji-btn" data-emoji="${e}">${e}</button>`).join('')}
              </div>`}
