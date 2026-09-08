@@ -85,7 +85,7 @@ html, body {
 .btn-sm { padding: 6px 10px; font-size: 12px; flex-shrink: 0; }
 
 .profil-stats {
-  display: flex; justify-content: center; gap: 28px; padding: 4px 0 2px;
+  display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 18px;
 }
 .profil-stat {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -274,6 +274,28 @@ input:focus, textarea:focus { border-color: var(--flash); }
   padding: 16px;
 }
 
+.feed-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feed-section-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+  color: var(--cream-dim);
+}
+
+.feed-divider {
+  display: flex; align-items: center; gap: 10px;
+}
+.feed-divider::before, .feed-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+.feed-divider span {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em;
+  color: var(--cream-dim); white-space: nowrap;
+}
+
 .feed-card-wrap {
   position: relative;
   width: 100%;
@@ -400,17 +422,36 @@ input:focus, textarea:focus { border-color: var(--flash); }
 
 /* ---- Profil (gabungan teman + akun) ---- */
 .profil-header {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 28px 16px 20px; border-bottom: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 40px 16px 28px;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(143,255,107,0.08), transparent 60%);
+  border-bottom: 1px solid var(--line);
+}
+.avatar-ring {
+  width: 96px; height: 96px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--hud), var(--flash));
+  display: flex; align-items: center; justify-content: center;
+  padding: 3px;
+  margin-bottom: 6px;
 }
 .avatar-lg {
-  width: 64px; height: 64px; border-radius: 50%; background: var(--bg-raised);
+  width: 100%; height: 100%; border-radius: 50%; background: var(--bg-raised);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: 22px; color: var(--hud);
-  border: 1px solid var(--line);
+  font-family: var(--mono); font-size: 30px; font-weight: 600; color: var(--cream);
+  border: 3px solid var(--bg);
 }
-.profil-uname { font-size: 16px; font-weight: 700; }
+.profil-name { font-family: var(--grotesk); font-size: 19px; font-weight: 800; }
+.profil-uname { font-family: var(--mono); font-size: 12.5px; color: var(--cream-dim); }
+.profil-joined { font-family: var(--mono); font-size: 10.5px; color: var(--cream-dim); opacity: 0.75; margin-top: 2px; }
 .profil-hint { font-family: var(--mono); font-size: 11px; color: var(--cream-dim); text-align: center; padding: 0 24px; }
+
+.profil-stat-divider { width: 1px; height: 26px; background: var(--line); }
+
+.btn-signout {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 22px;
+}
+.btn-signout svg { width: 15px; height: 15px; }
 
 .section-label {
   font-family: var(--mono); font-size: 11px; color: var(--cream-dim);

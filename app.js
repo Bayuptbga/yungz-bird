@@ -1,5 +1,5 @@
 import { supabase } from './supabase-client.js';
-import { esc, timeAgo, timeLeft, ICONS } from './helpers.js';
+import { esc, timeAgo, timeLeft, joinedLabel, ICONS } from './helpers.js';
 // Catatan: tab "Chat" saat ini tampilan saja (belum ada tabel/backend pesan di Supabase).
 // Dipakai untuk mulai obrolan dari daftar teman mutual; kirim pesan sungguhan
 // butuh tabel `messages` + realtime, belum dibuat.
@@ -734,7 +734,16 @@ function renderBeranda() {
     `;
   }).join('');
 
-  const carousel = `<div class="feed-carousel">${ownCard}${friendCards}</div>`;
+  const carousel = `
+    <div class="feed-carousel">
+      <div class="feed-section">
+        <span class="feed-section-label">INSTAN SAYA</span>
+        ${ownCard}
+      </div>
+      <div class="feed-divider"><span>INSTAN TEMAN</span></div>
+      ${friendCards}
+    </div>
+  `;
 
   if (!groups.length) {
     return `${carousel}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
@@ -764,16 +773,25 @@ function renderFriendBtn(targetId) {
 
 function renderProfil() {
   if (state.profilView === 'main') {
+    const p = state.profile;
+    const displayName = p.display_name || p.username;
+    const joined = joinedLabel(p.created_at);
     return `
       <div class="profil-header">
-        <div class="avatar-lg">${esc((state.profile.username || '?')[0].toUpperCase())}</div>
-        <div class="profil-uname">@${esc(state.profile.username)}</div>
+        <div class="avatar-ring"><div class="avatar-lg">${esc((p.username || '?')[0].toUpperCase())}</div></div>
+        <div class="profil-name">${esc(displayName)}</div>
+        <div class="profil-uname">@${esc(p.username)}</div>
+        ${joined ? `<div class="profil-joined">Bergabung ${esc(joined)}</div>` : ''}
         <div class="profil-stats">
           <button class="profil-stat" data-profil-view="teman">
             <span class="num">${state.friends.length}</span><span class="label">Teman</span>
           </button>
+          <div class="profil-stat-divider"></div>
+          <div class="profil-stat">
+            <span class="num">${state.myInstants.length}</span><span class="label">Instan Aktif</span>
+          </div>
         </div>
-        <button class="btn btn-ghost" id="signout-btn">Keluar</button>
+        <button class="btn btn-ghost btn-signout" id="signout-btn">${ICONS.logout}<span>Keluar</span></button>
       </div>
     `;
   }
