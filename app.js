@@ -17,7 +17,6 @@ let state = {
   stream: null,
   capturedImage: null,
   caption: '',
-  postAudience: 'mutuals', // 'mutuals' | 'public'
   facing: 'user',
   flashOn: false,
   flashing: false,
@@ -165,58 +164,88 @@ async function loadFriends() {
   const followingIds = new Set(following.map(f => f.id));
   const followerIds = new Set(followers.map(f => f.id));
 
-  const friends = following.filter(f => followerIds.has(f.id));       // saling follow -> teman
-  const pendingOut = following.filter(f => !followerIds.has(f.id));    // saya follow, belum follow balik
-  const pengikutBaru = followers.filter(f => !followingIds.has(f.id)); // follow saya, belum saya follow balik
+  const friends = following.filter(f => followerIds.has(f.id));       // saling terhubung -> teman
+  const pendingOut = following.filter(f => !followerIds.has(f.id));    // permintaan yang saya kirim, menunggu diterima
+  const pengikutBaru = followers.filter(f => !followingIds.has(f.id)); // permintaan masuk, menunggu saya terima/tolak
 
   setState({ friends, pendingOut, followers, following, pengikutBaru });
 }
 
-// Status relasi saya terhadap user lain: 'teman' | 'mengikuti' | 'pengikut' | 'none'
+// Status relasi saya terhadap user lain: 'teman' | 'terkirim' | 'masuk' | 'none'
 function relationOf(targetId) {
-  const isFollowing = state.following.some(f => f.id === targetId);
-  const isFollower = state.followers.some(f => f.id === targetId);
+  const isFollowing = state.following.some(f => f.id === targetId); // saya kirim permintaan ke dia
+  const isFollower = state.followers.some(f => f.id === targetId);  // dia kirim permintaan ke saya
   if (isFollowing && isFollower) return 'teman';
-  if (isFollowing) return 'mengikuti';
-  if (isFollower) return 'pengikut';
+  if (isFollowing) return 'terkirim';
+  if (isFollower) return 'masuk';
   return 'none';
 }
 
-async function handleFollow(targetId) {
+// Kirim permintaan pertemanan
+async function handleSendRequest(targetId) {
   const { error } = await supabase.from('follows').insert({ follower_id: state.user.id, followee_id: targetId });
   if (error && !error.message.includes('duplicate')) {
     showToast(error.message);
     return;
   }
-  const wasFollower = state.followers.some(f => f.id === targetId);
-  showToast(wasFollower ? 'Sekarang jadi teman mutual!' : 'Diikuti');
+  showToast('Permintaan pertemanan terkirim');
   await loadFriends();
   refreshSearchResult();
 }
 
-async function handleUnfollow(targetId) {
+// Batalkan permintaan yang saya kirim
+async function handleCancelRequest(targetId) {
   const { error } = await supabase.from('follows').delete().eq('follower_id', state.user.id).eq('followee_id', targetId);
   if (error) {
     showToast(error.message);
     return;
   }
-  showToast('Berhenti mengikuti');
+  showToast('Permintaan dibatalkan');
   await loadFriends();
   refreshSearchResult();
 }
 
-async function handleRemoveFollower(targetId) {
+// Terima permintaan masuk -> jadi teman (mutual)
+async function handleAcceptRequest(targetId) {
+  const { error } = await supabase.from('follows').insert({ follower_id: state.user.id, followee_id: targetId });
+  if (error && !error.message.includes('duplicate')) {
+    showToast(error.message);
+    return;
+  }
+  showToast('Kalian sekarang berteman!');
+  await loadFriends();
+  refreshSearchResult();
+}
+
+// Tolak permintaan masuk
+async function handleDeclineRequest(targetId) {
   const { error } = await supabase.from('follows').delete().eq('follower_id', targetId).eq('followee_id', state.user.id);
   if (error) {
     showToast(error.message);
     return;
   }
-  showToast('Pengikut dihapus');
+  showToast('Permintaan ditolak');
   await loadFriends();
   refreshSearchResult();
 }
 
-// Sinkronkan tombol relasi di hasil pencarian setelah follow/unfollow/hapus
+// Akhiri pertemanan (hapus kedua arah relasi)
+async function handleUnfriend(targetId) {
+  const uid = state.user.id;
+  const [{ error: e1 }, { error: e2 }] = await Promise.all([
+    supabase.from('follows').delete().eq('follower_id', uid).eq('followee_id', targetId),
+    supabase.from('follows').delete().eq('follower_id', targetId).eq('followee_id', uid),
+  ]);
+  if (e1 || e2) {
+    showToast((e1 || e2).message);
+    return;
+  }
+  showToast('Pertemanan diakhiri');
+  await loadFriends();
+  refreshSearchResult();
+}
+
+// Sinkronkan tombol relasi di hasil pencarian setelah aksi pertemanan
 function refreshSearchResult() {
   if (state.searchResult) setState({ searchResult: { ...state.searchResult } });
 }
@@ -329,7 +358,7 @@ function retake() {
 
 function exitCamera() {
   stopCamera();
-  setState({ tab: 'beranda', capturedImage: null, caption: '', cameraError: '', postAudience: 'mutuals' });
+  setState({ tab: 'beranda', capturedImage: null, caption: '', cameraError: '' });
   loadFeed();
 }
 
@@ -359,7 +388,6 @@ async function handlePost() {
     author_id: state.user.id,
     caption: state.caption.trim(),
     image_path: path,
-    audience: state.postAudience,
   });
   setState({ posting: false });
   if (error) {
@@ -369,7 +397,7 @@ async function handlePost() {
     showToast('Gagal mengirim: ' + error.message);
     return;
   }
-  setState({ capturedImage: null, caption: '', postAudience: 'mutuals', tab: 'beranda' });
+  setState({ capturedImage: null, caption: '', tab: 'beranda' });
   showToast('Instant terkirim! Hilang dalam 24 jam.');
   loadFeed();
   loadMyInstants();
@@ -394,7 +422,7 @@ async function loadFeed() {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('instants')
-    .select('id, caption, image_data, image_path, created_at, expires_at, author_id, audience, profiles!instants_author_id_fkey(username, display_name)')
+    .select('id, caption, image_data, image_path, created_at, expires_at, author_id, profiles!instants_author_id_fkey(username, display_name)')
     .neq('author_id', state.user.id)
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: false });
@@ -406,11 +434,13 @@ async function loadFeed() {
   setState({ feed });
 }
 
-async function openStory(id, own) {
-  const queue = own ? buildOwnStoryQueue() : buildFriendsStoryQueue();
+
+
+async function openStory(id, kind) {
+  const queue = kind === 'own' ? buildOwnStoryQueue() : buildFriendsStoryQueue();
   let idx = queue.findIndex(q => q.id === id);
   if (idx < 0) {
-    if (!own) showToast('Instant ini sudah kamu lihat sebelumnya');
+    if (kind === 'friend') showToast('Instant ini sudah kamu lihat sebelumnya');
     return;
   }
   setState({ storyQueue: queue, storyIndex: idx, viewerInstant: queue[idx] });
@@ -633,20 +663,7 @@ function renderKamera() {
       ${state.capturedImage ? `
         <div class="caption-bar">
           <input id="caption-input" type="text" placeholder="Tulis caption (opsional)..." value="${esc(state.caption)}" maxlength="140" />
-          <div class="audience-toggle">
-            <button class="audience-opt ${state.postAudience === 'mutuals' ? 'active' : ''}" id="audience-mutuals-btn" type="button">
-              &#128274; Teman Mutual
-            </button>
-            <button class="audience-opt ${state.postAudience === 'public' ? 'active' : ''}" id="audience-public-btn" type="button">
-              &#127760; Publik
-            </button>
-          </div>
-          <div class="hint">
-            ${state.postAudience === 'public'
-              ? 'Bisa dilihat semua orang, termasuk yang belum berteman denganmu'
-              : 'Cuma bisa dilihat teman mutual (saling follow)'}
-            &middot; tidak bisa diedit lagi setelah dikirim
-          </div>
+          <div class="hint">Opsional &middot; tidak bisa diedit lagi setelah dikirim</div>
         </div>
       ` : ''}
       <div class="capture-controls">
@@ -665,103 +682,59 @@ function renderKamera() {
 
 function renderBeranda() {
   const hasMine = state.myInstants.length > 0;
-  const mutualItems = state.feed.filter(i => i.audience !== 'public');
-  const publicItems = state.feed.filter(i => i.audience === 'public');
-  const groups = groupFeedByAuthor(mutualItems).filter(group => group.items.some(i => !i.viewed));
-  const publicGroups = groupFeedByAuthor(publicItems).filter(group => group.items.some(i => !i.viewed));
+  const groups = groupFeedByAuthor(state.feed).filter(group => group.items.some(i => !i.viewed));
 
-  const renderStoryCard = (group) => {
-    const items = group.items;
-    const top = items[0];
-    const username = top.profiles?.username || 'user';
-    return `
-      <div class="story-item" data-open-user="${group.authorId}">
-        <div class="story-card-wrap">
-          ${items.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
-          <div class="story-card story-card-unviewed">
-            <img src="${top.image_data}" />
-            <div class="story-card-label">@${esc(username)}</div>
-            ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  const renderPublicGridCard = (group) => {
-    const items = group.items;
-    const top = items[0];
-    const username = top.profiles?.username || 'user';
-    return `
-      <div class="grid-item">
-        <div class="story-card-wrap" data-open-user="${group.authorId}">
-          ${items.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
-          <div class="story-card story-card-unviewed">
-            <img src="${top.image_data}" />
-            ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
-            <div class="story-card-label story-card-label-row">
-              <span class="story-card-uname">@${esc(username)}</span>
-              <span class="story-card-follow-slot">${renderFollowBtn(group.authorId, true)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  const combinedRow = `
+  const storiesRow = `
     <div class="stories-row">
       <div class="story-item" ${hasMine ? 'data-open-stack' : 'data-tab="kamera"'}>
-        <div class="story-card-wrap">
-          ${hasMine && state.myInstants.length > 1 ? `<div class="story-card-shadow s2"></div><div class="story-card-shadow s1"></div>` : ''}
-          <div class="story-card ${hasMine ? 'story-card-mine' : 'story-card-empty'}">
+        <div class="story-ring ${hasMine ? 'story-ring-mine' : 'story-ring-empty'}">
+          <div class="story-thumb">
             ${hasMine ? `<img src="${state.myInstants[0].image_data}" />` : `<span class="story-plus">${ICONS.plus}</span>`}
-            <div class="story-card-label">Anda</div>
-            ${hasMine && state.myInstants.length > 1 ? `<span class="story-count">${state.myInstants.length}</span>` : ''}
           </div>
         </div>
+        <span class="story-label">Anda</span>
       </div>
-      ${groups.map(renderStoryCard).join('')}
+      ${groups.map(group => {
+        const items = group.items; // terbaru duluan (mengikuti urutan feed)
+        const top = items[0];
+        const username = top.profiles?.username || 'user';
+        return `
+          <div class="story-item" data-open-user="${group.authorId}">
+            <div class="story-ring story-ring-unviewed">
+              <div class="story-thumb"><img src="${top.image_data}" /></div>
+              ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
+            </div>
+            <span class="story-label">@${esc(username)}</span>
+          </div>
+        `;
+      }).join('')}
     </div>
   `;
 
-  const friendSection = groups.length
-    ? combinedRow
-    : `${combinedRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
-
-  const publicSection = publicGroups.length ? `
-    <div class="section-label" style="padding:14px 16px 0">INSTAN PUBLIK</div>
-    <div class="instants-grid">
-      ${publicGroups.map(renderPublicGridCard).join('')}
-    </div>
-  ` : '';
-
-  return `${friendSection}${publicSection}`;
+  if (!groups.length) {
+    return `${storiesRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
+  }
+  return storiesRow;
 }
 
-// Tombol relasi gaya Instagram: Ikuti / Mengikuti / Teman, atau grup (Ikuti Balik + Hapus) untuk pengikut
-// compact=true -> versi mini untuk dipakai di bawah kartu instan publik (lebar sempit)
-function renderFollowBtn(targetId, compact = false) {
+// Tombol relasi pertemanan: Tambah Teman / Menunggu / Terima+Tolak / Teman
+function renderFriendBtn(targetId) {
   const rel = relationOf(targetId);
-  const sizeCls = compact ? 'btn-xs' : 'btn-sm';
   if (rel === 'teman') {
-    return `<button class="btn btn-friend ${sizeCls}" data-unfollow="${targetId}">Teman</button>`;
+    return `<button class="btn btn-friend btn-sm" data-unfriend="${targetId}">Teman</button>`;
   }
-  if (rel === 'mengikuti') {
-    return `<button class="btn btn-ghost ${sizeCls}" data-unfollow="${targetId}">Mengikuti</button>`;
+  if (rel === 'terkirim') {
+    return `<button class="btn btn-ghost btn-sm" data-cancel-request="${targetId}">Menunggu</button>`;
   }
-  if (rel === 'pengikut') {
-    if (compact) {
-      return `<button class="btn btn-primary ${sizeCls}" data-follow="${targetId}">Ikuti Balik</button>`;
-    }
+  if (rel === 'masuk') {
     return `
       <div class="follow-btn-group">
-        <button class="btn btn-primary btn-sm" data-follow="${targetId}">Ikuti Balik</button>
-        <button class="btn btn-ghost btn-sm" data-remove-follower="${targetId}">Hapus</button>
+        <button class="btn btn-primary btn-sm" data-accept-request="${targetId}">Terima</button>
+        <button class="btn btn-ghost btn-sm" data-decline-request="${targetId}">Tolak</button>
       </div>
     `;
   }
-  return `<button class="btn btn-primary ${sizeCls}" data-follow="${targetId}">Ikuti</button>`;
+  return `<button class="btn btn-primary btn-sm" data-send-request="${targetId}">Tambah Teman</button>`;
 }
 
 function renderProfil() {
@@ -771,11 +744,11 @@ function renderProfil() {
         <div class="avatar-lg">${esc((state.profile.username || '?')[0].toUpperCase())}</div>
         <div class="profil-uname">@${esc(state.profile.username)}</div>
         <div class="profil-stats">
-          <button class="profil-stat" data-profil-view="pengikut">
-            <span class="num">${state.followers.length}</span><span class="label">Pengikut</span>
+          <button class="profil-stat" data-profil-view="teman">
+            <span class="num">${state.friends.length}</span><span class="label">Teman</span>
           </button>
-          <button class="profil-stat" data-profil-view="diikuti">
-            <span class="num">${state.following.length}</span><span class="label">Diikuti</span>
+          <button class="profil-stat" data-profil-view="permintaan">
+            <span class="num">${state.pengikutBaru.length}</span><span class="label">Permintaan</span>
           </button>
         </div>
         <button class="btn btn-ghost" id="signout-btn">Keluar</button>
@@ -783,25 +756,44 @@ function renderProfil() {
     `;
   }
 
-  const isPengikut = state.profilView === 'pengikut';
-  const list = isPengikut ? state.followers : state.following;
-  const title = isPengikut ? 'Pengikut' : 'Diikuti';
-  const emptyMsg = isPengikut
-    ? 'Belum ada yang mengikuti kamu. Bagikan username kamu supaya orang lain bisa follow.'
-    : 'Kamu belum mengikuti siapa pun. Cari username di tab Cari untuk mulai follow.';
+  if (state.profilView === 'teman') {
+    return `
+      <div class="profil-list-header">
+        <button class="back-btn" data-profil-view="main">&larr;</button>
+        <span class="section-label" style="padding:0">TEMAN (${state.friends.length})</span>
+      </div>
+      ${state.friends.length ? state.friends.map(f => `
+        <div class="friend-row">
+          <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
+          <div class="uname">@${esc(f.username)}</div>
+          ${renderFriendBtn(f.id)}
+        </div>
+      `).join('') : `<div class="feed-empty" style="padding:24px"><span class="hud-label">BELUM ADA TEMAN</span>Cari username di tab Cari dan kirim permintaan pertemanan.</div>`}
+    `;
+  }
 
+  // profilView === 'permintaan'
   return `
     <div class="profil-list-header">
       <button class="back-btn" data-profil-view="main">&larr;</button>
-      <span class="section-label" style="padding:0">${title.toUpperCase()} (${list.length})</span>
+      <span class="section-label" style="padding:0">PERMINTAAN PERTEMANAN</span>
     </div>
-    ${list.length ? list.map(f => `
+    <span class="section-label">MASUK (${state.pengikutBaru.length})</span>
+    ${state.pengikutBaru.length ? state.pengikutBaru.map(f => `
       <div class="friend-row">
         <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
         <div class="uname">@${esc(f.username)}</div>
-        ${renderFollowBtn(f.id)}
+        ${renderFriendBtn(f.id)}
       </div>
-    `).join('') : `<div class="feed-empty" style="padding:24px"><span class="hud-label">KOSONG</span>${emptyMsg}</div>`}
+    `).join('') : `<div class="feed-empty" style="padding:16px 24px"><span class="hud-label">TIDAK ADA</span>Belum ada yang mengirim permintaan pertemanan.</div>`}
+    <span class="section-label">TERKIRIM (${state.pendingOut.length})</span>
+    ${state.pendingOut.length ? state.pendingOut.map(f => `
+      <div class="friend-row">
+        <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
+        <div class="uname">@${esc(f.username)}</div>
+        ${renderFriendBtn(f.id)}
+      </div>
+    `).join('') : `<div class="feed-empty" style="padding:16px 24px"><span class="hud-label">TIDAK ADA</span>Belum ada permintaan yang menunggu diterima.</div>`}
   `;
 }
 
@@ -809,7 +801,7 @@ function renderCari() {
   const result = state.searchResult;
   return `
     <div class="profil-hint" style="padding:14px 16px 0">
-      Cari username teman untuk mulai follow.
+      Cari username teman untuk mengirim permintaan pertemanan.
     </div>
     <div class="add-friend-bar">
       <input id="search-input" type="text" placeholder="Cari username" value="${esc(state.searchQuery)}" />
@@ -821,7 +813,7 @@ function renderCari() {
       <div class="friend-row">
         <div class="avatar">${esc((result.username || '?')[0].toUpperCase())}</div>
         <div class="uname">@${esc(result.username)}</div>
-        ${renderFollowBtn(result.id)}
+        ${renderFriendBtn(result.id)}
       </div>
     ` : ''}
   `;
@@ -893,8 +885,7 @@ function attachAppHandlers() {
   });
 
   root.querySelectorAll('[data-open-user]').forEach(el => {
-    el.onclick = (e) => {
-      if (e.target.closest('[data-follow],[data-unfollow]')) return;
+    el.onclick = () => {
       const authorId = el.getAttribute('data-open-user');
       const group = state.feed.filter(f => f.author_id === authorId);
       const firstUnviewed = group.find(f => !f.viewed);
@@ -902,12 +893,12 @@ function attachAppHandlers() {
         showToast('Instant ini sudah kamu lihat sebelumnya');
         return;
       }
-      openStory(firstUnviewed.id, false);
+      openStory(firstUnviewed.id, 'friend');
     };
   });
 
   const stackEl = root.querySelector('[data-open-stack]');
-  if (stackEl) stackEl.onclick = () => openStory(state.myInstants[0].id, true);
+  if (stackEl) stackEl.onclick = () => openStory(state.myInstants[0].id, 'own');
 
   const signoutBtn = document.getElementById('signout-btn');
   if (signoutBtn) signoutBtn.onclick = handleSignOut;
@@ -923,14 +914,20 @@ function attachAppHandlers() {
   root.querySelectorAll('[data-profil-view]').forEach(el => {
     el.onclick = () => setState({ profilView: el.getAttribute('data-profil-view') });
   });
-  root.querySelectorAll('[data-follow]').forEach(el => {
-    el.onclick = () => handleFollow(el.getAttribute('data-follow'));
+  root.querySelectorAll('[data-send-request]').forEach(el => {
+    el.onclick = () => handleSendRequest(el.getAttribute('data-send-request'));
   });
-  root.querySelectorAll('[data-unfollow]').forEach(el => {
-    el.onclick = () => handleUnfollow(el.getAttribute('data-unfollow'));
+  root.querySelectorAll('[data-cancel-request]').forEach(el => {
+    el.onclick = () => handleCancelRequest(el.getAttribute('data-cancel-request'));
   });
-  root.querySelectorAll('[data-remove-follower]').forEach(el => {
-    el.onclick = () => handleRemoveFollower(el.getAttribute('data-remove-follower'));
+  root.querySelectorAll('[data-accept-request]').forEach(el => {
+    el.onclick = () => handleAcceptRequest(el.getAttribute('data-accept-request'));
+  });
+  root.querySelectorAll('[data-decline-request]').forEach(el => {
+    el.onclick = () => handleDeclineRequest(el.getAttribute('data-decline-request'));
+  });
+  root.querySelectorAll('[data-unfriend]').forEach(el => {
+    el.onclick = () => handleUnfriend(el.getAttribute('data-unfriend'));
   });
 
   attachViewerHandlers();
@@ -961,11 +958,6 @@ function attachCameraHandlers() {
     captionInput.oninput = (e) => { state.caption = e.target.value; };
     captionInput.focus();
   }
-
-  const audienceMutualsBtn = document.getElementById('audience-mutuals-btn');
-  if (audienceMutualsBtn) audienceMutualsBtn.onclick = () => setState({ postAudience: 'mutuals' });
-  const audiencePublicBtn = document.getElementById('audience-public-btn');
-  if (audiencePublicBtn) audiencePublicBtn.onclick = () => setState({ postAudience: 'public' });
 
   const retakeBtn = document.getElementById('retake-btn');
   if (retakeBtn) retakeBtn.onclick = retake;

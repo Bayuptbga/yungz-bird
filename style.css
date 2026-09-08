@@ -83,10 +83,6 @@ html, body {
 .btn-full { width: 100%; }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn-sm { padding: 6px 10px; font-size: 12px; flex-shrink: 0; }
-.btn-xs {
-  padding: 4px 0; font-size: 9.5px; font-weight: 700; width: 100%;
-  text-align: center; border-radius: 6px; letter-spacing: 0.2px;
-}
 
 .profil-stats {
   display: flex; gap: 28px; padding: 4px 0 2px;
@@ -200,17 +196,6 @@ input:focus, textarea:focus { border-color: var(--flash); }
 .caption-bar { padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--bg-raised); }
 .caption-bar input { background: transparent; border: none; font-size: 16px; padding: 4px 0; }
 .caption-bar .hint { font-family: var(--mono); font-size: 10px; color: var(--cream-dim); margin-top: 4px; }
-.audience-toggle {
-  display: flex; gap: 8px; margin-top: 8px;
-}
-.audience-opt {
-  flex: 1; font-family: var(--mono); font-size: 11px; font-weight: 600;
-  padding: 8px 6px; border-radius: 8px; border: 1px solid var(--line);
-  background: transparent; color: var(--cream-dim); cursor: pointer;
-}
-.audience-opt.active {
-  background: var(--flash); border-color: var(--flash); color: #1a0d05;
-}
 
 .capture-controls {
   display: flex; align-items: center; justify-content: center; gap: 40px;
@@ -284,81 +269,44 @@ input:focus, textarea:focus { border-color: var(--flash); }
 /* ---- Stories row (Beranda: instan saya + instan teman, horizontal) ---- */
 .stories-row {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   padding: 14px 16px;
   overflow-x: auto;
   scrollbar-width: none;
 }
 .stories-row::-webkit-scrollbar { display: none; }
 .story-item {
-  display: flex; flex-direction: column; align-items: center;
-  flex-shrink: 0; width: 78px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  flex-shrink: 0; width: 64px; cursor: pointer;
   background: none; border: none; padding: 0;
 }
-.stories-row .story-card-wrap { width: 78px; height: 100px; }
-
-/* ---- Grid instan (Beranda: instan publik) ---- */
-.instants-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 10px 16px 16px;
-}
-.grid-item {
-  cursor: pointer;
-  background: none; border: none; padding: 0;
-}
-.story-card-wrap {
+.story-ring {
   position: relative;
-  width: 100%; aspect-ratio: 3 / 4;
-}
-.story-card-shadow {
-  position: absolute; inset: 0;
-  border-radius: 13px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-}
-.story-card-shadow.s2 { transform: translate(6px, 8px) rotate(4deg); z-index: 0; opacity: 0.4; }
-.story-card-shadow.s1 { transform: translate(3px, 4px) rotate(2deg); z-index: 1; opacity: 0.7; }
-.story-card {
-  position: relative; z-index: 2;
-  width: 100%; height: 100%; border-radius: 13px; overflow: hidden;
-  background: var(--bg-raised);
+  width: 60px; height: 60px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  border: 1.5px solid var(--line);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  padding: 2.5px;
 }
-.story-card-unviewed { border-color: var(--hud); }
-.story-card-mine { border-color: var(--line); }
-.story-card-empty { border: 1.5px dashed var(--cream-dim); }
-.story-card img {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; display: block;
+.story-ring-unviewed { background: linear-gradient(135deg, var(--hud), var(--flash)); }
+.story-ring-mine { background: var(--line); }
+.story-ring-empty { background: var(--line); border: 1px dashed var(--cream-dim); }
+.story-thumb {
+  width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+  background: var(--bg-raised); border: 2px solid var(--bg);
+  display: flex; align-items: center; justify-content: center;
 }
-.story-plus { width: 26px; height: 26px; color: var(--cream-dim); }
+.story-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.story-plus { width: 22px; height: 22px; color: var(--cream-dim); }
 .story-plus svg { width: 100%; height: 100%; }
 .story-count {
-  position: absolute; top: -5px; right: -5px; z-index: 4;
-  font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--bg);
-  background: var(--hud); min-width: 17px; height: 17px; line-height: 17px; text-align: center;
+  position: absolute; bottom: -2px; right: -2px; z-index: 2;
+  font-family: var(--mono); font-size: 8.5px; font-weight: 700; color: var(--bg);
+  background: var(--hud); min-width: 16px; height: 16px; line-height: 16px; text-align: center;
   border-radius: 999px; border: 2px solid var(--bg);
 }
-.story-card-label {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
-  font-family: var(--mono); font-size: 10px; color: var(--cream);
-  padding: 5px 6px 6px;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.story-label {
+  font-family: var(--mono); font-size: 10px; color: var(--cream-dim);
+  max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.story-card-label-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 5px;
-  white-space: normal; padding: 5px 5px 6px;
-}
-.story-card-uname {
-  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.story-card-follow-slot { flex-shrink: 0; }
-.story-card-follow-slot .btn-xs { width: auto; padding: 3px 7px; }
 
 /* ---- Viewer (view-once) ---- */
 .viewer-overlay {
