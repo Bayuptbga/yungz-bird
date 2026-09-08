@@ -266,33 +266,30 @@ input:focus, textarea:focus { border-color: var(--flash); }
   padding: 2px 6px; border-radius: 2px;
 }
 
-/* ---- Feed carousel (Beranda: instan saya + instan teman, kartu menumpuk horizontal) ---- */
+/* ---- Feed list (Beranda: instan saya + instan teman, kartu menumpuk vertikal) ---- */
 .feed-carousel {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 20px;
   padding: 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
-.feed-carousel::-webkit-scrollbar { display: none; }
 
 .feed-card-wrap {
   position: relative;
-  flex-shrink: 0;
-  width: 144px;
+  width: 100%;
   cursor: pointer;
 }
 .feed-card-peek {
   position: absolute; inset: 0;
   border-radius: 20px; background: var(--bg-raised); border: 1px solid var(--line);
   box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-  transform: translateY(calc(var(--i) * 6px)) rotate(calc(var(--i) * 1.8deg));
+  transform: translateY(calc(var(--i) * 6px)) rotate(calc(var(--i) * 1deg));
   z-index: calc(3 - var(--i));
 }
 .feed-card {
   position: relative;
   z-index: 4;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 4 / 3;
   border-radius: 20px;
   overflow: hidden;
   background: var(--bg-raised);
@@ -315,7 +312,7 @@ input:focus, textarea:focus { border-color: var(--flash); }
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   border: 1.5px dashed var(--cream-dim); background: var(--bg-raised);
 }
-.feed-card-plus { width: 32px; height: 32px; color: var(--cream-dim); }
+.feed-card-plus { width: 40px; height: 40px; color: var(--cream-dim); }
 .feed-card-plus svg { width: 100%; height: 100%; }
 .feed-card-count {
   position: absolute; top: 10px; left: 10px; z-index: 2;
@@ -329,9 +326,9 @@ input:focus, textarea:focus { border-color: var(--flash); }
   font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--bg);
   background: var(--hud); padding: 3px 8px; border-radius: 20px;
 }
-.feed-card-info { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 11px; }
-.feed-card-info .who { font-weight: 700; font-size: 13px; }
-.feed-card-info .when { font-family: var(--mono); font-size: 10px; color: var(--cream-dim); margin-top: 2px; }
+.feed-card-info { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 14px; }
+.feed-card-info .who { font-weight: 700; font-size: 15px; }
+.feed-card-info .when { font-family: var(--mono); font-size: 11px; color: var(--cream-dim); margin-top: 3px; }
 .feed-card-empty .feed-card-info { position: static; padding: 10px 0 0; text-align: center; }
 .feed-card-empty .feed-card-info .who { color: var(--cream); }
 .feed-card-empty .feed-card-info .when { color: var(--cream-dim); }
