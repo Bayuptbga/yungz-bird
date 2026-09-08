@@ -600,12 +600,13 @@ function renderApp() {
     return;
   }
   const feedUnviewedCount = state.feed.filter(f => !f.viewed).length;
+  const requestCount = state.pengikutBaru.length;
   root.innerHTML = `
     <div class="topbar"><div class="wordmark">instants<span>.</span></div></div>
     <div class="screen">
       ${state.tab === 'beranda' ? renderBeranda() : ''}
       ${state.tab === 'chat' ? renderChat() : ''}
-      ${state.tab === 'cari' ? renderCari() : ''}
+      ${state.tab === 'teman' ? renderTeman() : ''}
       ${state.tab === 'profil' ? renderProfil() : ''}
     </div>
     <div class="bottom-nav">
@@ -620,9 +621,12 @@ function renderApp() {
         <span class="nav-icon-wrap">${ICONS.chat}</span>
         <span>Chat</span>
       </button>
-      <button class="nav-item ${state.tab === 'cari' ? 'active' : ''}" data-tab="cari">
-        <span class="nav-icon-wrap">${ICONS.search}</span>
-        <span>Cari</span>
+      <button class="nav-item ${state.tab === 'teman' ? 'active' : ''}" data-tab="teman">
+        <span class="nav-icon-wrap">
+          ${ICONS.contacts}
+          ${requestCount ? `<span class="nav-badge">${requestCount}</span>` : ''}
+        </span>
+        <span>Teman</span>
       </button>
       <button class="nav-item ${state.tab === 'profil' ? 'active' : ''}" data-tab="profil">
         <span class="nav-icon-wrap">${ICONS.profile}</span>
@@ -768,57 +772,29 @@ function renderProfil() {
           <button class="profil-stat" data-profil-view="teman">
             <span class="num">${state.friends.length}</span><span class="label">Teman</span>
           </button>
-          <button class="profil-stat" data-profil-view="permintaan">
-            <span class="num">${state.pengikutBaru.length}</span><span class="label">Permintaan</span>
-          </button>
         </div>
         <button class="btn btn-ghost" id="signout-btn">Keluar</button>
       </div>
     `;
   }
 
-  if (state.profilView === 'teman') {
-    return `
-      <div class="profil-list-header">
-        <button class="back-btn" data-profil-view="main">&larr;</button>
-        <span class="section-label" style="padding:0">TEMAN (${state.friends.length})</span>
-      </div>
-      ${state.friends.length ? state.friends.map(f => `
-        <div class="friend-row">
-          <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
-          <div class="uname">@${esc(f.username)}</div>
-          ${renderFriendBtn(f.id)}
-        </div>
-      `).join('') : `<div class="feed-empty" style="padding:24px"><span class="hud-label">BELUM ADA TEMAN</span>Cari username di tab Cari dan kirim permintaan pertemanan.</div>`}
-    `;
-  }
-
-  // profilView === 'permintaan'
+  // profilView === 'teman'
   return `
     <div class="profil-list-header">
       <button class="back-btn" data-profil-view="main">&larr;</button>
-      <span class="section-label" style="padding:0">PERMINTAAN PERTEMANAN</span>
+      <span class="section-label" style="padding:0">TEMAN (${state.friends.length})</span>
     </div>
-    <span class="section-label">MASUK (${state.pengikutBaru.length})</span>
-    ${state.pengikutBaru.length ? state.pengikutBaru.map(f => `
+    ${state.friends.length ? state.friends.map(f => `
       <div class="friend-row">
         <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
         <div class="uname">@${esc(f.username)}</div>
         ${renderFriendBtn(f.id)}
       </div>
-    `).join('') : `<div class="feed-empty" style="padding:16px 24px"><span class="hud-label">TIDAK ADA</span>Belum ada yang mengirim permintaan pertemanan.</div>`}
-    <span class="section-label">TERKIRIM (${state.pendingOut.length})</span>
-    ${state.pendingOut.length ? state.pendingOut.map(f => `
-      <div class="friend-row">
-        <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
-        <div class="uname">@${esc(f.username)}</div>
-        ${renderFriendBtn(f.id)}
-      </div>
-    `).join('') : `<div class="feed-empty" style="padding:16px 24px"><span class="hud-label">TIDAK ADA</span>Belum ada permintaan yang menunggu diterima.</div>`}
+    `).join('') : `<div class="feed-empty" style="padding:24px"><span class="hud-label">BELUM ADA TEMAN</span>Cari username di tab Teman dan kirim permintaan pertemanan.</div>`}
   `;
 }
 
-function renderCari() {
+function renderTeman() {
   const result = state.searchResult;
   return `
     <div class="profil-hint" style="padding:14px 16px 0">
@@ -837,6 +813,24 @@ function renderCari() {
         ${renderFriendBtn(result.id)}
       </div>
     ` : ''}
+
+    <span class="section-label">PERMINTAAN MASUK (${state.pengikutBaru.length})</span>
+    ${state.pengikutBaru.length ? state.pengikutBaru.map(f => `
+      <div class="friend-row">
+        <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
+        <div class="uname">@${esc(f.username)}</div>
+        ${renderFriendBtn(f.id)}
+      </div>
+    `).join('') : `<div class="feed-empty" style="padding:16px 24px"><span class="hud-label">TIDAK ADA</span>Belum ada yang mengirim permintaan pertemanan.</div>`}
+
+    <span class="section-label">PERMINTAAN TERKIRIM (${state.pendingOut.length})</span>
+    ${state.pendingOut.length ? state.pendingOut.map(f => `
+      <div class="friend-row">
+        <div class="avatar">${esc((f.username || '?')[0].toUpperCase())}</div>
+        <div class="uname">@${esc(f.username)}</div>
+        ${renderFriendBtn(f.id)}
+      </div>
+    `).join('') : `<div class="feed-empty" style="padding:16px 24px"><span class="hud-label">TIDAK ADA</span>Belum ada permintaan yang menunggu diterima.</div>`}
   `;
 }
 
@@ -899,7 +893,7 @@ function attachAppHandlers() {
         stopCamera();
         setState({ tab });
         if (tab === 'beranda') { loadFeed(); loadMyInstants(); }
-        if (tab === 'cari') { setState({ searchQuery: '', searchResult: null, searchError: '' }); loadFriends(); }
+        if (tab === 'teman') { setState({ searchQuery: '', searchResult: null, searchError: '' }); loadFriends(); }
         if (tab === 'profil') { setState({ profilView: 'main' }); loadFriends(); }
       }
     };
