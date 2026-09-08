@@ -266,47 +266,75 @@ input:focus, textarea:focus { border-color: var(--flash); }
   padding: 2px 6px; border-radius: 2px;
 }
 
-/* ---- Stories row (Beranda: instan saya + instan teman, horizontal) ---- */
-.stories-row {
+/* ---- Feed carousel (Beranda: instan saya + instan teman, kartu menumpuk horizontal) ---- */
+.feed-carousel {
   display: flex;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 16px;
+  padding: 16px;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.stories-row::-webkit-scrollbar { display: none; }
-.story-item {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  flex-shrink: 0; width: 64px; cursor: pointer;
-  background: none; border: none; padding: 0;
-}
-.story-ring {
+.feed-carousel::-webkit-scrollbar { display: none; }
+
+.feed-card-wrap {
   position: relative;
-  width: 60px; height: 60px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  padding: 2.5px;
+  flex-shrink: 0;
+  width: 144px;
+  cursor: pointer;
 }
-.story-ring-unviewed { background: linear-gradient(135deg, var(--hud), var(--flash)); }
-.story-ring-mine { background: var(--line); }
-.story-ring-empty { background: var(--line); border: 1px dashed var(--cream-dim); }
-.story-thumb {
-  width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
-  background: var(--bg-raised); border: 2px solid var(--bg);
-  display: flex; align-items: center; justify-content: center;
+.feed-card-peek {
+  position: absolute; inset: 0;
+  border-radius: 20px; background: var(--bg-raised); border: 1px solid var(--line);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+  transform: translateY(calc(var(--i) * 6px)) rotate(calc(var(--i) * 1.8deg));
+  z-index: calc(3 - var(--i));
 }
-.story-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.story-plus { width: 22px; height: 22px; color: var(--cream-dim); }
-.story-plus svg { width: 100%; height: 100%; }
-.story-count {
-  position: absolute; bottom: -2px; right: -2px; z-index: 2;
-  font-family: var(--mono); font-size: 8.5px; font-weight: 700; color: var(--bg);
-  background: var(--hud); min-width: 16px; height: 16px; line-height: 16px; text-align: center;
-  border-radius: 999px; border: 2px solid var(--bg);
+.feed-card {
+  position: relative;
+  z-index: 4;
+  aspect-ratio: 3 / 4;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.35);
+  transition: transform 0.15s ease;
 }
-.story-label {
-  font-family: var(--mono); font-size: 10px; color: var(--cream-dim);
-  max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.feed-card-wrap:active .feed-card { transform: scale(0.96); }
+.feed-card.unviewed {
+  border-color: var(--hud);
+  box-shadow: 0 0 0 1.5px var(--hud), 0 10px 24px rgba(0,0,0,0.45);
 }
+.feed-card-photo { position: absolute; inset: 0; }
+.feed-card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.feed-card-scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.8) 100%);
+}
+.feed-card-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  border: 1.5px dashed var(--cream-dim); background: var(--bg-raised);
+}
+.feed-card-plus { width: 32px; height: 32px; color: var(--cream-dim); }
+.feed-card-plus svg { width: 100%; height: 100%; }
+.feed-card-count {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  background: rgba(0,0,0,0.5); color: var(--cream);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 3px 8px; border-radius: 20px;
+}
+.feed-card-badge {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--bg);
+  background: var(--hud); padding: 3px 8px; border-radius: 20px;
+}
+.feed-card-info { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 11px; }
+.feed-card-info .who { font-weight: 700; font-size: 13px; }
+.feed-card-info .when { font-family: var(--mono); font-size: 10px; color: var(--cream-dim); margin-top: 2px; }
+.feed-card-empty .feed-card-info { position: static; padding: 10px 0 0; text-align: center; }
+.feed-card-empty .feed-card-info .who { color: var(--cream); }
+.feed-card-empty .feed-card-info .when { color: var(--cream-dim); }
 
 /* ---- Viewer (view-once) ---- */
 .viewer-overlay {

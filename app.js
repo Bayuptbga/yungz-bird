@@ -684,37 +684,58 @@ function renderBeranda() {
   const hasMine = state.myInstants.length > 0;
   const groups = groupFeedByAuthor(state.feed).filter(group => group.items.some(i => !i.viewed));
 
-  const storiesRow = `
-    <div class="stories-row">
-      <div class="story-item" ${hasMine ? 'data-open-stack' : 'data-tab="kamera"'}>
-        <div class="story-ring ${hasMine ? 'story-ring-mine' : 'story-ring-empty'}">
-          <div class="story-thumb">
-            ${hasMine ? `<img src="${state.myInstants[0].image_data}" />` : `<span class="story-plus">${ICONS.plus}</span>`}
+  const ownPeek = hasMine ? Math.min(state.myInstants.length - 1, 2) : 0;
+  const ownCard = `
+    <div class="feed-card-wrap" ${hasMine ? 'data-open-stack' : 'data-tab="kamera"'}>
+      ${Array.from({ length: ownPeek }).map((_, i) => `<div class="feed-card-peek" style="--i:${ownPeek - i}"></div>`).join('')}
+      <div class="feed-card ${hasMine ? '' : 'feed-card-empty'}">
+        ${hasMine ? `
+          <div class="feed-card-photo"><img src="${state.myInstants[0].image_data}" /></div>
+          <div class="feed-card-scrim"></div>
+          ${state.myInstants.length > 1 ? `<span class="feed-card-count">${state.myInstants.length}</span>` : ''}
+          <div class="feed-card-info">
+            <div class="who">Anda</div>
+            <div class="when">${timeLeft(state.myInstants[0].expires_at)}</div>
           </div>
-        </div>
-        <span class="story-label">Anda</span>
+        ` : `
+          <span class="feed-card-plus">${ICONS.plus}</span>
+          <div class="feed-card-info">
+            <div class="who">Anda</div>
+            <div class="when">Tambah instan</div>
+          </div>
+        `}
       </div>
-      ${groups.map(group => {
-        const items = group.items; // terbaru duluan (mengikuti urutan feed)
-        const top = items[0];
-        const username = top.profiles?.username || 'user';
-        return `
-          <div class="story-item" data-open-user="${group.authorId}">
-            <div class="story-ring story-ring-unviewed">
-              <div class="story-thumb"><img src="${top.image_data}" /></div>
-              ${items.length > 1 ? `<span class="story-count">${items.length}</span>` : ''}
-            </div>
-            <span class="story-label">@${esc(username)}</span>
-          </div>
-        `;
-      }).join('')}
     </div>
   `;
 
+  const friendCards = groups.map(group => {
+    const items = group.items; // terbaru duluan (mengikuti urutan feed)
+    const top = items[0];
+    const username = top.profiles?.username || 'user';
+    const peekCount = Math.min(items.length - 1, 2);
+    return `
+      <div class="feed-card-wrap" data-open-user="${group.authorId}">
+        ${Array.from({ length: peekCount }).map((_, i) => `<div class="feed-card-peek" style="--i:${peekCount - i}"></div>`).join('')}
+        <div class="feed-card unviewed">
+          <div class="feed-card-photo"><img src="${top.image_data}" /></div>
+          <div class="feed-card-scrim"></div>
+          ${items.length > 1 ? `<span class="feed-card-count">${items.length}</span>` : ''}
+          <span class="feed-card-badge">BARU</span>
+          <div class="feed-card-info">
+            <div class="who">@${esc(username)}</div>
+            <div class="when">${timeLeft(top.expires_at)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const carousel = `<div class="feed-carousel">${ownCard}${friendCards}</div>`;
+
   if (!groups.length) {
-    return `${storiesRow}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
+    return `${carousel}<div class="feed-empty"><span class="hud-label">FEED KOSONG</span>Belum ada Instant dari teman mutual kamu. Ajak mereka lewat tab Cari.</div>`;
   }
-  return storiesRow;
+  return carousel;
 }
 
 // Tombol relasi pertemanan: Tambah Teman / Menunggu / Terima+Tolak / Teman
