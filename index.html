@@ -1,15 +1,249 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>instants.</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171c">
+<title>Scan Barcode</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef0f3;--card:#fff;--tx:#14171c;--mu:#6b7380;--bd:#dfe3e8;--ink:#14171c;--yel:#ffd60a;--ok:#15803d;--no:#d92d20;--soft:#f5f6f8;
+font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0f13;--card:#181b21;--tx:#f1f3f6;--mu:#98a1ae;--bd:#2a2f38;--soft:#1f232b}}
+:root[data-theme="dark"]{--bg:#0d0f13;--card:#181b21;--tx:#f1f3f6;--mu:#98a1ae;--bd:#2a2f38;--soft:#1f232b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);max-width:520px;margin-inline:auto;padding:16px 16px 40px;-webkit-tap-highlight-color:transparent}
+header{display:flex;align-items:center;justify-content:space-between;margin:2px 0 14px}
+h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0}
+.tabs{display:flex;background:var(--soft);border:1px solid var(--bd);border-radius:12px;padding:3px;margin-bottom:14px}
+.tabs button{flex:1;background:none;border:0;color:var(--mu);font:inherit;font-weight:600;font-size:14px;padding:9px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--yel)}
+.tabs button:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--yel);outline-offset:2px}
+
+.stage{position:relative;aspect-ratio:3/4;max-height:58vh;width:100%;border-radius:22px;overflow:hidden;background:#14171c;color:#fff}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.stage.on video{display:block}
+.idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+.stage.on .idle{display:none}
+.idle p{margin:0;color:#aeb6c2;font-size:14px;max-width:240px;line-height:1.45}
+.frame{position:absolute;inset:14% 10%;pointer-events:none;display:none}
+.stage.on .frame{display:block}
+.frame i{position:absolute;width:34px;height:34px;border:4px solid var(--yel);transition:border-color .2s}
+.frame i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0;border-top-left-radius:14px}
+.frame i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0;border-top-right-radius:14px}
+.frame i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0;border-bottom-left-radius:14px}
+.frame i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0;border-bottom-right-radius:14px}
+.frame b{position:absolute;left:6%;right:6%;top:10%;height:2px;background:var(--yel);box-shadow:0 0 12px var(--yel);animation:sweep 2s ease-in-out infinite alternate}
+.stage.hit .frame i{border-color:#4ade80}
+@keyframes sweep{to{top:90%}}
+@media (prefers-reduced-motion:reduce){.frame b{animation:none;top:50%}}
+.bar{position:absolute;left:12px;right:12px;bottom:12px;display:none;gap:8px}
+.stage.on .bar{display:flex}
+.btn{font:inherit;font-weight:700;border:0;border-radius:14px;padding:14px 18px;cursor:pointer;background:var(--yel);color:#14171c;font-size:16px}
+.btn.ink{background:var(--ink);color:var(--yel)}
+.btn.ghost{background:rgba(20,23,28,.72);color:#fff;backdrop-filter:blur(6px)}
+.btn.full{width:100%}
+.bar .btn{flex:1;padding:12px;font-size:15px}
+#torch{display:none;flex:0 0 auto;width:52px}
+.manual{display:flex;gap:8px;margin:12px 0 4px}
+input{font:inherit;width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:16px}
+.manual .btn{padding:12px 18px;font-size:15px;background:var(--ink);color:var(--yel)}
+
+.tag{background:var(--card);border:1px solid var(--bd);border-radius:20px;overflow:hidden;margin-top:14px}
+.tag-top{background:var(--yel);color:#14171c;padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.price{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.price small{font-size:15px;font-weight:600;margin-right:3px}
+.price.none{font-size:15px;font-weight:700}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;opacity:.75}
+.tag-body{padding:16px;display:flex;gap:14px;align-items:flex-start}
+.tag-body img{width:76px;height:76px;object-fit:contain;border-radius:12px;background:#fff;border:1px solid var(--bd);flex:none}
+.name{font-size:18px;font-weight:700;line-height:1.3;margin:0 0 4px}
+.mu{color:var(--mu);font-size:13px;line-height:1.5}
+.src{display:inline-block;font-size:12px;font-weight:600;color:var(--ok);margin-top:6px}
+.form{padding:0 16px 16px;display:grid;gap:8px}
+.form h3{margin:2px 0 2px;font-size:15px}
+.skel{height:14px;border-radius:7px;background:var(--soft);margin:10px 0;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.err{color:var(--no);font-size:14px;margin:10px 2px;line-height:1.45}
+
+.search{margin-bottom:10px}
+.item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:10px;margin-bottom:8px;cursor:pointer}
+.item img,.item .ph{width:48px;height:48px;border-radius:10px;object-fit:contain;background:var(--soft);flex:none}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .p{font-weight:700;font-size:14px;white-space:nowrap}
+.del{background:none;border:0;color:var(--mu);font-size:20px;padding:6px 8px;cursor:pointer;border-radius:8px}
+.empty{text-align:center;color:var(--mu);padding:36px 16px;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:9}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+[hidden]{display:none!important}
+</style>
 </head>
 <body>
-  <div id="instants-root"></div>
-  <script type="module" src="app.js"></script>
+<header><h1>Scan Barcode</h1></header>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="t1" aria-selected="true">Scan</button>
+  <button role="tab" id="t2" aria-selected="false">Barang saya (<span id="n">0</span>)</button>
+</div>
+
+<section id="v1">
+  <div class="stage" id="stage">
+    <video id="v" playsinline muted></video>
+    <div class="idle">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ffd60a" stroke-width="1.6" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M11 8v8M15 8v8M18 8v8"/></svg>
+      <p>Arahkan kamera ke barcode di kemasan barang.</p>
+      <button class="btn" id="go">Buka kamera</button>
+    </div>
+    <div class="frame"><i></i><i></i><i></i><i></i><b></b></div>
+    <div class="bar"><button class="btn ghost" id="torch" aria-label="Senter">💡</button><button class="btn ghost" id="stop">Stop</button></div>
+  </div>
+  <div class="err" id="err"></div>
+  <div class="manual">
+    <input id="man" inputmode="numeric" placeholder="Ketik kode barcode" aria-label="Kode barcode">
+    <button class="btn" id="cek">Cari</button>
+  </div>
+  <div id="res"></div>
+</section>
+
+<section id="v2" hidden>
+  <input class="search" id="q" placeholder="Cari nama atau kode" aria-label="Cari barang">
+  <div id="list"></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+var DB={};
+try{DB=JSON.parse(localStorage.getItem('items')||'{}')}catch(e){}
+function save(){try{localStorage.setItem('items',JSON.stringify(DB))}catch(e){}}
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function rp(n){return Number(n).toLocaleString('id-ID')}
+var tt;function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},2000)}
+
+/* tabs */
+function tab(n){
+  $('v1').hidden=n!==1;$('v2').hidden=n!==2;
+  $('t1').setAttribute('aria-selected',n===1);$('t2').setAttribute('aria-selected',n===2);
+  if(n!==1)stop();if(n===2)render();
+}
+$('t1').onclick=function(){tab(1)};$('t2').onclick=function(){tab(2)};
+
+/* camera */
+var stream=null,timer=null,reader=null,scanning=false,torchOn=false;
+function stop(){
+  scanning=false;clearInterval(timer);torchOn=false;
+  if(reader){try{reader.reset()}catch(e){}reader=null}
+  var v=$('v');
+  if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}
+  if(v.srcObject){v.srcObject.getTracks().forEach(function(t){t.stop()});v.srcObject=null}
+  $('stage').classList.remove('on');$('torch').style.display='none';
+}
+async function start(){
+  $('err').textContent='';
+  if(scanning)return;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('err').textContent='Browser ini tidak mendukung kamera. Coba Chrome atau Safari terbaru.';return}
+  try{
+    scanning=true;$('stage').classList.add('on');
+    var v=$('v'),cons={video:{facingMode:{ideal:'environment'}},audio:false};
+    v.onplaying=function(){
+      try{var tr=v.srcObject.getVideoTracks()[0],c=tr.getCapabilities&&tr.getCapabilities();
+        if(c&&c.torch)$('torch').style.display='block'}catch(e){}
+    };
+    if('BarcodeDetector' in window){
+      stream=await navigator.mediaDevices.getUserMedia(cons);
+      v.srcObject=stream;await v.play();
+      var det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code']});
+      timer=setInterval(async function(){
+        try{var r=await det.detect(v);if(r.length&&scanning)found(r[0].rawValue)}catch(e){}
+      },250);
+    }else{
+      reader=new ZXing.BrowserMultiFormatReader();
+      reader.decodeFromConstraints(cons,v,function(r){if(r&&scanning)found(r.getText())});
+    }
+  }catch(e){
+    stop();
+    $('err').textContent='Kamera tidak bisa dibuka. Izinkan akses kamera di pengaturan browser, lalu coba lagi.';
+  }
+}
+$('go').onclick=start;$('stop').onclick=stop;
+$('torch').onclick=function(){
+  try{var tr=$('v').srcObject.getVideoTracks()[0];torchOn=!torchOn;tr.applyConstraints({advanced:[{torch:torchOn}]})}catch(e){}
+};
+function found(code){
+  try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}
+  var s=$('stage');s.classList.add('hit');
+  setTimeout(function(){stop();s.classList.remove('hit');show(code)},350);
+}
+
+/* result */
+function tag(code,it,extra){
+  var price=it.price?'<div class="price"><small>Rp</small>'+esc(rp(it.price))+'</div>':'<div class="price none">Harga belum diisi</div>';
+  return '<div class="tag"><div class="tag-top">'+price+'<div class="code">'+esc(code)+'</div></div>'
+   +'<div class="tag-body">'+(it.img?'<img src="'+esc(it.img)+'" alt="">':'')
+   +'<div><p class="name">'+esc(it.name)+'</p>'+(it.note?'<div class="mu">'+esc(it.note)+'</div>':'')+(extra||'')+'</div></div>';
+}
+async function show(code){
+  code=String(code).trim();if(!code)return;
+  var it=DB[code],r=$('res');
+  if(it){r.innerHTML=tag(code,it)+'</div>';r.scrollIntoView({behavior:'smooth'});return}
+  r.innerHTML='<div class="tag"><div class="tag-body" style="display:block"><div class="skel" style="width:70%"></div><div class="skel" style="width:45%"></div><div class="mu">Mencari di Open Food Facts…</div></div></div>';
+  r.scrollIntoView({behavior:'smooth'});
+  var off=null;
+  try{
+    var rs=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,quantity,image_front_small_url,nutriscore_grade,ingredients_text');
+    var j=await rs.json();
+    if(j.status===1&&j.product&&j.product.product_name)off=j.product;
+  }catch(e){}
+  var h,nm='';
+  if(off){
+    nm=[off.brands&&off.brands.split(',')[0],off.product_name,off.quantity].filter(Boolean).join(' ');
+    var info=[];
+    if(off.nutriscore_grade&&/^[a-e]$/i.test(off.nutriscore_grade))info.push('Nutri-Score '+off.nutriscore_grade.toUpperCase());
+    if(off.ingredients_text)info.push('Komposisi: '+off.ingredients_text.slice(0,240));
+    h=tag(code,{name:nm,img:off.image_front_small_url,note:info.join('. ')},'<span class="src">✓ Ditemukan di Open Food Facts</span>');
+  }else{
+    h=tag(code,{name:'Barang belum dikenal',note:'Tidak ada di Open Food Facts. Isi datanya di bawah, nanti muncul otomatis saat discan lagi.'});
+  }
+  h+='<div class="form"><h3>'+(off?'Simpan dan tambah harga':'Daftarkan barang')+'</h3>'
+   +'<input id="fn" placeholder="Nama barang" value="'+esc(nm)+'"><input id="fp" inputmode="numeric" placeholder="Harga (Rp)"><input id="fo" placeholder="Keterangan (opsional)">'
+   +'<button class="btn ink full" id="sv">Simpan barang</button></div></div>';
+  r.innerHTML=h;
+  $('sv').onclick=function(){
+    var n=$('fn').value.trim();if(!n){$('fn').focus();return}
+    DB[code]={name:n,price:$('fp').value.replace(/\D/g,''),note:$('fo').value.trim(),img:off?off.image_front_small_url||'':''};
+    save();render();show(code);toast('Tersimpan');
+  };
+}
+$('cek').onclick=function(){show($('man').value)};
+$('man').onkeydown=function(e){if(e.key==='Enter')show($('man').value)};
+
+/* saved list */
+function render(){
+  var k=Object.keys(DB);$('n').textContent=k.length;
+  var q=($('q').value||'').toLowerCase();
+  k=k.filter(function(c){return !q||c.indexOf(q)>-1||DB[c].name.toLowerCase().indexOf(q)>-1});
+  if(!k.length){$('list').innerHTML='<div class="empty">'+(q?'Tidak ada yang cocok.':'Belum ada barang tersimpan.<br>Scan barang, lalu simpan supaya muncul di sini.')+'</div>';return}
+  $('list').innerHTML=k.map(function(c){var d=DB[c];
+    return '<div class="item" data-o="'+esc(c)+'">'+(d.img?'<img src="'+esc(d.img)+'" alt="">':'<div class="ph"></div>')
+    +'<div class="t"><b>'+esc(d.name)+'</b><span class="code mu">'+esc(c)+'</span></div>'
+    +(d.price?'<div class="p">Rp '+esc(rp(d.price))+'</div>':'')
+    +'<button class="del" data-d="'+esc(c)+'" aria-label="Hapus">✕</button></div>'}).join('');
+  $('list').querySelectorAll('.item').forEach(function(el){
+    el.onclick=function(e){
+      var d=e.target.getAttribute('data-d');
+      if(d){delete DB[d];save();render();$('res').innerHTML='';toast('Dihapus');return}
+      tab(1);show(el.getAttribute('data-o'));
+    };
+  });
+}
+$('q').oninput=render;
+render();
+</script>
 </body>
 </html>
